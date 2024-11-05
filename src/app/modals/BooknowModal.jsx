@@ -260,6 +260,41 @@ export function BooknowModal({ showBooknowModal, setShowBooknowModal }) {
     }
   };
 
+  // Breed options for Dog and Cat types
+  const dogBreeds = [
+    "Labrador Retriever",
+    "German Shepherd",
+    "Golden Retriever",
+    "Bulldog",
+    "Poodle",
+    "Beagle",
+    "Rottweiler",
+    "Dachshund",
+    "Shih Tzu",
+    "Boxer",
+    "Others",
+  ];
+
+  const catBreeds = [
+    "Siamese",
+    "Persian",
+    "Maine Coon",
+    "Bengal",
+    "Sphynx",
+    "Ragdoll",
+    "Scottish Fold",
+    "Abyssinian",
+    "Burmese",
+    "Russian Blue",
+    "Others",
+  ];
+
+  const getSpeciesOptions = () => {
+    if (petInfo.type === "Dog") return dogBreeds;
+    if (petInfo.type === "Cat") return catBreeds;
+    return [];
+  };
+
   return (
     <>
       <Dialog open={showBooknowModal} onOpenChange={setShowBooknowModal}>
@@ -342,36 +377,75 @@ export function BooknowModal({ showBooknowModal, setShowBooknowModal }) {
                       onChange={handleInputChange(setPetInfo)}
                       placeholder="Enter pet's name"
                     />
+                    {/* Pet Type Selection */}
                     <SelectField
                       label="Pet Type"
                       options={["Dog", "Cat"]}
-                      onChange={(value) =>
+                      onChange={(value) => {
                         handleInputChange(setPetInfo)({
                           target: { name: "type", value },
+                        });
+                        setPetInfo((prev) => ({ ...prev, species: "" })); // Reset species on type change
+                      }}
+                    />
+
+                    {/* Pet Species Dropdown - Disabled until Pet Type is selected */}
+                    <SelectField
+                      label="Pet Species"
+                      options={getSpeciesOptions()}
+                      onChange={(value) =>
+                        handleInputChange(setPetInfo)({
+                          target: { name: "species", value },
                         })
                       }
-                    />
-                    <InputField
-                      id="pet-species"
-                      name="species"
-                      label="Pet Species"
-                      icon={<PawPrint />}
-                      value={petInfo.species}
-                      onChange={handleInputChange(setPetInfo)}
-                      placeholder="Enter pet's species"
+                      disabled={!petInfo.type}
+                      placeholder={
+                        !petInfo.type
+                          ? "Select pet type first"
+                          : "Select species"
+                      }
                     />
                   </div>
 
                   <div className="space-y-4">
-                    <InputField
-                      id="pet-age"
-                      name="age"
-                      label="Pet Age"
-                      icon={<CalendarIcon />}
-                      value={petInfo.age}
-                      onChange={handleInputChange(setPetInfo)}
-                      placeholder="Enter pet's age"
-                    />
+                    {/* Combined Age with Unit */}
+                    <Label htmlFor="age">Pet Age</Label>
+                    <div className="flex items-center gap-2">
+                      <Input
+                        id="age"
+                        name="age"
+                        type="number"
+                        value={petInfo.age || ""}
+                        onChange={(e) =>
+                          setPetInfo((prev) => ({
+                            ...prev,
+                            age: e.target.value,
+                          }))
+                        }
+                        placeholder="Enter age"
+                        className="flex-grow"
+                      />
+                      <Select
+                        onValueChange={(value) =>
+                          setPetInfo((prev) => ({ ...prev, ageUnit: value }))
+                        }
+                        className="min-w-[100px]"
+                      >
+                        <SelectTrigger>
+                          <SelectValue placeholder="Unit" />
+                        </SelectTrigger>
+                        <SelectContent>
+                          {["Day(s)", "Week(s)", "Month(s)", "Year(s)"].map(
+                            (unit) => (
+                              <SelectItem key={unit} value={unit}>
+                                {unit}
+                              </SelectItem>
+                            )
+                          )}
+                        </SelectContent>
+                      </Select>
+                    </div>
+
                     <InputField
                       id="pet-photo"
                       name="photo"
@@ -389,7 +463,6 @@ export function BooknowModal({ showBooknowModal, setShowBooknowModal }) {
                       type="date"
                       min={currentDate}
                     />
-                    {dateError && <p className="text-red-500">{dateError}</p>}
                   </div>
                 </div>
 
@@ -569,7 +642,9 @@ function SelectField({ label, options, onChange, disabled, placeholder }) {
       <Label>{label}</Label>
       <Select onValueChange={onChange} disabled={disabled}>
         <SelectTrigger>
-          <SelectValue placeholder={placeholder || `Select ${label.toLowerCase()}`} />
+          <SelectValue
+            placeholder={placeholder || `Select ${label.toLowerCase()}`}
+          />
         </SelectTrigger>
         <SelectContent>
           {options.map((option) => (
@@ -582,5 +657,3 @@ function SelectField({ label, options, onChange, disabled, placeholder }) {
     </div>
   );
 }
-
-
