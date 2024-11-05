@@ -31,11 +31,9 @@ import {
   Clock,
   Loader2,
 } from "lucide-react";
-import { createUser } from "../../lib/appwrite";
+import { createUser, uploadPhoto, savePetToDatabase} from "../../lib/appwrite";
 import { toast } from "react-hot-toast";
-import { saveAppointmentToDatabase } from "../../lib/appwrite";
-import { uploadPhoto } from "../../lib/appwrite";
-import { savePetToDatabase } from "../../lib/appwrite";
+import { saveAppointmentToDatabase } from "../../lib/appwrite"
 
 export function BooknowModal({ showBooknowModal, setShowBooknowModal }) {
   const [step, setStep] = useState(1);
@@ -125,13 +123,12 @@ export function BooknowModal({ showBooknowModal, setShowBooknowModal }) {
     const selectedDate = e.target.value;
     setPetInfo((prev) => ({
       ...prev,
-      date: prev.date.includes(selectedDate)
-        ? prev.date
-        : [...prev.date, selectedDate],
+      date: [selectedDate],
     }));
-
+  
     if (selectedDate < currentDate) {
       setDateError("You can't select a past date.");
+      toast.error("You can't select a past date."); // Show toast notification
     } else {
       setDateError("");
     }
@@ -141,12 +138,10 @@ export function BooknowModal({ showBooknowModal, setShowBooknowModal }) {
     const selectedTime = e.target.value;
     setPetInfo((prev) => ({
       ...prev,
-      time: prev.time.includes(selectedTime)
-        ? prev.time
-        : [...prev.time, selectedTime],
+      time: [selectedTime],
     }));
 
-    if (petInfo.date.includes(currentDate) && selectedTime < currentTime) {
+    if (petInfo.date[0] === currentDate && selectedTime < currentTime) {
       setTimeError("You can't select a past time.");
     } else {
       setTimeError("");
@@ -259,19 +254,20 @@ export function BooknowModal({ showBooknowModal, setShowBooknowModal }) {
   return (
     <>
       <Dialog open={showBooknowModal} onOpenChange={setShowBooknowModal}>
-        <DialogContent className="sm:max-w-[425px] bg-gradient-to-b from-blue-100 to-green-100">
-          <DialogHeader>
-            <DialogTitle className="text-2xl font-bold flex items-center justify-center gap-2">
-              <PawPrint className="h-6 w-6 text-primary" />
-              Pet-care Appointment
-            </DialogTitle>
-          </DialogHeader>
+        <DialogContent className="sm:max-w-[425px] bg-gradient-to-b from-blue-100 to-green-100 p-6">
+  <DialogHeader>
+    <DialogTitle className="text-2xl font-bold flex items-center justify-center gap-2">
+      <PawPrint className="h-6 w-6 text-primary" />
+      Pet-care Appointment
+    </DialogTitle>
+  </DialogHeader>
 
           {error && <p className="text-red-500 mb-4">{error}</p>}
 
           <form className="space-y-4 py-4" onSubmit={handleSubmit}>
             {step === 1 ? (
               <>
+              
                 <InputField
                   id="name"
                   name="name"
@@ -288,7 +284,7 @@ export function BooknowModal({ showBooknowModal, setShowBooknowModal }) {
                   icon={<AtSign />}
                   value={personalInfo.email}
                   onChange={handleInputChange(setPersonalInfo)}
-                  placeholder="Enter your email"
+                  placeholder="Enter your mail"
                 />
                 <PasswordField
                   id="password"
@@ -298,6 +294,7 @@ export function BooknowModal({ showBooknowModal, setShowBooknowModal }) {
                   onChange={handleInputChange(setPersonalInfo)}
                   showPassword={showPassword}
                   toggleVisibility={togglePasswordVisibility}
+                  placeholder="Enter your password"
                 />
                 <InputField
                   id="phone"
@@ -327,127 +324,129 @@ export function BooknowModal({ showBooknowModal, setShowBooknowModal }) {
             ) : (
               <>
                 <div className="grid grid-cols-1 sm:grid-cols-2 gap-6">
-                  <div className="space-y-4">
-                    <InputField
-                      id="pet-name"
-                      name="name"
-                      label="Pet Name"
-                      icon={<PawPrint />}
-                      value={petInfo.name}
-                      onChange={handleInputChange(setPetInfo)}
-                      placeholder="Enter pet's name"
-                    />
-                    <SelectField
-                      label="Pet Type"
-                      options={["Dog", "Cat"]}
-                      onChange={(value) =>
-                        handleInputChange(setPetInfo)({
-                          target: { name: "type", value },
-                        })
-                      }
-                    />
-                    <InputField
-                      id="pet-species"
-                      name="species"
-                      label="Pet Species"
-                      icon={<PawPrint />}
-                      value={petInfo.species}
-                      onChange={handleInputChange(setPetInfo)}
-                      placeholder="Enter pet's species"
-                    />
-                  </div>
+          <div className="space-y-4">
+            <InputField
+              id="pet-name"
+              name="name"
+              label="Pet Name"
+              icon={<PawPrint />}
+              value={petInfo.name}
+              onChange={handleInputChange(setPetInfo)}
+              placeholder="Enter pet's name"
+            />
+            <SelectField
+              label="Pet Type"
+              options={["Dog", "Cat"]}
+              onChange={(value) =>
+                handleInputChange(setPetInfo)({
+                  target: { name: "type", value },
+                })
+              }
+            />
+            <InputField
+              id="pet-species"
+              name="species"
+              label="Pet Species"
+              icon={<PawPrint />}
+              value={petInfo.species}
+              onChange={handleInputChange(setPetInfo)}
+              placeholder="Enter pet's species"
+            />
+          </div>
 
-                  <div className="space-y-4">
-                    <InputField
-                      id="pet-age"
-                      name="age"
-                      label="Pet Age"
-                      icon={<CalendarIcon />}
-                      value={petInfo.age}
-                      onChange={handleInputChange(setPetInfo)}
-                      placeholder="Enter pet's age"
-                    />
-                    <InputField
-                      id="pet-photo"
-                      name="photo"
-                      label="Pet Photo"
-                      icon={<Camera />}
-                      type="file"
-                      onChange={handleInputChange(setPetInfo)}
-                    />
-                    <InputField
-                      id="date"
-                      name="date"
-                      label="Appointment Date"
-                      icon={<CalendarIcon />}
-                      value={petInfo.date}
-                      onChange={handleDateChange}
-                      type="date"
-                      min={currentDate}
-                    />
-                    {dateError && <p className="text-red-500">{dateError}</p>}
-                  </div>
-                </div>
+          <div className="space-y-4">
+            <InputField
+              id="pet-age"
+              name="age"
+              label="Pet Age"
+              icon={<CalendarIcon />}
+              value={petInfo.age}
+              onChange={handleInputChange(setPetInfo)}
+              placeholder="Enter pet's age"
+            />
+            <InputField
+              id="pet-photo"
+              name="photo"
+              label="Pet Photo"
+              icon={<Camera />}
+              type="file"
+              onChange={handleInputChange(setPetInfo)}
+            />
+            <InputField
+              id="date"
+              name="date"
+              label="Appointment Date"
+              icon={<CalendarIcon />}
+              value={petInfo.date}
+              onChange={handleDateChange}
+              type="date"
+              min={currentDate}
+            />
+            {dateError && <p className="text-red-500">{dateError}</p>}
+          </div>
+        </div>
 
-                <InputField
-                  id="time"
-                  name="time"
-                  label="Appointment Time"
-                  icon={<Clock />}
-                  value={petInfo.time}
-                  onChange={handleTimeChange}
-                  type="time"
-                  min={petInfo.date === currentDate ? currentTime : "00:00"}
-                />
-                {timeError && <p className="text-red-500">{timeError}</p>}
-                <SelectField
-                  label="Pet Services"
-                  options={[
-                    "Pet Boarding",
-                    "Pet Grooming",
-                    "Pet Veterinary",
-                    "Pet Training",
-                  ]}
-                  onChange={(value) => handleServiceChange(value)}
-                />
+        <div className="grid grid-cols-1 sm:grid-cols-2 gap-6 mt-4">
+          <InputField
+            id="time"
+            name="time"
+            label="Appointment Time"
+            icon={<Clock />}
+            value={petInfo.time[0] || ''} // Display selected time or default
+            onChange={handleTimeChange}
+            type="time"
+            min={petInfo.date[0] === currentDate ? currentTime : "00:00"}
+          />
+          {timeError && <p className="text-red-500">{timeError}</p>}
 
-                {/* Show the clinic and room selection for specific services */}
-                {["Pet Boarding", "Pet Grooming", "Pet Veterinary"].includes(
-                  petInfo.services[0]
-                ) && (
-                  <>
-                    <SelectField
-                      label="Select Clinic"
-                      options={["Clinic 1", "Clinic 2"]}
-                      onChange={(value) => handleClinicChange(value)}
-                    />
-                    <SelectField
-                      label="Select Room"
-                      options={["Room 1", "Room 2", "Room 3", "Room 4"]}
-                      onChange={(value) => handleRoomChange(value)}
-                    />
-                  </>
-                )}
+          <SelectField
+            label="Pet Services"
+            options={[
+              "Pet Boarding",
+              "Pet Grooming",
+              "Pet Veterinary",
+              "Pet Training",
+            ]}
+            onChange={handleServiceChange}
+          />
 
-                <div className="mt-4">
-                  <h3 className="text-lg font-bold">Payment Summary</h3>
-                  <p className="text-xl">Total Payment: ₱{payment}</p>
-                </div>
+          {["Pet Boarding", "Pet Grooming", "Pet Veterinary"].includes(
+            petInfo.services[0]
+          ) && (
+            <>
+              <SelectField
+                label="Select Clinic"
+                options={["Clinic 1", "Clinic 2"]}
+                onChange={handleClinicChange}
+              />
+              <SelectField
+                label="Select Room"
+                options={["Room 1", "Room 2", "Room 3", "Room 4"]}
+                onChange={handleRoomChange}
+              />
+            </>
+          )}
+        </div>
 
-                <div className="flex flex-col gap-3 sm:flex-row">
-                  <Button
-                    type="button"
-                    variant="outline"
-                    onClick={handlePreviousStep}
-                  >
-                    Back
-                  </Button>
-                  <Button type="submit">Submit</Button>
-                </div>
-              </>
-            )}
-          </form>
-        </DialogContent>
+        <div className="mt-4">
+          <h3 className="text-lg font-bold">Payment Summary</h3>
+          <p className="text-xl">Total Payment: ₱{payment}</p>
+        </div>
+
+        <div className="flex flex-col gap-3 sm:flex-row">
+          <Button
+            type="button"
+            variant="outline"
+            onClick={handlePreviousStep}
+          >
+            Back
+          </Button>
+          <Button type="submit">Submit</Button>
+        </div>
+      </>
+    )}
+  </form>
+</DialogContent>
       </Dialog>
 
       <LoadingModal isOpen={isLoading} />
