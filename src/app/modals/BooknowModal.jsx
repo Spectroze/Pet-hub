@@ -44,6 +44,7 @@ export function BooknowModal({ showBooknowModal, setShowBooknowModal }) {
   const [timeError, setTimeError] = useState("");
   const [payment, setPayment] = useState(0);
   const [isLoading, setIsLoading] = useState(false);
+  const [missingFields, setMissingFields] = useState([]); // Track missing fields
   const router = useRouter();
 
   const [personalInfo, setPersonalInfo] = useState({
@@ -99,26 +100,54 @@ export function BooknowModal({ showBooknowModal, setShowBooknowModal }) {
     }
   }, [petInfo.services]);
 
-  const handleInputChange = (setState) => (e) => {
-    const { name, value, files } = e.target;
-    setState((prev) =>
-      name === "ownerPhoto" || name === "photo"
-        ? { ...prev, [name]: files[0] }
-        : { ...prev, [name]: value }
-    );
+   // Validation for Phone Number Format
+   const validatePhoneNumber = (phone) => {
+    const isValid =
+      /^09\d{9}$/.test(phone) || // Format: 09XXXXXXXXX
+      /^\+63\d{10}$/.test(phone); // Format: +63XXXXXXXXX
+    return isValid;
+  };
 
-    if (name === "date") {
-      setDateError("");
-    }
-    if (name === "time") {
-      setTimeError("");
+  // Handle input change with phone validation
+  const handleInputChange = (setState) => (e) => {
+    const { name, value } = e.target;
+
+    // Only allow numeric input for the phone number
+    if (name === "phone") {
+      // If the user tries to input non-numeric or length > 11, prevent it
+      if (!/^\d*$/.test(value) || value.length > 11) return;
+
+      // Ensure the phone starts with "09" and is no more than 11 digits
+      if (value.startsWith("0")) {
+        setState((prev) => ({ ...prev, [name]: value }));
+      } else if (value === "") {
+        // Allow the user to clear the field
+        setState((prev) => ({ ...prev, [name]: value }));
+      } else {
+        // Notify user that the phone number should start with "09"
+        toast.error("Phone number must start with '09' and be 11 digits long.");
+      }
+    } else {
+      // For other fields, update the state normally
+      setState((prev) => ({ ...prev, [name]: value }));
     }
   };
 
   const togglePasswordVisibility = () => setShowPassword((prev) => !prev);
 
-  const handleNextStep = () => setStep(2);
-  const handlePreviousStep = () => setStep(1);
+
+  const handleNextStep = () => {
+    const requiredFields = ["name", "email", "password", "phone"];
+    const emptyFields = requiredFields.filter(
+      (field) => !personalInfo[field] || (field === "phone" && personalInfo.phone.length !== 11)
+    );
+
+    if (emptyFields.length > 0) {
+      toast.error(`Please fill out all required fields: ${emptyFields.join(", ")}`);
+    } else {
+      setStep(2);
+    }
+  };
 
   const handleDateChange = (e) => {
     const selectedDate = e.target.value;
@@ -305,6 +334,11 @@ export function BooknowModal({ showBooknowModal, setShowBooknowModal }) {
               Pet-care Appointment
             </DialogTitle>
           </DialogHeader>
+          {missingFields.length > 0 && (
+            <div className="text-red-500 mb-4">
+              {`Please fill out the missing fields: ${missingFields.join(", ")}`}
+            </div>
+          )}
 
           {error && <p className="text-red-500 mb-4">{error}</p>}
 
@@ -318,7 +352,7 @@ export function BooknowModal({ showBooknowModal, setShowBooknowModal }) {
                   icon={<PawPrint />}
                   value={personalInfo.name}
                   onChange={handleInputChange(setPersonalInfo)}
-                  placeholder="Enter your name"
+                  placeholder="Enter your Name"
                 />
                 <InputField
                   id="email"
@@ -327,9 +361,9 @@ export function BooknowModal({ showBooknowModal, setShowBooknowModal }) {
                   icon={<AtSign />}
                   value={personalInfo.email}
                   onChange={handleInputChange(setPersonalInfo)}
-                  placeholder="Enter your mail"
+                  placeholder="Enter your Email Address"
                 />
-                <PasswordField
+                   <PasswordField
                   id="password"
                   name="password"
                   label="Password"
@@ -339,15 +373,16 @@ export function BooknowModal({ showBooknowModal, setShowBooknowModal }) {
                   toggleVisibility={togglePasswordVisibility}
                   placeholder="Enter your password"
                 />
-                <InputField
+                 <InputField
                   id="phone"
                   name="phone"
-                  label="Phone"
+                  label="Phone Number"
                   icon={<Phone />}
                   value={personalInfo.phone}
                   onChange={handleInputChange(setPersonalInfo)}
-                  placeholder="Enter your phone number"
+                  placeholder="09XXXXXXXXX"
                 />
+                  
                 <InputField
                   id="owner-photo"
                   name="ownerPhoto"
@@ -524,7 +559,7 @@ export function BooknowModal({ showBooknowModal, setShowBooknowModal }) {
                   <Button
                     type="button"
                     variant="outline"
-                    onClick={handlePreviousStep}
+                    onClick={handleNextStep}
                   >
                     Back
                   </Button>
@@ -614,6 +649,7 @@ function PasswordField({
   onChange,
   showPassword,
   toggleVisibility,
+  placeholder,
 }) {
   return (
     <InputField
@@ -623,6 +659,7 @@ function PasswordField({
       type={showPassword ? "text" : "password"}
       value={value}
       onChange={onChange}
+      placeholder={placeholder} 
       icon={<Lock />}
     >
       <button
