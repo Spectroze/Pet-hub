@@ -31,9 +31,10 @@ import {
   Clock,
   Loader2,
 } from "lucide-react";
-import { createUser, uploadPhoto, savePetToDatabase} from "../../lib/appwrite";
-import { toast } from "react-hot-toast";
-import { saveAppointmentToDatabase } from "../../lib/appwrite"
+import { createUser, uploadPhoto, savePetToDatabase } from "../../lib/appwrite";
+import { ToastContainer, toast } from "react-toastify";
+import "react-toastify/dist/ReactToastify.css"; // Import the CSS for react-toastify
+import { saveAppointmentToDatabase } from "../../lib/appwrite";
 
 export function BooknowModal({ showBooknowModal, setShowBooknowModal }) {
   const [step, setStep] = useState(1);
@@ -125,10 +126,9 @@ export function BooknowModal({ showBooknowModal, setShowBooknowModal }) {
       ...prev,
       date: [selectedDate],
     }));
-  
+
     if (selectedDate < currentDate) {
-      setDateError("You can't select a past date.");
-      toast.error("You can't select a past date."); // Show toast notification
+      toast.error("You can't select a past date."); // Display toast notification only
     } else {
       setDateError("");
     }
@@ -160,10 +160,19 @@ export function BooknowModal({ showBooknowModal, setShowBooknowModal }) {
   const handleClinicChange = (value) => {
     setPetInfo((prev) => ({
       ...prev,
-      clinic: prev.clinic.includes(value)
-        ? prev.clinic
-        : [...prev.clinic, value],
+      clinic: [value], // Store selected clinic
+      room: [], // Reset room selection when clinic changes
     }));
+  };
+
+  // Dynamically determine room options based on the selected clinic
+  const getRoomOptions = () => {
+    if (petInfo.clinic[0] === "Clinic 1") {
+      return ["Room 1", "Room 2", "Room 3", "Room 4"];
+    } else if (petInfo.clinic[0] === "Clinic 2") {
+      return ["Room A", "Room B", "Room C", "Room D"];
+    }
+    return [];
   };
 
   const handleRoomChange = (value) => {
@@ -255,19 +264,18 @@ export function BooknowModal({ showBooknowModal, setShowBooknowModal }) {
     <>
       <Dialog open={showBooknowModal} onOpenChange={setShowBooknowModal}>
         <DialogContent className="sm:max-w-[425px] bg-gradient-to-b from-blue-100 to-green-100 p-6">
-  <DialogHeader>
-    <DialogTitle className="text-2xl font-bold flex items-center justify-center gap-2">
-      <PawPrint className="h-6 w-6 text-primary" />
-      Pet-care Appointment
-    </DialogTitle>
-  </DialogHeader>
+          <DialogHeader>
+            <DialogTitle className="text-2xl font-bold flex items-center justify-center gap-2">
+              <PawPrint className="h-6 w-6 text-primary" />
+              Pet-care Appointment
+            </DialogTitle>
+          </DialogHeader>
 
           {error && <p className="text-red-500 mb-4">{error}</p>}
 
           <form className="space-y-4 py-4" onSubmit={handleSubmit}>
             {step === 1 ? (
               <>
-              
                 <InputField
                   id="name"
                   name="name"
@@ -324,129 +332,135 @@ export function BooknowModal({ showBooknowModal, setShowBooknowModal }) {
             ) : (
               <>
                 <div className="grid grid-cols-1 sm:grid-cols-2 gap-6">
-          <div className="space-y-4">
-            <InputField
-              id="pet-name"
-              name="name"
-              label="Pet Name"
-              icon={<PawPrint />}
-              value={petInfo.name}
-              onChange={handleInputChange(setPetInfo)}
-              placeholder="Enter pet's name"
-            />
-            <SelectField
-              label="Pet Type"
-              options={["Dog", "Cat"]}
-              onChange={(value) =>
-                handleInputChange(setPetInfo)({
-                  target: { name: "type", value },
-                })
-              }
-            />
-            <InputField
-              id="pet-species"
-              name="species"
-              label="Pet Species"
-              icon={<PawPrint />}
-              value={petInfo.species}
-              onChange={handleInputChange(setPetInfo)}
-              placeholder="Enter pet's species"
-            />
-          </div>
+                  <div className="space-y-4">
+                    <InputField
+                      id="pet-name"
+                      name="name"
+                      label="Pet Name"
+                      icon={<PawPrint />}
+                      value={petInfo.name}
+                      onChange={handleInputChange(setPetInfo)}
+                      placeholder="Enter pet's name"
+                    />
+                    <SelectField
+                      label="Pet Type"
+                      options={["Dog", "Cat"]}
+                      onChange={(value) =>
+                        handleInputChange(setPetInfo)({
+                          target: { name: "type", value },
+                        })
+                      }
+                    />
+                    <InputField
+                      id="pet-species"
+                      name="species"
+                      label="Pet Species"
+                      icon={<PawPrint />}
+                      value={petInfo.species}
+                      onChange={handleInputChange(setPetInfo)}
+                      placeholder="Enter pet's species"
+                    />
+                  </div>
 
-          <div className="space-y-4">
-            <InputField
-              id="pet-age"
-              name="age"
-              label="Pet Age"
-              icon={<CalendarIcon />}
-              value={petInfo.age}
-              onChange={handleInputChange(setPetInfo)}
-              placeholder="Enter pet's age"
-            />
-            <InputField
-              id="pet-photo"
-              name="photo"
-              label="Pet Photo"
-              icon={<Camera />}
-              type="file"
-              onChange={handleInputChange(setPetInfo)}
-            />
-            <InputField
-              id="date"
-              name="date"
-              label="Appointment Date"
-              icon={<CalendarIcon />}
-              value={petInfo.date}
-              onChange={handleDateChange}
-              type="date"
-              min={currentDate}
-            />
-            {dateError && <p className="text-red-500">{dateError}</p>}
-          </div>
-        </div>
+                  <div className="space-y-4">
+                    <InputField
+                      id="pet-age"
+                      name="age"
+                      label="Pet Age"
+                      icon={<CalendarIcon />}
+                      value={petInfo.age}
+                      onChange={handleInputChange(setPetInfo)}
+                      placeholder="Enter pet's age"
+                    />
+                    <InputField
+                      id="pet-photo"
+                      name="photo"
+                      label="Pet Photo"
+                      icon={<Camera />}
+                      type="file"
+                      onChange={handleInputChange(setPetInfo)}
+                    />
+                    <InputField
+                      id="date"
+                      name="date"
+                      label="Appointment Date"
+                      value={petInfo.date}
+                      onChange={handleDateChange}
+                      type="date"
+                      min={currentDate}
+                    />
+                    {dateError && <p className="text-red-500">{dateError}</p>}
+                  </div>
+                </div>
 
-        <div className="grid grid-cols-1 sm:grid-cols-2 gap-6 mt-4">
-          <InputField
-            id="time"
-            name="time"
-            label="Appointment Time"
-            icon={<Clock />}
-            value={petInfo.time[0] || ''} // Display selected time or default
-            onChange={handleTimeChange}
-            type="time"
-            min={petInfo.date[0] === currentDate ? currentTime : "00:00"}
-          />
-          {timeError && <p className="text-red-500">{timeError}</p>}
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-6 mt-4">
+                  <InputField
+                    id="time"
+                    name="time"
+                    label="Appointment Time"
+                    value={petInfo.time[0] || ""} // Display selected time or default
+                    onChange={handleTimeChange}
+                    type="time"
+                    min={
+                      petInfo.date[0] === currentDate ? currentTime : "00:00"
+                    }
+                  />
 
-          <SelectField
-            label="Pet Services"
-            options={[
-              "Pet Boarding",
-              "Pet Grooming",
-              "Pet Veterinary",
-              "Pet Training",
-            ]}
-            onChange={handleServiceChange}
-          />
+                  <SelectField
+                    label="Pet Services"
+                    options={[
+                      "Pet Boarding",
+                      "Pet Grooming",
+                      "Pet Veterinary",
+                      "Pet Training",
+                    ]}
+                    onChange={handleServiceChange}
+                  />
 
-          {["Pet Boarding", "Pet Grooming", "Pet Veterinary"].includes(
-            petInfo.services[0]
-          ) && (
-            <>
-              <SelectField
-                label="Select Clinic"
-                options={["Clinic 1", "Clinic 2"]}
-                onChange={handleClinicChange}
-              />
-              <SelectField
-                label="Select Room"
-                options={["Room 1", "Room 2", "Room 3", "Room 4"]}
-                onChange={handleRoomChange}
-              />
-            </>
-          )}
-        </div>
+                  {/* Clinic and Room selection with room dependency on clinic */}
+                  {["Pet Boarding", "Pet Grooming", "Pet Veterinary"].includes(
+                    petInfo.services[0]
+                  ) && (
+                    <>
+                      <SelectField
+                        label="Select Clinic"
+                        options={["Clinic 1", "Clinic 2"]}
+                        onChange={handleClinicChange}
+                      />
+                      <SelectField
+                        label="Select Room"
+                        options={getRoomOptions()}
+                        onChange={handleRoomChange}
+                        disabled={!petInfo.clinic.length} // Disable if no clinic selected
+                        placeholder={
+                          !petInfo.clinic.length
+                            ? "Select clinic first"
+                            : "Select room"
+                        }
+                      />
+                    </>
+                  )}
+                </div>
 
-        <div className="mt-4">
-          <h3 className="text-lg font-bold">Payment Summary</h3>
-          <p className="text-xl">Total Payment: ₱{payment}</p>
-        </div>
+                <div className="mt-4">
+                  <h3 className="text-lg font-bold">Payment Summary</h3>
+                  <p className="text-xl">Total Payment: ₱{payment}</p>
+                </div>
 
-        <div className="flex flex-col gap-3 sm:flex-row">
-          <Button
-            type="button"
-            variant="outline"
-            onClick={handlePreviousStep}
-          >
-            Back
-          </Button>
-          <Button type="submit">Submit</Button>
-        </div>
-      </>
-    )}
-  </form>
-</DialogContent>
+                <div className="flex flex-col gap-3 sm:flex-row">
+                  <Button
+                    type="button"
+                    variant="outline"
+                    onClick={handlePreviousStep}
+                  >
+                    Back
+                  </Button>
+                  <Button type="submit">Submit</Button>
+                </div>
+              </>
+            )}
+          </form>
+        </DialogContent>
       </Dialog>
 
       <LoadingModal isOpen={isLoading} />
@@ -549,13 +563,13 @@ function PasswordField({
   );
 }
 
-function SelectField({ label, options, onChange }) {
+function SelectField({ label, options, onChange, disabled, placeholder }) {
   return (
     <div className="space-y-2">
       <Label>{label}</Label>
-      <Select onValueChange={onChange}>
+      <Select onValueChange={onChange} disabled={disabled}>
         <SelectTrigger>
-          <SelectValue placeholder={`Select ${label.toLowerCase()}`} />
+          <SelectValue placeholder={placeholder || `Select ${label.toLowerCase()}`} />
         </SelectTrigger>
         <SelectContent>
           {options.map((option) => (
@@ -568,3 +582,5 @@ function SelectField({ label, options, onChange }) {
     </div>
   );
 }
+
+
