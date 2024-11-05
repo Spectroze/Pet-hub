@@ -1,4 +1,4 @@
-import React, { useState } from "react";
+import React, { useState, useEffect } from "react";
 import {
   Dialog,
   DialogContent,
@@ -16,37 +16,73 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 import { saveAppointmentToDatabase, getCurrentUserId } from "@/lib/appwrite";
+import { Client, Databases } from "appwrite";
 
-export default function NewAppointmentModal({ isOpen, onClose }) {
-  const [petName, setPetName] = useState("");
+// Appwrite configuration
+const appwriteConfig = {
+  endpoint: "https://cloud.appwrite.io/v1",
+  projectId: "67094c000023e950be96",
+  databaseId: "670a040f000893eb8e06",
+  petCollectionId: "670ab2db00351bc09a92",
+};
+
+// Appwrite client and database setup
+const client = new Client()
+  .setEndpoint(appwriteConfig.endpoint)
+  .setProject(appwriteConfig.projectId);
+const databases = new Databases(client);
+
+export default function NewAppointmentModal({ isOpen, onClose, pet }) {
   const [services, setServices] = useState(["Pet Training"]);
   const [date, setDate] = useState("");
   const [time, setTime] = useState("");
-  const [species, setSpecies] = useState("");
-  const [petType, setPetType] = useState("");
-  const [age, setAge] = useState("");
   const [clinic, setClinic] = useState("");
   const [room, setRoom] = useState("");
   const [payment, setPayment] = useState("1000");
+  const [petDetails, setPetDetails] = useState({
+    petName: "N/A",
+    petType: "N/A",
+    petSpecies: "N/A",
+    petAge: "N/A",
+  });
+
+  useEffect(() => {
+    const fetchPetDetails = async () => {
+      if (pet) {
+        try {
+          console.log("Fetching details for petId:", pet); // Debugging log
+          const petData = await databases.getDocument(
+            appwriteConfig.databaseId,
+            appwriteConfig.petCollectionId,
+            pet
+          );
+          setPetDetails({
+            petName: petData.petName || "N/A",
+            petType: petData.petType || "N/A",
+            petSpecies: petData.petSpecies || "N/A",
+            petAge: petData.petAge || "N/A",
+          });
+        } catch (error) {
+          console.error("Error fetching pet details:", error);
+        }
+      } else {
+        console.warn("No petId provided for fetching pet details.");
+      }
+    };
+
+    if (isOpen) fetchPetDetails();
+  }, [isOpen, pet]);
 
   const handleServiceChange = (selectedService) => {
     setServices([selectedService]);
-    switch (selectedService) {
-      case "Pet Grooming":
-        setPayment("500");
-        break;
-      case "Veterinary Care":
-        setPayment("1500");
-        break;
-      case "Pet Training":
-        setPayment("1000");
-        break;
-      case "Pet Boarding":
-        setPayment("100");
-        break;
-      default:
-        setPayment("");
-    }
+    setPayment(
+      {
+        "Pet Grooming": "500",
+        "Veterinary Care": "1500",
+        "Pet Training": "1000",
+        "Pet Boarding": "100",
+      }[selectedService] || "0"
+    );
   };
 
   const handleSave = async () => {
@@ -54,29 +90,22 @@ export default function NewAppointmentModal({ isOpen, onClose }) {
       const ownerId = await getCurrentUserId();
       if (!ownerId) throw new Error("User ID not retrieved");
 
-      // Prepare the appointment data
       const appointmentData = {
-        petName,
         services,
         date,
         time,
-        species,
-        petType,
-        petAge: age,
         clinic,
         room,
         payment: Number(payment),
         ownerId,
+        petId: pet?.id, // pet ID if available
+        petName: pet?.name,
+        petType: pet?.type,
+        petSpecies: pet?.species,
+        petAge: pet?.age,
       };
 
-      // Filter out any empty fields
-      const filteredAppointmentData = Object.fromEntries(
-        Object.entries(appointmentData).filter(([_, value]) => value)
-      );
-
-      console.log("Filtered Appointment Data:", filteredAppointmentData); // Debug log
-
-      await saveAppointmentToDatabase(filteredAppointmentData);
+      await saveAppointmentToDatabase(appointmentData);
       alert("Appointment saved successfully!");
       onClose();
     } catch (error) {
@@ -85,7 +114,7 @@ export default function NewAppointmentModal({ isOpen, onClose }) {
     }
   };
 
-  if (!isOpen) return null;
+  if (!isOpen || !pet) return null;
 
   return (
     <Dialog open={isOpen} onOpenChange={onClose}>
@@ -96,18 +125,11 @@ export default function NewAppointmentModal({ isOpen, onClose }) {
 
         <div className="grid grid-cols-2 gap-4">
           <div className="flex flex-col gap-4">
-            <label>Pet Name</label>
-            <Input
-              value={petName}
-              onChange={(e) => setPetName(e.target.value)}
-            />
-
-            <label>Pet Type</label>
-            <Input
-              value={petType}
-              onChange={(e) => setPetType(e.target.value)}
-              placeholder="Enter pet type, e.g., Dog, Cat"
-            />
+            <h2 className="text-lg font-bold">Pet Details</h2>
+            <p>Pet Name: {pet.name}</p>
+            <p>Pet Type: {pet.type}</p>
+            <p>Pet Species: {pet.species}</p>
+            <p>Pet Age: {pet.age}</p>
 
             <label>Service</label>
             <Select onValueChange={handleServiceChange}>
@@ -137,19 +159,6 @@ export default function NewAppointmentModal({ isOpen, onClose }) {
           </div>
 
           <div className="flex flex-col gap-4">
-            <label>Species</label>
-            <Input
-              value={species}
-              onChange={(e) => setSpecies(e.target.value)}
-            />
-
-            <label>Age</label>
-            <Input
-              value={age}
-              onChange={(e) => setAge(e.target.value)}
-              placeholder="Enter age (e.g., 3 weeks, 4 months)"
-            />
-
             <label>Clinic</label>
             <Select onValueChange={(value) => setClinic(value)}>
               <SelectTrigger>

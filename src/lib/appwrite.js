@@ -442,3 +442,26 @@ export async function getCurrentUserId() {
     throw new Error("User not authenticated");
   }
 }
+
+export async function getPetPhotoIdByName(petName) {
+  try {
+    const response = await databases.listDocuments(
+      appwriteConfig.databaseId,
+      appwriteConfig.petCollectionId,
+      [
+        Query.equal("petName", petName), // Query to match the petName field
+      ]
+    );
+
+    // Check if any documents were found and return the petPhotoId
+    if (response.documents.length > 0) {
+      return response.documents[0].petPhotoId;
+    } else {
+      console.log("No pet found with that name.");
+      return null; // No pet found
+    }
+  } catch (error) {
+    console.error("Error fetching pet photo ID:", error);
+    throw new Error("Could not retrieve pet photo ID");
+  }
+}

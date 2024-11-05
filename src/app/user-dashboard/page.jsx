@@ -9,6 +9,7 @@ import { Badge } from "@/components/ui/badge";
 import { Separator } from "@/components/ui/separator";
 import { Button } from "@/components/ui/button";
 import AddPetModal from "../modals/AddPetsModal";
+import NewAppointmentModal from "@/app/modals/newAppointmentModal";
 import {
   Card,
   CardHeader,
@@ -47,6 +48,7 @@ export default function PetCareDashboard() {
   const router = useRouter();
   const [userId, setUserId] = useState(null);
   const [showAddPetModal, setShowAddPetModal] = useState(false);
+  const [selectedPet, setSelectedPet] = useState(null);
 
   const [ownerInfo, setOwnerInfo] = useState({
     name: "",
@@ -64,6 +66,7 @@ export default function PetCareDashboard() {
 
   const [pets, setPets] = useState([]);
   const [isEditingPet, setIsEditingPet] = useState(null);
+  const [showNewAppointmentModal, setShowNewAppointmentModal] = useState(false); // State for appointment modal
 
   const handleAddPet = async (newPet) => {
     try {
@@ -77,7 +80,7 @@ export default function PetCareDashboard() {
           name: newPet?.petName || "No Name",
           type: newPet?.petType || "No Type",
           age: newPet?.petAge || "No Age",
-          medicalHistory: newPet?.medicalHistory || "None",
+          species: newPet?.petSpecies || "None",
           carePlan: newPet?.petServices || "No Plan",
           petPhoto: petPhotoUrl,
         },
@@ -122,33 +125,47 @@ export default function PetCareDashboard() {
     );
   };
 
-  const handleSavePet = async (index) => {
-    try {
-      const pet = pets[index];
-
-      if (!pet.id) {
-        console.error("Pet document ID is missing!");
-        return;
+  useEffect(() => {
+    // Load pets (adjust this to your needs)
+    const loadPets = async () => {
+      try {
+        const response = await databases.listDocuments(
+          appwriteConfig.databaseId,
+          appwriteConfig.petCollectionId
+        );
+        setPets(response.documents || []);
+      } catch (error) {
+        console.error("Error loading pets:", error);
       }
+    };
+    loadPets();
+  }, []);
 
-      await databases.updateDocument(
-        appwriteConfig.databaseId,
-        appwriteConfig.petCollectionId,
-        pet.id, // Use the document ID for updating
-        {
-          petName: pet.name,
-          petType: pet.type,
-          petAge: pet.age,
-          medicalHistory: pet.medicalHistory,
-          petServices: pet.carePlan,
-        }
-      );
-
-      setIsEditingPet(null); // Stop editing after saving
-    } catch (error) {
-      console.error("Error saving pet:", error);
-    }
+ const openNewAppointmentModal = (pet) => {
+    setSelectedPet(pet); // Set the pet details for the new appointment
+    setShowNewAppointmentModal(true); // Show the appointment modal
   };
+
+  const closeNewAppointmentModal = () => {
+    setShowNewAppointmentModal(false); // Hide the appointment modal
+    setSelectedPet(null); // Clear the selected pet details
+  };
+
+  useEffect(() => {
+    const loadPets = async () => {
+      try {
+        const response = await databases.listDocuments(
+          appwriteConfig.databaseId,
+          appwriteConfig.petCollectionId
+        );
+        setPets(response.documents || []);
+      } catch (error) {
+        console.error("Error loading pets:", error);
+      }
+    };
+    loadPets();
+  }, []);
+
 
   useEffect(() => {
     const checkSession = async () => {
@@ -188,7 +205,7 @@ export default function PetCareDashboard() {
             name: pet?.petName || "No Name",
             type: pet?.petType || "No Type",
             age: pet?.petAge || "No Age",
-            medicalHistory: pet?.medicalHistory || "None",
+            species: pet?.petSpecies || "None",
             carePlan: pet?.petServices || "No Plan",
             petPhoto: petPhotoUrl,
           },
@@ -287,7 +304,6 @@ export default function PetCareDashboard() {
       {/* Main Content */}
       <main className="flex-1 p-6 overflow-y-auto relative">
         <div className="relative">
-          {/* Conditionally render the Add New Pet button and modal only in the "overview" section */}
           {activeSection === "overview" && (
             <>
               <Button
@@ -305,24 +321,25 @@ export default function PetCareDashboard() {
             </>
           )}
 
-          {/* Render content based on the active section */}
           {activeSection === "overview" && (
             <div className="space-y-6">
               <h1 className="text-3xl font-bold text-gray-800">
                 Dashboard Overview
               </h1>
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+
+              {/* Tighter grid layout with minimal gap */}
+              <div className="flex flex-wrap md:flex-nowrap gap-2">
                 {/* Owner Profile */}
-                <Card className="shadow-lg hover:shadow-xl transition-shadow duration-300">
+                <Card className="shadow-lg hover:shadow-xl transition-shadow duration-300 max-w-sm p-4">
                   <CardHeader className="pb-2 border-b-2">
-                    <CardTitle className="text-2xl text-black">
+                    <CardTitle className="text-xl text-black">
                       Owner Profile
                     </CardTitle>
                     <CardDescription>Your personal information</CardDescription>
                   </CardHeader>
-                  <CardContent className="pt-6">
+                  <CardContent className="pt-4">
                     <div className="flex flex-col items-center space-y-4">
-                      <Avatar className="h-32 w-32 border-4 border-primary/20">
+                      <Avatar className="h-20 w-20 border-4 border-primary/20">
                         <AvatarImage
                           src={ownerInfo.avatarUrl || "/placeholder.svg"}
                           alt={ownerInfo.name || "User"}
@@ -359,7 +376,7 @@ export default function PetCareDashboard() {
                           </>
                         ) : (
                           <>
-                            <h2 className="text-2xl font-semibold text-black">
+                            <h2 className="text-xl font-semibold text-black">
                               {ownerInfo.name || "No Name"}
                             </h2>
                             <Badge variant="secondary" className="mt-1">
@@ -395,13 +412,14 @@ export default function PetCareDashboard() {
 
                 {/* Pet Profiles */}
                 {pets.map((pet, index) => (
-                  <Card key={index}>
+                  <Card key={index} className="max-w-sm p-4">
                     <CardHeader>
                       <CardTitle>Pet Profile</CardTitle>
+                      <CardDescription>Your pet's information</CardDescription>
                     </CardHeader>
                     <CardContent>
                       <div className="flex flex-col items-center space-y-4">
-                        <Avatar className="h-32 w-32 border-4 border-secondary/20">
+                        <Avatar className="h-20 w-20 border-4 border-secondary/20">
                           <AvatarImage
                             src={pet.petPhoto || "/placeholder.svg"}
                             alt={pet.name || "Pet"}
@@ -439,10 +457,10 @@ export default function PetCareDashboard() {
                                 className="mt-2"
                               />
                               <Input
-                                name="medicalHistory"
-                                value={pet.medicalHistory}
+                                name="species"
+                                value={pet.species}
                                 onChange={(e) => handlePetChange(e, index)}
-                                placeholder="Medical History"
+                                placeholder="Pet Species"
                                 className="mt-2"
                               />
                               <Input
@@ -455,7 +473,7 @@ export default function PetCareDashboard() {
                             </>
                           ) : (
                             <>
-                              <h2 className="text-2xl font-semibold text-black">
+                              <h2 className="text-xl font-semibold text-black">
                                 {pet.name || "No Name"}
                               </h2>
                               <Badge variant="outline" className="mt-1">
@@ -469,14 +487,14 @@ export default function PetCareDashboard() {
                                 </p>
                                 <p className="text-sm text-gray-600">
                                   <span className="font-medium">
-                                    Medical History:
+                                  Pet Species:
                                   </span>{" "}
-                                  {pet.medicalHistory}
+                                  {pet.species}
                                 </p>
                                 <p className="text-sm text-gray-600">
                                   <span className="font-medium">
                                     Care Plan:
-                                  </span>{" "}
+                                  </span>
                                   <Badge>{pet.carePlan}</Badge>
                                 </p>
                               </div>
@@ -485,16 +503,14 @@ export default function PetCareDashboard() {
                         </div>
                       </div>
                     </CardContent>
-                    <CardFooter className="justify-center border-t-2">
-                      <Button
-                        onClick={
-                          isEditingPet === index
-                            ? () => handleSavePet(index)
-                            : () => handleEditPet(index)
-                        }
-                      >
+                    <CardFooter className="justify-center border-t-2 space-x-2">
+                      <Button onClick={() => handleEditPet(index)}>
                         <Edit className="mr-2 h-4 w-4" />
-                        {isEditingPet === index ? "Save Pet" : "Edit Pet"}
+                        Edit Pet
+                      </Button>
+                      <Button onClick={() => openNewAppointmentModal(pet)}>
+                        <PlusCircle className="mr-2 h-4 w-4" />
+                        New Appointment
                       </Button>
                     </CardFooter>
                   </Card>
@@ -509,6 +525,14 @@ export default function PetCareDashboard() {
           {activeSection === "feedback" && <Feedback />}
           {activeSection === "setting" && <Setting />}
         </div>
+
+        {showNewAppointmentModal && (
+          <NewAppointmentModal
+            isOpen={showNewAppointmentModal}
+            onClose={closeNewAppointmentModal}
+            pet={selectedPet} // Pass the selected pet details to the modal
+          />
+        )}
       </main>
     </div>
   );
