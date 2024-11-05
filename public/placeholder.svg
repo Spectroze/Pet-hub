@@ -1,0 +1,6 @@
+<Avatar
+  alt="Pet Avatar"
+  src={selectedEvent.petAvatar || "/placeholder.svg"}
+  sx={{ width: 56, height: 56 }}
+  onError={(e) => (e.target.src = "/placeholder.svg")}
+/>
