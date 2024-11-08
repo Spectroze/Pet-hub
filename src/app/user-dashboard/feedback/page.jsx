@@ -82,24 +82,25 @@ export default function FeedbackForm() {
   const handleSubmit = async (event) => {
     event.preventDefault();
     setLoading(true);
-
+  
     try {
       if (!user) {
         alert("User information not available. Please log in again.");
         return;
       }
-
+  
+      // Ensure all ratings are within the valid range (1 to 5)
       const data = {
-        overallExperience: ratings["Overall Experience"] || 0,
-        petHandling: ratings["Pet Handling"] || 0,
-        staffFriendliness: ratings["Staff Friendliness"] || 0,
-        easeOfBooking: ratings["Ease of Booking"] || 0,
-        cleanliness: ratings["Cleanliness"] || 0,
+        overallExperience: ratings["Overall Experience"] || 1, // Default to 1
+        petHandling: ratings["Pet Handling"] || 1,             // Default to 1
+        staffFriendliness: ratings["Staff Friendliness"] || 1, // Default to 1
+        easeOfBooking: ratings["Ease of Booking"] || 1,        // Default to 1
+        cleanliness: ratings["Cleanliness"] || 1,              // Default to 1
         experienceFeedback: review,
         tags: selectedTags,
         users: [user.$id], // Wrap the user's ID in an array
       };
-
+  
       // Save data to the ratings collection
       await databases.createDocument(
         "670a040f000893eb8e06", // Database ID
@@ -107,9 +108,9 @@ export default function FeedbackForm() {
         "unique()", // Generates a unique document ID
         data
       );
-
+  
       alert("Review submitted successfully!");
-
+  
       // Reset form after submission
       setRatings({});
       setReview("");
@@ -121,6 +122,8 @@ export default function FeedbackForm() {
       setLoading(false);
     }
   };
+  
+  
 
   return (
     <Card className="w-full max-w-6xl mx-auto mt-24">

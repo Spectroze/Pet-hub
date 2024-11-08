@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import {
   Card,
   CardContent,
@@ -17,6 +17,15 @@ import {
 } from "@/components/ui/select";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { Dog, Cat, Rabbit, Fish, Star } from "lucide-react";
+import { Client, Databases } from "appwrite";
+
+// Initialize Appwrite Client
+const client = new Client();
+client
+  .setEndpoint("https://cloud.appwrite.io/v1")
+  .setProject("67094c000023e950be96");
+
+const databases = new Databases(client);
 
 const petIcons = {
   dog: Dog,
@@ -25,57 +34,44 @@ const petIcons = {
   fish: Fish,
 };
 
-export default function Component() {
-  const [feedbackList] = useState([
-    {
-      id: 1,
-      clientName: "John Doe",
-      petName: "Max",
-      petType: "dog",
-      rating: 5,
-      comment: "Max loved his grooming session!",
-      date: new Date(2023, 5, 15),
-    },
-    {
-      id: 2,
-      clientName: "Jane Smith",
-      petName: "Whiskers",
-      petType: "cat",
-      rating: 4,
-      comment: "Great cat-sitting service, Whiskers was happy.",
-      date: new Date(2023, 5, 20),
-    },
-    {
-      id: 3,
-      clientName: "Bob Johnson",
-      petName: "Hoppy",
-      petType: "rabbit",
-      rating: 3,
-      comment: "Decent rabbit care, but could use more attention.",
-      date: new Date(2023, 5, 25),
-    },
-    {
-      id: 4,
-      clientName: "Alice Brown",
-      petName: "Bubbles",
-      petType: "fish",
-      rating: 5,
-      comment: "Excellent aquarium cleaning service!",
-      date: new Date(2023, 6, 1),
-    },
-    {
-      id: 5,
-      clientName: "Charlie Wilson",
-      petName: "Rocky",
-      petType: "dog",
-      rating: 4,
-      comment: "Rocky enjoyed his stay at the pet hotel.",
-      date: new Date(2023, 6, 5),
-    },
-  ]);
-
+export default function Feedback() {
+  const [feedbackList, setFeedbackList] = useState([]);
   const [sortBy, setSortBy] = useState("date");
   const [filterPetType, setFilterPetType] = useState("all");
+
+  // Fetch feedback data from the database
+  useEffect(() => {
+    const fetchFeedback = async () => {
+      try {
+        const response = await databases.listDocuments(
+          "670a040f000893eb8e06", // Database ID
+          "671bd05400135c37afc1"  // Collection ID
+        );
+
+        // Filter feedback to include only entries with the "pet trainee" tag
+        const feedbackData = response.documents
+          .map((doc) => ({
+            id: doc.$id,
+            clientName: doc.users[0]?.name || "Unknown User", // Extract the name property
+            petName: doc.petName || "Unknown Pet",
+            petType: doc.petType ? doc.petType.toLowerCase() : "unknown", // Ensure lowercase for matching icons
+            rating: doc.overallExperience || 0, // Default to 0 if not provided
+            comment: doc.experienceFeedback || "No feedback provided.",
+            tags: doc.tags || [], // Include tags and default to an empty array if not provided
+            date: new Date(doc.$createdAt), // Convert to Date object
+          }))
+        .filter((feedback) =>
+  feedback.tags.some((tag) => tag.toLowerCase().trim() === "pet trainee")
+);
+
+
+        setFeedbackList(feedbackData);
+      } catch (error) {
+        console.error("Failed to fetch feedback:", error);
+      }
+    };
+    fetchFeedback();
+  }, []);
 
   const sortedAndFilteredFeedback = feedbackList
     .filter(
@@ -97,7 +93,7 @@ export default function Component() {
           Pawsome Feedback
         </CardTitle>
         <CardDescription className="text-lg text-cyan-100">
-          See what our furry friends' humans are saying!
+          See what our furry friends' humans are saying about Pet Training!
         </CardDescription>
       </CardHeader>
       <CardContent>
@@ -127,7 +123,7 @@ export default function Component() {
           </div>
           <ScrollArea className="h-[500px] rounded-lg border border-cyan-600 bg-cyan-800/50 p-4">
             {sortedAndFilteredFeedback.map((feedback) => {
-              const PetIcon = petIcons[feedback.petType];
+              const PetIcon = petIcons[feedback.petType] || Dog; // Fallback to Dog icon if petType is unknown
               return (
                 <div
                   key={feedback.id}
@@ -140,11 +136,8 @@ export default function Component() {
                       </div>
                       <div>
                         <h4 className="font-semibold text-lg text-cyan-300">
-                          {feedback.clientName}
+                          {feedback.clientName} {/* Render name as string */}
                         </h4>
-                        <p className="text-sm text-cyan-400">
-                          Pet: {feedback.petName} ({feedback.petType})
-                        </p>
                       </div>
                     </div>
                     <div className="flex flex-col items-end">
@@ -166,6 +159,16 @@ export default function Component() {
                   <p className="mt-3 text-cyan-100 italic">
                     &ldquo;{feedback.comment}&rdquo;
                   </p>
+                  <div className="mt-2 flex flex-wrap gap-2">
+                    {feedback.tags.map((tag, index) => (
+                      <span
+                        key={index}
+                        className="px-2 py-1 bg-cyan-700 text-cyan-300 rounded-full text-xs"
+                      >
+                        {tag}
+                      </span>
+                    ))}
+                  </div>
                 </div>
               );
             })}

@@ -74,6 +74,13 @@ export function BooknowModal({ showBooknowModal, setShowBooknowModal }) {
     "Pet Veterinary": 700,
     "Pet Training": 1200,
   };
+  useEffect(() => {
+    if (petInfo.services.length > 0) {
+      const selectedService = petInfo.services[0];
+      const price = servicePrices[selectedService] || 0;
+      setPayment(price);
+    }
+  }, [petInfo.services]);
 
   const currentDate = new Date().toISOString().split("T")[0];
 
@@ -83,22 +90,18 @@ export function BooknowModal({ showBooknowModal, setShowBooknowModal }) {
   };
 
   const [currentTime, setCurrentTime] = useState(getCurrentTime());
-
   useEffect(() => {
-    const timer = setInterval(() => {
-      setCurrentTime(getCurrentTime());
-    }, 60000);
-
-    return () => clearInterval(timer);
-  }, []);
-
-  useEffect(() => {
+    // Ensure only the most recently selected service updates the payment
     if (petInfo.services.length > 0) {
-      const selectedService = petInfo.services[0];
+      // Get the last service selected
+      const selectedService = petInfo.services[petInfo.services.length - 1];
       const price = servicePrices[selectedService] || 0;
       setPayment(price);
+    } else {
+      setPayment(0); // Reset payment to 0 if no services are selected
     }
   }, [petInfo.services]);
+  
 
    // Validation for Phone Number Format
    const validatePhoneNumber = (phone) => {
@@ -148,7 +151,11 @@ export function BooknowModal({ showBooknowModal, setShowBooknowModal }) {
       setStep(2);
     }
   };
-
+  const handlePreviousStep = () => {
+    if (step > 1) {
+      setStep(step - 1); // Go back to the previous step
+    }
+  };
   const handleDateChange = (e) => {
     const selectedDate = e.target.value;
     setPetInfo((prev) => ({
@@ -559,7 +566,7 @@ export function BooknowModal({ showBooknowModal, setShowBooknowModal }) {
                   <Button
                     type="button"
                     variant="outline"
-                    onClick={handleNextStep}
+                    onClick={handlePreviousStep}
                   >
                     Back
                   </Button>
