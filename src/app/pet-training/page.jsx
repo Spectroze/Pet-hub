@@ -7,6 +7,7 @@ import AppointmentCalendar from "../pet-training/appointments/page"
 import TrainingNotifications from "../pet-training/notifications/page"
 import Feedback from "../pet-training/feedback/page"
 import Archived from "../pet-training/archived/page"
+import Pets from "../pet-training/pets/page"
 
 import {
   Menu,
@@ -35,6 +36,7 @@ const navigationItems = [
   { name: "Overview", icon: Home },
   { name: "Appointments", icon: CalendarIcon },
   { name: "Feedback", icon: MessageCircle },
+  { name: "Pets", icon: PawPrint },
   { name: "Notifications", icon: Bell },
   { name: "Archived", icon: Archive },
 ]
@@ -151,6 +153,7 @@ export default function PetTrainingDashboard() {
         {activeTab === "feedback" && <Feedback />}
         {activeTab === "notifications" && <TrainingNotifications />}
         {activeTab === "archived" && <Archived />}
+        {activeTab === "pets" && <Pets />}
       </main>
     </div>
   )

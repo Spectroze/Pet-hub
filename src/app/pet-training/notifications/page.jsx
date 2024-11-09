@@ -1,15 +1,15 @@
-"use client";
+"use client"
 
-import React, { useState } from "react";
-import { BellIcon, CheckIcon, Trash2Icon, XIcon } from "lucide-react";
-import { Button } from "@/components/ui/button";
+import React, { useState } from "react"
+import { BellIcon, CheckIcon, Trash2Icon, XIcon } from "lucide-react"
+import { Button } from "@/components/ui/button"
 import {
   Table,
   TableHeader,
   TableRow,
   TableCell,
   TableBody,
-} from "@/components/ui/table";
+} from "@/components/ui/table"
 import {
   Dialog,
   DialogContent,
@@ -17,7 +17,7 @@ import {
   DialogTitle,
   DialogDescription,
   DialogFooter,
-} from "@/components/ui/dialog";
+} from "@/components/ui/dialog"
 
 const notifications = [
   {
@@ -47,47 +47,47 @@ const notifications = [
     details:
       "Your pet's vaccination is due next week. Please schedule an appointment with your veterinarian to ensure your pet stays protected.",
   },
-];
+]
 
-export default function TrainingNotifications() {
-  const [data, setData] = useState(notifications);
-  const [selectedNotification, setSelectedNotification] = useState(null);
-  const [isModalOpen, setIsModalOpen] = useState(false);
+export default function Notifications() {
+  const [data, setData] = useState(notifications)
+  const [selectedNotification, setSelectedNotification] = useState(null)
+  const [isModalOpen, setIsModalOpen] = useState(false)
 
   const markAsRead = (id) => {
     const updatedData = data.map((notification) =>
       notification.id === id
         ? { ...notification, status: "Read" }
         : notification
-    );
-    setData(updatedData);
-  };
+    )
+    setData(updatedData)
+  }
 
   const deleteNotification = (id) => {
-    setData(data.filter((notification) => notification.id !== id));
-    setIsModalOpen(false);
-  };
+    setData(data.filter((notification) => notification.id !== id))
+    setIsModalOpen(false)
+  }
 
   const openNotificationModal = (notification) => {
-    setSelectedNotification(notification);
-    setIsModalOpen(true);
+    setSelectedNotification(notification)
+    setIsModalOpen(true)
     if (notification.status === "Unread") {
-      markAsRead(notification.id);
+      markAsRead(notification.id)
     }
-  };
+  }
 
   return (
-    <div className="w-full max-w-8xl mx-auto bg-white shadow-lg rounded-lg p-6">
-      <h2 className="text-2xl font-semibold mb-4">Notifications</h2>
-      <div className="overflow-auto">
+    <div className="w-full max-w-8xl mx-auto bg-gray-900 shadow-lg rounded-lg p-6 text-gray-100">
+      <h2 className="text-3xl font-semibold mb-6 text-purple-300">Notifications</h2>
+      <div className="overflow-auto rounded-lg border border-gray-700">
         <Table className="w-full">
           <TableHeader>
-            <TableRow className="bg-gray-100">
-              <TableCell className="font-bold">Type</TableCell>
-              <TableCell className="font-bold">Message</TableCell>
-              <TableCell className="font-bold">Date</TableCell>
-              <TableCell className="font-bold">Status</TableCell>
-              <TableCell className="font-bold">Actions</TableCell>
+            <TableRow className="bg-purple-900">
+              <TableCell className="font-bold text-purple-100">Type</TableCell>
+              <TableCell className="font-bold text-purple-100">Message</TableCell>
+              <TableCell className="font-bold text-purple-100">Date</TableCell>
+              <TableCell className="font-bold text-purple-100">Status</TableCell>
+              <TableCell className="font-bold text-purple-100">Actions</TableCell>
             </TableRow>
           </TableHeader>
           <TableBody>
@@ -95,13 +95,13 @@ export default function TrainingNotifications() {
               <TableRow
                 key={notification.id}
                 className={`${
-                  notification.status === "Unread" ? "bg-yellow-50" : "bg-white"
-                } hover:bg-gray-50 transition cursor-pointer`}
+                  notification.status === "Unread" ? "bg-purple-800" : "bg-gray-800"
+                } hover:bg-purple-700 transition cursor-pointer`}
                 onClick={() => openNotificationModal(notification)}
               >
                 <TableCell>
                   <div className="flex items-center gap-2">
-                    <BellIcon className="w-5 h-5 text-primary" />
+                    <BellIcon className="w-5 h-5 text-purple-300" />
                     {notification.type}
                   </div>
                 </TableCell>
@@ -111,8 +111,8 @@ export default function TrainingNotifications() {
                   <span
                     className={`px-2 py-1 rounded text-sm ${
                       notification.status === "Unread"
-                        ? "bg-yellow-100 text-yellow-800"
-                        : "bg-green-100 text-green-800"
+                        ? "bg-yellow-600 text-yellow-100"
+                        : "bg-green-600 text-green-100"
                     }`}
                   >
                     {notification.status}
@@ -123,9 +123,10 @@ export default function TrainingNotifications() {
                     <Button
                       size="sm"
                       variant="outline"
+                      className="bg-purple-700 text-purple-100 hover:bg-purple-600 border-purple-500"
                       onClick={(e) => {
-                        e.stopPropagation();
-                        markAsRead(notification.id);
+                        e.stopPropagation()
+                        markAsRead(notification.id)
                       }}
                     >
                       <CheckIcon className="w-4 h-4 mr-1" /> Mark as Read
@@ -134,9 +135,10 @@ export default function TrainingNotifications() {
                   <Button
                     size="sm"
                     variant="destructive"
+                    className="bg-red-700 hover:bg-red-600 text-gray-100"
                     onClick={(e) => {
-                      e.stopPropagation();
-                      deleteNotification(notification.id);
+                      e.stopPropagation()
+                      deleteNotification(notification.id)
                     }}
                   >
                     <Trash2Icon className="w-4 h-4 mr-1" /> Delete
@@ -149,27 +151,27 @@ export default function TrainingNotifications() {
       </div>
 
       <Dialog open={isModalOpen} onOpenChange={setIsModalOpen}>
-        <DialogContent>
+        <DialogContent className="bg-gray-800 text-gray-100 border border-purple-500">
           {selectedNotification && (
             <>
               <DialogHeader>
-                <DialogTitle>{selectedNotification.type}</DialogTitle>
-                <DialogDescription>
+                <DialogTitle className="text-2xl text-purple-300">{selectedNotification.type}</DialogTitle>
+                <DialogDescription className="text-gray-300">
                   {selectedNotification.message}
                 </DialogDescription>
               </DialogHeader>
               <div className="py-4">
-                <p className="text-sm text-gray-500 mb-2">
+                <p className="text-sm text-purple-400 mb-2">
                   Date: {selectedNotification.date}
                 </p>
-                <p className="text-sm mb-2">{selectedNotification.details}</p>
-                <p className="text-sm font-semibold">
+                <p className="text-sm mb-4 text-gray-300">{selectedNotification.details}</p>
+                <p className="text-sm font-semibold text-gray-200">
                   Status:{" "}
                   <span
                     className={`px-2 py-1 rounded ${
                       selectedNotification.status === "Unread"
-                        ? "bg-yellow-100 text-yellow-800"
-                        : "bg-green-100 text-green-800"
+                        ? "bg-yellow-600 text-yellow-100"
+                        : "bg-green-600 text-green-100"
                     }`}
                   >
                     {selectedNotification.status}
@@ -177,11 +179,12 @@ export default function TrainingNotifications() {
                 </p>
               </div>
               <DialogFooter>
-                <Button variant="outline" onClick={() => setIsModalOpen(false)}>
+                <Button variant="outline" className="bg-gray-700 text-gray-200 hover:bg-gray-600 border-purple-500" onClick={() => setIsModalOpen(false)}>
                   Close
                 </Button>
                 <Button
                   variant="destructive"
+                  className="bg-red-700 hover:bg-red-600 text-gray-100"
                   onClick={() => deleteNotification(selectedNotification.id)}
                 >
                   <Trash2Icon className="w-4 h-4 mr-1" /> Delete
@@ -192,5 +195,5 @@ export default function TrainingNotifications() {
         </DialogContent>
       </Dialog>
     </div>
-  );
+  )
 }

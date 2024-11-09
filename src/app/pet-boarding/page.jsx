@@ -189,7 +189,7 @@ export default function Dashboard() {
   const menuItems = [
     { name: "Overview", icon: Home, section: "overview" },
     { name: "Appointments", icon: Calendar, section: "appointments" },
-    { name: "Pet Records", icon: Clipboard, section: "petRecords" },
+    { name: "Pet Records", icon: PawPrint, section: "petRecords" },
     { name: "Rooms", icon: BedDouble, section: "rooms" },
     { name: "Notifications", icon: Bell, section: "notifications" },
     { name: "Feedback", icon: MessageCircle, section: "feedback" },

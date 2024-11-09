@@ -1,181 +1,181 @@
 "use client";
 
 import { useState } from "react";
-import {
-  Card,
-  CardContent,
-  CardDescription,
-  CardFooter,
-  CardHeader,
-  CardTitle,
-} from "@/components/ui/card";
-import { Input } from "@/components/ui/input";
-import { Label } from "@/components/ui/label";
 import { Button } from "@/components/ui/button";
-import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { Textarea } from "@/components/ui/textarea";
+import { Input } from "@/components/ui/input";
+import {
+  Table,
+  TableBody,
+  TableCell,
+  TableHead,
+  TableHeader,
+  TableRow,
+} from "@/components/ui/table";
+import { Search, Edit, Trash2, PlusCircle } from "lucide-react";
+import { toast } from "react-hot-toast";
 
-// Mock data for pet profiles
-const initialPets = [
-  {
-    id: 1,
-    name: "Buddy",
-    age: 5,
-    breed: "Golden Retriever",
-    gender: "Male",
-    owner: "John Doe",
-    contact: "123-456-7890",
-    emergencyVet: "Dr. Smith",
-    vaccinations: [
-      { name: "Rabies", date: "2023-01-15" },
-      { name: "DHPP", date: "2023-02-20" },
-    ],
-    notes: "Friendly and energetic. Loves to play fetch.",
-    visits: [
-      {
-        date: "2023-03-10",
-        reason: "Annual checkup",
-        notes: "All clear, slight tartar buildup",
-      },
-      {
-        date: "2023-04-15",
-        reason: "Grooming",
-        notes: "Nails trimmed, coat brushed",
-      },
-    ],
-  },
-  // Add more pet profiles as needed
-];
+export default function Pets() {
+  const [petRecords, setPetRecords] = useState([
+    {
+      id: 1,
+      name: "Max",
+      species: "Dog",
+      breed: "Labrador",
+      age: 5,
+      owner: "John Doe",
+      lastCheckup: new Date(2023, 5, 15),
+      photo: "https://placekitten.com/200/300",
+    },
+    {
+      id: 2,
+      name: "Whiskers",
+      species: "Cat",
+      breed: "Siamese",
+      age: 3,
+      owner: "Jane Smith",
+      lastCheckup: new Date(2023, 5, 20),
+      photo: "https://placekitten.com/200/300",
+    },
+    {
+      id: 3,
+      name: "Buddy",
+      species: "Dog",
+      breed: "Golden Retriever",
+      age: 7,
+      owner: "Bob Johnson",
+      lastCheckup: new Date(2023, 5, 25),
+      photo: "https://placekitten.com/200/300",
+    },
+    {
+      id: 4,
+      name: "Nemo",
+      species: "Fish",
+      breed: "Clownfish",
+      age: 1,
+      owner: "Alice Brown",
+      lastCheckup: new Date(2023, 6, 1),
+      photo: "https://placekitten.com/200/300",
+    },
+    {
+      id: 5,
+      name: "Tweety",
+      species: "Bird",
+      breed: "Canary",
+      age: 2,
+      owner: "Charlie Wilson",
+      lastCheckup: new Date(2023, 6, 5),
+      photo: "https://placekitten.com/200/300",
+    },
+  ]);
 
-export default function PetRecords() {
-  const [pets, setPets] = useState(initialPets);
-  const [selectedPet, setSelectedPet] = useState(null);
-  const [newNote, setNewNote] = useState("");
+  const [searchTerm, setSearchTerm] = useState("");
 
-  const handleSelectPet = (pet) => {
-    setSelectedPet(pet);
+  const handleEdit = (id) => {
+    toast.success(`Editing pet record with ID: ${id}`);
   };
 
-  const handleAddNote = () => {
-    if (newNote.trim() && selectedPet) {
-      const updatedPets = pets.map((pet) => {
-        if (pet.id === selectedPet.id) {
-          return {
-            ...pet,
-            notes: pet.notes + "\n" + newNote,
-          };
-        }
-        return pet;
-      });
-      setPets(updatedPets);
-      setSelectedPet({
-        ...selectedPet,
-        notes: selectedPet.notes + "\n" + newNote,
-      });
-      setNewNote("");
-    }
+  const handleDelete = (id) => {
+    setPetRecords((prevRecords) =>
+      prevRecords.filter((record) => record.id !== id)
+    );
+    toast.success("Pet record deleted successfully!");
   };
+
+  const filteredRecords = petRecords.filter(
+    (record) =>
+      record.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
+      record.owner.toLowerCase().includes(searchTerm.toLowerCase()) ||
+      record.species.toLowerCase().includes(searchTerm.toLowerCase()) ||
+      record.breed.toLowerCase().includes(searchTerm.toLowerCase())
+  );
 
   return (
-    <div className="grid gap-6 md:grid-cols-2">
-      <Card>
-        <CardHeader>
-          <CardTitle>Pet Profiles</CardTitle>
-          <CardDescription>Select a pet to view details</CardDescription>
-        </CardHeader>
-        <CardContent>
-          <ul className="space-y-2">
-            {pets.map((pet) => (
-              <li key={pet.id}>
-                <Button
-                  variant="outline"
-                  className="w-full justify-start"
-                  onClick={() => handleSelectPet(pet)}
-                >
-                  {pet.name} - {pet.breed}
-                </Button>
-              </li>
+    <div className="w-full space-y-4 bg-gradient-to-br from-blue-50 to-purple-50 p-6 rounded-lg">
+      <div className="flex flex-col sm:flex-row items-center justify-between gap-4">
+        <h2 className="text-3xl font-bold flex items-center gap-2 text-purple-700">
+          <PlusCircle className="h-8 w-8 text-purple-500" />
+          Pet Records
+        </h2>
+        <div className="flex items-center space-x-2 w-full sm:w-auto">
+          <Search className="h-5 w-5 text-purple-500" />
+          <Input
+            placeholder="Search pet records..."
+            value={searchTerm}
+            onChange={(e) => setSearchTerm(e.target.value)}
+            className="max-w-sm border-purple-300 focus:border-purple-500 focus:ring-purple-500"
+          />
+        </div>
+      </div>
+      <div className="rounded-md border border-purple-200 overflow-hidden bg-white shadow-lg">
+        <Table>
+          <TableHeader>
+            <TableRow className="bg-purple-100">
+              <TableHead className="w-[150px] text-purple-700">Photo</TableHead>
+              <TableHead className="w-[150px] text-purple-700">
+                Pet Name
+              </TableHead>
+              <TableHead className="text-purple-700">Species</TableHead>
+              <TableHead className="text-purple-700">Age</TableHead>
+              <TableHead className="text-purple-700">Owner</TableHead>
+              <TableHead className="text-right text-purple-700">
+                Actions
+              </TableHead>
+            </TableRow>
+          </TableHeader>
+          <TableBody>
+            {filteredRecords.map((record) => (
+              <TableRow
+                key={record.id}
+                className="hover:bg-purple-50 transition-colors"
+              >
+                <TableCell>
+                  <img
+                    src={record.photo}
+                    alt={record.name}
+                    className="w-16 h-16 object-cover rounded-full"
+                  />
+                </TableCell>
+                <TableCell className="font-medium text-purple-700">
+                  {record.name}
+                </TableCell>
+                <TableCell>{record.species}</TableCell>
+                <TableCell>{record.age} years</TableCell>
+                <TableCell>{record.owner}</TableCell>
+                <TableCell className="text-right">
+                  <div className="flex justify-end space-x-2">
+                    <Button
+                      variant="outline"
+                      size="sm"
+                      onClick={() => handleEdit(record.id)}
+                      className="flex items-center gap-2 text-purple-600 hover:text-purple-700 hover:bg-purple-100"
+                    >
+                      <Edit className="h-4 w-4" />
+                      Edit
+                    </Button>
+                    <Button
+                      variant="outline"
+                      size="sm"
+                      onClick={() => handleDelete(record.id)}
+                      className="flex items-center gap-2 text-red-500 hover:text-red-700 hover:bg-red-100"
+                    >
+                      <Trash2 className="h-4 w-4" />
+                      Delete
+                    </Button>
+                  </div>
+                </TableCell>
+              </TableRow>
             ))}
-          </ul>
-        </CardContent>
-      </Card>
-      {selectedPet && (
-        <Card>
-          <CardHeader>
-            <CardTitle>{selectedPet.name}'s Profile</CardTitle>
-            <CardDescription>
-              {selectedPet.breed}, {selectedPet.age} years old
-            </CardDescription>
-          </CardHeader>
-          <CardContent>
-            <Tabs defaultValue="details">
-              <TabsList>
-                <TabsTrigger value="details">Details</TabsTrigger>
-                <TabsTrigger value="medical">Medical</TabsTrigger>
-                <TabsTrigger value="visits">Visits</TabsTrigger>
-              </TabsList>
-              <TabsContent value="details">
-                <div className="space-y-2">
-                  <p>
-                    <strong>Gender:</strong> {selectedPet.gender}
-                  </p>
-                  <p>
-                    <strong>Owner:</strong> {selectedPet.owner}
-                  </p>
-                  <p>
-                    <strong>Contact:</strong> {selectedPet.contact}
-                  </p>
-                  <p>
-                    <strong>Emergency Vet:</strong> {selectedPet.emergencyVet}
-                  </p>
-                </div>
-              </TabsContent>
-              <TabsContent value="medical">
-                <div className="space-y-2">
-                  <h4 className="font-semibold">Vaccinations</h4>
-                  <ul className="list-disc list-inside">
-                    {selectedPet.vaccinations.map((vacc, index) => (
-                      <li key={index}>
-                        {vacc.name} - {vacc.date}
-                      </li>
-                    ))}
-                  </ul>
-                </div>
-              </TabsContent>
-              <TabsContent value="visits">
-                <div className="space-y-2">
-                  {selectedPet.visits.map((visit, index) => (
-                    <div key={index} className="border-b pb-2">
-                      <p>
-                        <strong>{visit.date}:</strong> {visit.reason}
-                      </p>
-                      <p>{visit.notes}</p>
-                    </div>
-                  ))}
-                </div>
-              </TabsContent>
-            </Tabs>
-          </CardContent>
-          <CardFooter className="flex flex-col items-start">
-            <Label htmlFor="notes" className="mb-2">
-              Notes
-            </Label>
-            <Textarea
-              id="notes"
-              value={selectedPet.notes}
-              readOnly
-              className="w-full mb-2"
-            />
-            <div className="flex w-full space-x-2">
-              <Input
-                placeholder="Add a new note"
-                value={newNote}
-                onChange={(e) => setNewNote(e.target.value)}
-              />
-              <Button onClick={handleAddNote}>Add Note</Button>
-            </div>
-          </CardFooter>
-        </Card>
+          </TableBody>
+        </Table>
+      </div>
+      {filteredRecords.length === 0 && (
+        <div className="text-center py-8 text-purple-500 bg-white rounded-lg shadow-inner">
+          <PlusCircle className="h-12 w-12 mx-auto mb-4 text-purple-400" />
+          <p className="text-lg font-semibold">No pet records found.</p>
+          <p className="text-sm">
+            Try adjusting your search or add a new pet record.
+          </p>
+        </div>
       )}
     </div>
   );
