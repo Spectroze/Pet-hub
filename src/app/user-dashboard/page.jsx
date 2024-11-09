@@ -19,6 +19,7 @@ import {
   CardFooter,
 } from "@/components/ui/card"
 import { Input } from "@/components/ui/input"
+import { ToastContainer, toast } from "react-toastify"
 import {
   Edit,
   PawPrint,
@@ -86,7 +87,7 @@ export default function PetCareDashboard() {
         },
       ])
     } catch (error) {
-      console.error("Error adding pet:", error)
+ 
     }
   }
 
@@ -110,11 +111,12 @@ export default function PetCareDashboard() {
         }
       )
       setIsEditingOwner(false)
+      toast.success("Profile updated successfully!") // Show success toast
     } catch (error) {
       console.error("Error updating owner:", error)
+      toast.error("Failed to update profile.") // Show error toast
     }
   }
-
   const handleEditPet = (index) => setIsEditingPet(index)
 
   const handlePetChange = (e, index) => {
@@ -123,6 +125,37 @@ export default function PetCareDashboard() {
       prevPets.map((pet, i) => (i === index ? { ...pet, [name]: value } : pet))
     )
   }
+  const handleSavePet = async (index) => {
+    try {
+      const pet = pets[index]
+  
+      // Check if the pet object has an `id` property
+      if (!pet.id) {
+        throw new Error("Missing document ID for the pet.")
+      }
+  
+      // Update the pet details in the Appwrite database
+      await databases.updateDocument(
+        appwriteConfig.databaseId,
+        appwriteConfig.petCollectionId,
+        pet.id, // Use the pet's unique ID for the update
+        {
+          petName: pet.name,
+          petType: pet.type,
+          petAge: pet.age,
+          petSpecies: pet.species,
+          petServices: pet.carePlan,
+        }
+      )
+  
+      setIsEditingPet(null) // Exit editing mode after saving
+      toast.success("Pet details saved successfully!") // Show a success toast
+    } catch (error) {
+      console.error("Error saving pet details:", error)
+      toast.error("Failed to save pet details. Please try again.") // Show an error toast
+    }
+  }
+  
 
   useEffect(() => {
     const loadPets = async () => {
@@ -131,14 +164,19 @@ export default function PetCareDashboard() {
           appwriteConfig.databaseId,
           appwriteConfig.petCollectionId
         )
-        setPets(response.documents || [])
+        // Map over the documents to ensure each pet object includes the `id` property
+        setPets(
+          response.documents.map((doc) => ({
+            ...doc,
+            id: doc.$id, // Assign Appwrite's `$id` to `id`
+          }))
+        )
       } catch (error) {
         console.error("Error loading pets:", error)
       }
     }
-    loadPets()
-  }, [])
-
+  }
+  )
   const openNewAppointmentModal = (pet) => {
     setSelectedPet(pet)
     setShowNewAppointmentModal(true)
@@ -203,7 +241,7 @@ export default function PetCareDashboard() {
   }, [userId])
 
   const navItems = [
-    { icon: Home, title: "Overview", id: "overview" },
+    { icon: PawPrint, title: "My Pet's", id: "overview" },
     { icon: CalendarIcon, title: "Appointments", id: "appointment" },
     { icon: NotificationIcon, title: "Notifications", id: "notification" },
     { icon: FeedbackIcon, title: "Feedback", id: "feedback" },
@@ -236,6 +274,7 @@ export default function PetCareDashboard() {
     )
   }
 
+
   return (
     <div className="flex h-screen bg-gray-900 text-gray-100">
       {/* Sidebar */}
@@ -255,14 +294,65 @@ export default function PetCareDashboard() {
         </Button>
 
         <div className="flex flex-col items-center mt-16 space-y-2">
-          <Avatar className="h-20 w-20 border-2 border-gray-600">
+          {/* Avatar with onClick handler to toggle editing */}
+          <Avatar
+            className="h-20 w-20 border-2 border-gray-600 cursor-pointer"
+            onClick={toggleEditOwner}
+          >
             <AvatarImage src={ownerInfo.avatarUrl} alt="User" />
             <AvatarFallback>{ownerInfo.name?.[0] || "U"}</AvatarFallback>
           </Avatar>
+
           {sidebarOpen && (
-            <div className="text-center">
-              <p className="text-sm font-medium text-gray-200">{ownerInfo.name || "Guest"}</p>
+            <div className="text-center space-y-2">
+              <p className="text-sm font-medium text-gray-200">
+                {ownerInfo.name || "Guest"}
+              </p>
               <p className="text-xs text-gray-400">Pet Parent</p>
+
+              {isEditingOwner ? (
+                <>
+                  <Input
+                    name="name"
+                    value={ownerInfo.name}
+                    onChange={handleOwnerChange}
+                    placeholder="Name"
+                    className="mt-2 bg-gray-700 text-gray-100"
+                  />
+                  <Input
+                    name="email"
+                    value={ownerInfo.email}
+                    onChange={handleOwnerChange}
+                    placeholder="Email"
+                    className="mt-2 bg-gray-700 text-gray-100"
+                  />
+                  <Input
+                    name="phone"
+                    value={ownerInfo.phone}
+                    onChange={handleOwnerChange}
+                    placeholder="Phone"
+                    className="mt-2 bg-gray-700 text-gray-100"
+                  />
+                  <Button
+                    onClick={handleSaveOwner}
+                    className="bg-blue-600 hover:bg-blue-700 text-white mt-2"
+                  >
+                    <Edit className="mr-2 h-4 w-4" />
+                    Save Profile
+                  </Button>
+                </>
+              ) : (
+                <>
+                  <p className="text-xs text-gray-300">
+                    <span className="font-medium">Email:</span>{" "}
+                    {ownerInfo.email}
+                  </p>
+                  <p className="text-xs text-gray-300">
+                    <span className="font-medium">Phone:</span>{" "}
+                    {ownerInfo.phone}
+                  </p>
+                </>
+              )}
             </div>
           )}
         </div>
@@ -313,88 +403,7 @@ export default function PetCareDashboard() {
 
               {/* Tighter grid layout with minimal gap */}
               <div className="flex flex-wrap md:flex-nowrap gap-2">
-                {/* Owner Profile */}
-                <Card className="shadow-lg hover:shadow-xl transition-shadow duration-300 max-w-sm p-4 bg-gray-800 text-gray-100">
-                  <CardHeader className="pb-2 border-b-2 border-gray-700">
-                    <CardTitle className="text-xl text-gray-100">
-                      Owner Profile
-                    </CardTitle>
-                    <CardDescription className="text-gray-400">Your personal information</CardDescription>
-                  </CardHeader>
-                  <CardContent className="pt-4">
-                    <div className="flex flex-col items-center space-y-4">
-                      <Avatar className="h-20 w-20 border-4 border-gray-700">
-                        <AvatarImage
-                          src={ownerInfo.avatarUrl || "/placeholder.svg"}
-                          alt={ownerInfo.name || "User"}
-                        />
-                        <AvatarFallback>
-                          {ownerInfo.name?.[0] || "U"}
-                        </AvatarFallback>
-                      </Avatar>
-
-                      <div className="text-center">
-                        {isEditingOwner ? (
-                          <>
-                            <Input
-                              name="name"
-                              value={ownerInfo.name}
-                              onChange={handleOwnerChange}
-                              placeholder="Name"
-                              className="mt-2 bg-gray-700 text-gray-100"
-                            />
-                            <Input
-                              name="email"
-                              value={ownerInfo.email}
-                              onChange={handleOwnerChange}
-                              placeholder="Email"
-                              className="mt-2 bg-gray-700 text-gray-100"
-                            />
-                            <Input
-                              name="phone"
-                              value={ownerInfo.phone}
-                              onChange={handleOwnerChange}
-                              placeholder="Phone"
-                              className="mt-2 bg-gray-700 text-gray-100"
-                            />
-                          </>
-                        ) : (
-                          <>
-                            <h2 className="text-xl font-semibold text-gray-100">
-                              {ownerInfo.name || "No Name"}
-                            </h2>
-                            <Badge variant="secondary" className="mt-1 bg-gray-700 text-gray-200">
-                              Pet Parent
-                            </Badge>
-                            <Separator className="bg-gray-700" />
-                            <div className="w-full space-y-2">
-                              <p className="text-sm text-gray-300">
-                                <span className="font-medium">Email:</span>{" "}
-                                {ownerInfo.email}
-                              </p>
-                              <p className="text-sm text-gray-300">
-                                <span className="font-medium">Phone:</span>{" "}
-                                {ownerInfo.phone}
-                              </p>
-                            </div>
-                          </>
-                        )}
-                      </div>
-                    </div>
-                  </CardContent>
-                  <CardFooter className="justify-center border-t-2 border-gray-700">
-                <Button
-                      onClick={
-                        isEditingOwner ? handleSaveOwner : toggleEditOwner
-                      }
-                      className="bg-blue-600 hover:bg-blue-700 text-white"
-                    >
-                      <Edit className="mr-2 h-4 w-4" />
-                      {isEditingOwner ? "Save Profile" : "Edit Profile"}
-                    </Button>
-                  </CardFooter>
-                </Card>
-
+          
                 {/* Pet Profiles */}
                 {pets.map((pet, index) => (
                   <Card key={index} className="max-w-sm p-4 bg-gray-800 text-gray-100">
@@ -488,16 +497,45 @@ export default function PetCareDashboard() {
                         </div>
                       </div>
                     </CardContent>
-                    <CardFooter className="justify-center border-t-2 border-gray-700 space-x-2">
-                      <Button onClick={() => handleEditPet(index)} className="bg-blue-600 hover:bg-blue-700 text-white">
-                        <Edit className="mr-2 h-4 w-4" />
-                        Edit Pet
-                      </Button>
-                      <Button onClick={() => openNewAppointmentModal(pet)} className="bg-green-600 hover:bg-green-700 text-white">
-                        <PlusCircle className="mr-2 h-4 w-4" />
-                        New Appointment
-                      </Button>
-                    </CardFooter>
+                                          <CardFooter className="justify-center border-t-2 border-gray-700 space-x-2">
+                        {isEditingPet === index ? (
+                          <>
+                            {/* Save Button when editing */}
+                            <Button
+                              onClick={() => handleSavePet(index)}
+                              className="bg-green-600 hover:bg-green-700 text-white"
+                            >
+                              <Edit className="mr-2 h-4 w-4" />
+                              Save Pet
+                            </Button>
+                            <Button
+                              onClick={() => setIsEditingPet(null)} // Cancel editing
+                              className="bg-red-600 hover:bg-red-700 text-white"
+                            >
+                              Cancel
+                            </Button>
+                          </>
+                        ) : (
+                          <>
+                            {/* Edit Button when not editing */}
+                            <Button
+                              onClick={() => handleEditPet(index)}
+                              className="bg-blue-600 hover:bg-blue-700 text-white"
+                            >
+                              <Edit className="mr-2 h-4 w-4" />
+                              Edit Pet
+                            </Button>
+                            <Button
+                              onClick={() => openNewAppointmentModal(pet)}
+                              className="bg-green-600 hover:bg-green-700 text-white"
+                            >
+                              <PlusCircle className="mr-2 h-4 w-4" />
+                              New Appointment
+                            </Button>
+                              </>
+                              )}
+                                </CardFooter>
+
                   </Card>
                 ))}
               </div>
@@ -519,6 +557,7 @@ export default function PetCareDashboard() {
           />
         )}
       </main>
+      <ToastContainer position="top-right" autoClose={3000} />
     </div>
   )
 }
