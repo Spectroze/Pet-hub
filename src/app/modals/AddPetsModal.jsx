@@ -106,7 +106,7 @@ export default function AddPetModal({
 
   return (
     <Dialog open={showAddPetModal} onOpenChange={setShowAddPetModal}>
-      <DialogContent className="sm:max-w-[800px] bg-gradient-to-b from-blue-100 to-green-100 grid grid-cols-2 gap-4 p-6">
+      <DialogContent className="sm:max-w-[500px] bg-gradient-to-b from-blue-100 to-green-100 grid grid-cols-2 gap-4 p-6">
         <DialogHeader className="col-span-2">
           <DialogTitle className="text-2xl font-bold flex items-center justify-center gap-2">
             <PawPrint className="w-6 h-6" />

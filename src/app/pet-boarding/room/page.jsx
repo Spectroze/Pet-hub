@@ -26,6 +26,7 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
+import FileUploadButton from "@/app/modals/uploadimage";
 
 // Mock data for rooms
 const initialRooms = [
@@ -78,9 +79,17 @@ export default function RoomManagement() {
   return (
     <div>
       <Card>
-        <CardHeader>
-          <CardTitle>Room Management</CardTitle>
-          <CardDescription>View and manage room occupancy</CardDescription>
+        <CardHeader className="relative">
+          <div className="flex justify-between items-start">
+            <div>
+              <CardTitle>Room Management</CardTitle>
+              <CardDescription>View and manage room occupancy</CardDescription>
+            </div>
+            {/* Positioning the FileUploadButton in the upper right corner */}
+            <div className="absolute top-0 right-0">
+              <FileUploadButton />
+            </div>
+          </div>
         </CardHeader>
         <CardContent>
           <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4">

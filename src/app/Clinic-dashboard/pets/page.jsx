@@ -90,43 +90,39 @@ export default function Pets() {
   );
 
   return (
-    <div className="w-full space-y-4 bg-gradient-to-br from-blue-50 to-purple-50 p-6 rounded-lg">
+    <div className="w-full space-y-4 bg-gradient-to-br from-gray-100 to-gray-300 p-6 rounded-lg">
       <div className="flex flex-col sm:flex-row items-center justify-between gap-4">
-        <h2 className="text-3xl font-bold flex items-center gap-2 text-purple-700">
-          <PlusCircle className="h-8 w-8 text-purple-500" />
+        <h2 className="text-3xl font-bold flex items-center gap-2 text-black">
+          <PlusCircle className="h-8 w-8 text-black" />
           Pet Records
         </h2>
         <div className="flex items-center space-x-2 w-full sm:w-auto">
-          <Search className="h-5 w-5 text-purple-500" />
+          <Search className="h-5 w-5 text-black" />
           <Input
             placeholder="Search pet records..."
             value={searchTerm}
             onChange={(e) => setSearchTerm(e.target.value)}
-            className="max-w-sm border-purple-300 focus:border-purple-500 focus:ring-purple-500"
+            className="max-w-sm border-gray-400 focus:border-black focus:ring-black"
           />
         </div>
       </div>
-      <div className="rounded-md border border-purple-200 overflow-hidden bg-white shadow-lg">
+      <div className="rounded-md border border-gray-300 overflow-hidden bg-white shadow-lg">
         <Table>
           <TableHeader>
-            <TableRow className="bg-purple-100">
-              <TableHead className="w-[150px] text-purple-700">Photo</TableHead>
-              <TableHead className="w-[150px] text-purple-700">
-                Pet Name
-              </TableHead>
-              <TableHead className="text-purple-700">Species</TableHead>
-              <TableHead className="text-purple-700">Age</TableHead>
-              <TableHead className="text-purple-700">Owner</TableHead>
-              <TableHead className="text-right text-purple-700">
-                Actions
-              </TableHead>
+            <TableRow className="bg-gray-200">
+              <TableHead className="w-[150px] text-black">Photo</TableHead>
+              <TableHead className="w-[150px] text-black">Pet Name</TableHead>
+              <TableHead className="text-black">Species</TableHead>
+              <TableHead className="text-black">Age</TableHead>
+              <TableHead className="text-black">Owner</TableHead>
+              <TableHead className="text-right text-black">Actions</TableHead>
             </TableRow>
           </TableHeader>
           <TableBody>
             {filteredRecords.map((record) => (
               <TableRow
                 key={record.id}
-                className="hover:bg-purple-50 transition-colors"
+                className="hover:bg-gray-100 transition-colors"
               >
                 <TableCell>
                   <img
@@ -135,7 +131,7 @@ export default function Pets() {
                     className="w-16 h-16 object-cover rounded-full"
                   />
                 </TableCell>
-                <TableCell className="font-medium text-purple-700">
+                <TableCell className="font-medium text-black">
                   {record.name}
                 </TableCell>
                 <TableCell>{record.species}</TableCell>
@@ -147,7 +143,7 @@ export default function Pets() {
                       variant="outline"
                       size="sm"
                       onClick={() => handleEdit(record.id)}
-                      className="flex items-center gap-2 text-purple-600 hover:text-purple-700 hover:bg-purple-100"
+                      className="flex items-center gap-2 text-black hover:text-gray-800 hover:bg-gray-200"
                     >
                       <Edit className="h-4 w-4" />
                       Edit
@@ -156,7 +152,7 @@ export default function Pets() {
                       variant="outline"
                       size="sm"
                       onClick={() => handleDelete(record.id)}
-                      className="flex items-center gap-2 text-red-500 hover:text-red-700 hover:bg-red-100"
+                      className="flex items-center gap-2 text-red-600 hover:text-red-800 hover:bg-red-200"
                     >
                       <Trash2 className="h-4 w-4" />
                       Delete
@@ -169,8 +165,8 @@ export default function Pets() {
         </Table>
       </div>
       {filteredRecords.length === 0 && (
-        <div className="text-center py-8 text-purple-500 bg-white rounded-lg shadow-inner">
-          <PlusCircle className="h-12 w-12 mx-auto mb-4 text-purple-400" />
+        <div className="text-center py-8 text-gray-600 bg-white rounded-lg shadow-inner">
+          <PlusCircle className="h-12 w-12 mx-auto mb-4 text-gray-400" />
           <p className="text-lg font-semibold">No pet records found.</p>
           <p className="text-sm">
             Try adjusting your search or add a new pet record.

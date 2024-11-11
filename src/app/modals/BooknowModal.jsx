@@ -100,8 +100,8 @@ export function BooknowModal({ showBooknowModal, setShowBooknowModal }) {
     }
   }, [petInfo.services]);
 
-   // Validation for Phone Number Format
-   const validatePhoneNumber = (phone) => {
+  // Validation for Phone Number Format
+  const validatePhoneNumber = (phone) => {
     const isValid =
       /^09\d{9}$/.test(phone) || // Format: 09XXXXXXXXX
       /^\+63\d{10}$/.test(phone); // Format: +63XXXXXXXXX
@@ -110,40 +110,41 @@ export function BooknowModal({ showBooknowModal, setShowBooknowModal }) {
 
   // Handle input change with phone validation
   const handleInputChange = (setState) => (e) => {
-    const { name, value } = e.target;
+    const { name, value, type, files } = e.target;
 
-    // Only allow numeric input for the phone number
-    if (name === "phone") {
-      // If the user tries to input non-numeric or length > 11, prevent it
+    if (type === "file" && files && files.length > 0) {
+      // If it's a file input, update the state with the file object
+      setState((prev) => ({ ...prev, [name]: files[0] }));
+    } else if (name === "phone") {
+      // Handle phone input validation
       if (!/^\d*$/.test(value) || value.length > 11) return;
 
-      // Ensure the phone starts with "09" and is no more than 11 digits
       if (value.startsWith("0")) {
         setState((prev) => ({ ...prev, [name]: value }));
       } else if (value === "") {
-        // Allow the user to clear the field
         setState((prev) => ({ ...prev, [name]: value }));
       } else {
-        // Notify user that the phone number should start with "09"
         toast.error("Phone number must start with '09' and be 11 digits long.");
       }
     } else {
-      // For other fields, update the state normally
       setState((prev) => ({ ...prev, [name]: value }));
     }
   };
 
   const togglePasswordVisibility = () => setShowPassword((prev) => !prev);
 
-
   const handleNextStep = () => {
     const requiredFields = ["name", "email", "password", "phone"];
     const emptyFields = requiredFields.filter(
-      (field) => !personalInfo[field] || (field === "phone" && personalInfo.phone.length !== 11)
+      (field) =>
+        !personalInfo[field] ||
+        (field === "phone" && personalInfo.phone.length !== 11)
     );
 
     if (emptyFields.length > 0) {
-      toast.error(`Please fill out all required fields: ${emptyFields.join(", ")}`);
+      toast.error(
+        `Please fill out all required fields: ${emptyFields.join(", ")}`
+      );
     } else {
       setStep(2);
     }
@@ -162,6 +163,14 @@ export function BooknowModal({ showBooknowModal, setShowBooknowModal }) {
       setDateError("");
     }
   };
+  // Assuming this is in your InputField component or similar
+  const handlePhotoChange = (e) => {
+    const file = e.target.files ? e.target.files[0] : null;
+    setPetInfo((prev) => ({ ...prev, photo: file }));
+  };
+
+  // Then in the InputField component
+  <Input type="file" onChange={handlePhotoChange} />;
 
   const handleTimeChange = (e) => {
     const selectedTime = e.target.value;
@@ -203,6 +212,21 @@ export function BooknowModal({ showBooknowModal, setShowBooknowModal }) {
     }
     return [];
   };
+  //file change
+  const handleFileChange = (e) => {
+    const file = e.target.files && e.target.files[0];
+    if (file) {
+      console.log("File selected for upload:", file);
+      setPetInfo((prev) => ({ ...prev, photo: file }));
+    } else {
+      console.warn("No file selected or invalid file input.");
+    }
+  };
+
+  const handlePreviousStep = () => {
+    // Ensure that the step does not go below 1
+    setStep((prevStep) => (prevStep > 1 ? prevStep - 1 : prevStep));
+  };
 
   const handleRoomChange = (value) => {
     setPetInfo((prev) => ({
@@ -214,81 +238,20 @@ export function BooknowModal({ showBooknowModal, setShowBooknowModal }) {
   const handleSubmit = async (e) => {
     e.preventDefault();
     setIsLoading(true);
-
     try {
-      if (dateError || timeError) {
-        toast.error("Please fix the date and time errors before proceeding.");
-        setIsLoading(false);
-        return;
-      }
-
-      // Upload the pet photo if it exists and get the URL, fallback to a default URL if not available
-      let petPhotoUrl = null;
-      if (petInfo.photo) {
-        petPhotoUrl = await uploadPhoto(petInfo.photo);
-      }
-      petPhotoUrl = petPhotoUrl || "/placeholder.svg"; // Fallback to placeholder if photo is missing
-
-      // Ensure all required fields are arrays
-      const finalPetInfo = {
-        ...petInfo,
-        date: Array.isArray(petInfo.date) ? petInfo.date : [petInfo.date],
-        time: Array.isArray(petInfo.time) ? petInfo.time : [petInfo.time],
-        services: Array.isArray(petInfo.services)
-          ? petInfo.services
-          : [petInfo.services],
-        clinic: Array.isArray(petInfo.clinic)
-          ? petInfo.clinic
-          : [petInfo.clinic],
-        room: Array.isArray(petInfo.room) ? petInfo.room : [petInfo.room],
-      };
-
-      // Create user and get ownerId
-      const newUser = await createUser(
-        personalInfo,
-        finalPetInfo,
-        "user",
-        payment
-      );
-      const ownerId = newUser?.newUser?.accountId || newUser.$id;
-
-      if (!ownerId) {
-        throw new Error("Failed to retrieve owner ID for the pet data.");
-      }
-
-      // Prepare the pet data with ownerId and petPhotoUrl included
-      const petData = {
-        ownerId,
-        petName: finalPetInfo.name,
-        petType: finalPetInfo.type,
-        petSpecies: finalPetInfo.species,
-        petAge: finalPetInfo.age,
-        petServices: finalPetInfo.services,
-        petPhotoId: petPhotoUrl, // Ensure petPhotoUrl is assigned here
-        petClinic: finalPetInfo.clinic,
-        petRoom: finalPetInfo.room,
-        petDate: finalPetInfo.date,
-        petTime: finalPetInfo.time,
-        petPayment: payment,
-      };
-
-      console.log("Pet data structure before saving:", petData);
-
-      // Save pet data to the database
-      await savePetToDatabase(petData);
-
-      toast.success("Booking successful!");
+      const result = await createUser(personalInfo, petInfo, "user", payment);
+      console.log("User and Pet created:", result);
+      toast.success("Booking successful!"); // Show success toast
       setShowBooknowModal(false);
       router.push("/user-dashboard");
     } catch (error) {
-      console.error("Error during booking:", error.message);
+      console.error("Error during user registration:", error.message);
       setError(error.message);
-      toast.error("Booking failed. Please try again.");
+      toast.error("Booking failed. Please try again."); // Show error toast
     } finally {
       setIsLoading(false);
     }
   };
-
   // Breed options for Dog and Cat types
   const dogBreeds = [
     "Labrador Retriever",
@@ -336,7 +299,9 @@ export function BooknowModal({ showBooknowModal, setShowBooknowModal }) {
           </DialogHeader>
           {missingFields.length > 0 && (
             <div className="text-red-500 mb-4">
-              {`Please fill out the missing fields: ${missingFields.join(", ")}`}
+              {`Please fill out the missing fields: ${missingFields.join(
+                ", "
+              )}`}
             </div>
           )}
 
@@ -363,7 +328,7 @@ export function BooknowModal({ showBooknowModal, setShowBooknowModal }) {
                   onChange={handleInputChange(setPersonalInfo)}
                   placeholder="Enter your Email Address"
                 />
-                   <PasswordField
+                <PasswordField
                   id="password"
                   name="password"
                   label="Password"
@@ -373,7 +338,7 @@ export function BooknowModal({ showBooknowModal, setShowBooknowModal }) {
                   toggleVisibility={togglePasswordVisibility}
                   placeholder="Enter your password"
                 />
-                 <InputField
+                <InputField
                   id="phone"
                   name="phone"
                   label="Phone Number"
@@ -382,7 +347,7 @@ export function BooknowModal({ showBooknowModal, setShowBooknowModal }) {
                   onChange={handleInputChange(setPersonalInfo)}
                   placeholder="09XXXXXXXXX"
                 />
-                  
+
                 <InputField
                   id="owner-photo"
                   name="ownerPhoto"
@@ -487,8 +452,9 @@ export function BooknowModal({ showBooknowModal, setShowBooknowModal }) {
                       label="Pet Photo"
                       icon={<Camera />}
                       type="file"
-                      onChange={handleInputChange(setPetInfo)}
+                      onChange={handleFileChange}
                     />
+
                     <InputField
                       id="date"
                       name="date"
@@ -559,7 +525,7 @@ export function BooknowModal({ showBooknowModal, setShowBooknowModal }) {
                   <Button
                     type="button"
                     variant="outline"
-                    onClick={handleNextStep}
+                    onClick={handlePreviousStep}
                   >
                     Back
                   </Button>
@@ -659,7 +625,7 @@ function PasswordField({
       type={showPassword ? "text" : "password"}
       value={value}
       onChange={onChange}
-      placeholder={placeholder} 
+      placeholder={placeholder}
       icon={<Lock />}
     >
       <button

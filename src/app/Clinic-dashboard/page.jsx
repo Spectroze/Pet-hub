@@ -2,10 +2,13 @@
 
 import { useState } from "react";
 import { Button } from "@/components/ui/button";
+import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { Avatar, AvatarImage, AvatarFallback } from "@/components/ui/avatar";
+import { toast } from "react-hot-toast";
+import { useRouter } from "next/navigation";
 import Appointments from "./appointment/page";
 import Pets from "./pets/page";
 import Owners from "./owner/page";
-import Reports from "./reports/page";
 import {
   Menu,
   Home,
@@ -14,15 +17,35 @@ import {
   Users,
   BarChart2,
   LogOut,
+  DollarSign,
+  TrendingUp,
+  Activity,
 } from "lucide-react";
-import { Avatar, AvatarImage, AvatarFallback } from "@/components/ui/avatar";
-import { toast } from "react-hot-toast"; // Import react-hot-toast
-import { useRouter } from "next/navigation"; // Import useRouter from next/navigation
+import {
+  ChartContainer,
+  ChartTooltip,
+  ChartTooltipContent,
+} from "@/components/ui/chart";
+import {
+  Line,
+  LineChart,
+  Bar,
+  BarChart,
+  XAxis,
+  YAxis,
+  CartesianGrid,
+  Tooltip,
+  Legend,
+  ResponsiveContainer,
+  PieChart,
+  Pie,
+  Cell,
+} from "recharts";
 
 // Mock user data for the avatar
 const ownerInfo = {
   name: "John Doe",
-  avatarUrl: "/images/avatar-placeholder.png", // Adjust path as needed
+  avatarUrl: "/images/avatar-placeholder.png",
 };
 
 // Navigation Items
@@ -31,33 +54,271 @@ const navigationItems = [
   { name: "Appointments", icon: CalendarIcon },
   { name: "Pets", icon: PawPrint },
   { name: "Owners", icon: Users },
-  { name: "Reports", icon: BarChart2 },
 ];
 
-// Overview Component (Simple placeholder)
+// Mock data for charts
+const revenueData = [
+  { name: "Jan", revenue: 4000 },
+  { name: "Feb", revenue: 3000 },
+  { name: "Mar", revenue: 5000 },
+  { name: "Apr", revenue: 4500 },
+  { name: "May", revenue: 5500 },
+  { name: "Jun", revenue: 6000 },
+];
+
+const petGrowthData = [
+  { name: "Jan", pets: 100 },
+  { name: "Feb", pets: 120 },
+  { name: "Mar", pets: 135 },
+  { name: "Apr", pets: 140 },
+  { name: "May", pets: 148 },
+  { name: "Jun", pets: 155 },
+];
+
+const appointmentData = [
+  { name: "Mon", appointments: 15 },
+  { name: "Tue", appointments: 20 },
+  { name: "Wed", appointments: 25 },
+  { name: "Thu", appointments: 18 },
+  { name: "Fri", appointments: 22 },
+  { name: "Sat", appointments: 30 },
+  { name: "Sun", appointments: 10 },
+];
+
+const petTypeData = [
+  { name: "Dogs", value: 45 },
+  { name: "Cats", value: 35 },
+  { name: "Birds", value: 10 },
+  { name: "Others", value: 10 },
+];
+
+const activeOwnersData = [
+  { name: "Jan", owners: 80 },
+  { name: "Feb", owners: 85 },
+  { name: "Mar", owners: 90 },
+  { name: "Apr", owners: 88 },
+  { name: "May", owners: 95 },
+  { name: "Jun", owners: 98 },
+];
+
+const COLORS = ["#0088FE", "#00C49F", "#FFBB28", "#FF8042"];
+
 function Overview() {
   return (
-    <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-4">
-      <div className="bg-white p-4 rounded-lg shadow">
-        <h2 className="text-lg font-bold">Total Appointments</h2>
-        <p className="text-2xl">24</p>
-        <p className="text-sm text-muted-foreground">+10% from last month</p>
+    <div className="space-y-6">
+      <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-4">
+        <Card>
+          <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+            <CardTitle className="text-sm font-medium">Total Revenue</CardTitle>
+            <DollarSign className="h-4 w-4 text-muted-foreground" />
+          </CardHeader>
+          <CardContent>
+            <div className="text-2xl font-bold">$12,345</div>
+            <p className="text-xs text-muted-foreground">
+              +15% from last month
+            </p>
+          </CardContent>
+        </Card>
+        <Card>
+          <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+            <CardTitle className="text-sm font-medium">Appointments</CardTitle>
+            <CalendarIcon className="h-4 w-4 text-muted-foreground" />
+          </CardHeader>
+          <CardContent>
+            <div className="text-2xl font-bold">24</div>
+            <p className="text-xs text-muted-foreground">
+              +10% from last month
+            </p>
+          </CardContent>
+        </Card>
+        <Card>
+          <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+            <CardTitle className="text-sm font-medium">Total Pets</CardTitle>
+            <PawPrint className="h-4 w-4 text-muted-foreground" />
+          </CardHeader>
+          <CardContent>
+            <div className="text-2xl font-bold">145</div>
+            <p className="text-xs text-muted-foreground">+5% from last month</p>
+          </CardContent>
+        </Card>
+        <Card>
+          <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+            <CardTitle className="text-sm font-medium">Active Owners</CardTitle>
+            <Users className="h-4 w-4 text-muted-foreground" />
+          </CardHeader>
+          <CardContent>
+            <div className="text-2xl font-bold">98</div>
+            <p className="text-xs text-muted-foreground">+2% from last month</p>
+          </CardContent>
+        </Card>
       </div>
-      <div className="bg-white p-4 rounded-lg shadow">
-        <h2 className="text-lg font-bold">Total Pets</h2>
-        <p className="text-2xl">145</p>
-        <p className="text-sm text-muted-foreground">+5% from last month</p>
+      <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-7">
+        <Card className="col-span-4">
+          <CardHeader>
+            <CardTitle>Revenue Overview</CardTitle>
+          </CardHeader>
+          <CardContent className="pl-2">
+            <ChartContainer
+              config={{
+                revenue: {
+                  label: "Revenue",
+                  color: "hsl(var(--chart-1))",
+                },
+              }}
+              className="h-[300px]"
+            >
+              <ResponsiveContainer width="100%" height="100%">
+                <LineChart data={revenueData}>
+                  <CartesianGrid strokeDasharray="3 3" />
+                  <XAxis dataKey="name" />
+                  <YAxis />
+                  <ChartTooltip content={<ChartTooltipContent />} />
+                  <Legend />
+                  <Line
+                    type="monotone"
+                    dataKey="revenue"
+                    stroke="var(--color-revenue)"
+                    strokeWidth={2}
+                  />
+                </LineChart>
+              </ResponsiveContainer>
+            </ChartContainer>
+          </CardContent>
+        </Card>
+        <Card className="col-span-3">
+          <CardHeader>
+            <CardTitle>Pet Growth</CardTitle>
+          </CardHeader>
+          <CardContent className="pl-2">
+            <ChartContainer
+              config={{
+                pets: {
+                  label: "Pets",
+                  color: "hsl(var(--chart-2))",
+                },
+              }}
+              className="h-[300px]"
+            >
+              <ResponsiveContainer width="100%" height="100%">
+                <BarChart data={petGrowthData}>
+                  <CartesianGrid strokeDasharray="3 3" />
+                  <XAxis dataKey="name" />
+                  <YAxis />
+                  <ChartTooltip content={<ChartTooltipContent />} />
+                  <Legend />
+                  <Bar dataKey="pets" fill="var(--color-pets)" />
+                </BarChart>
+              </ResponsiveContainer>
+            </ChartContainer>
+          </CardContent>
+        </Card>
       </div>
-      <div className="bg-white p-4 rounded-lg shadow">
-        <h2 className="text-lg font-bold">Total Owners</h2>
-        <p className="text-2xl">98</p>
-        <p className="text-sm text-muted-foreground">+2% from last month</p>
+      <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-7">
+        <Card className="col-span-4">
+          <CardHeader>
+            <CardTitle>Weekly Appointments</CardTitle>
+          </CardHeader>
+          <CardContent className="pl-2">
+            <ChartContainer
+              config={{
+                appointments: {
+                  label: "Appointments",
+                  color: "hsl(var(--chart-3))",
+                },
+              }}
+              className="h-[300px]"
+            >
+              <ResponsiveContainer width="100%" height="100%">
+                <BarChart data={appointmentData}>
+                  <CartesianGrid strokeDasharray="3 3" />
+                  <XAxis dataKey="name" />
+                  <YAxis />
+                  <ChartTooltip content={<ChartTooltipContent />} />
+                  <Legend />
+                  <Bar
+                    dataKey="appointments"
+                    fill="var(--color-appointments)"
+                  />
+                </BarChart>
+              </ResponsiveContainer>
+            </ChartContainer>
+          </CardContent>
+        </Card>
+        <Card className="col-span-3">
+          <CardHeader>
+            <CardTitle>Pet Types Distribution</CardTitle>
+          </CardHeader>
+          <CardContent>
+            <ChartContainer
+              config={{
+                petTypes: {
+                  label: "Pet Types",
+                  color: "hsl(var(--chart-4))",
+                },
+              }}
+              className="h-[300px]"
+            >
+              <ResponsiveContainer width="100%" height="100%">
+                <PieChart>
+                  <Pie
+                    data={petTypeData}
+                    cx="50%"
+                    cy="50%"
+                    labelLine={false}
+                    outerRadius={80}
+                    fill="#8884d8"
+                    dataKey="value"
+                    label={({ name, percent }) =>
+                      `${name} ${(percent * 100).toFixed(0)}%`
+                    }
+                  >
+                    {petTypeData.map((entry, index) => (
+                      <Cell
+                        key={`cell-${index}`}
+                        fill={COLORS[index % COLORS.length]}
+                      />
+                    ))}
+                  </Pie>
+                  <ChartTooltip content={<ChartTooltipContent />} />
+                  <Legend />
+                </PieChart>
+              </ResponsiveContainer>
+            </ChartContainer>
+          </CardContent>
+        </Card>
       </div>
-      <div className="bg-white p-4 rounded-lg shadow">
-        <h2 className="text-lg font-bold">Revenue</h2>
-        <p className="text-2xl">$12,345</p>
-        <p className="text-sm text-muted-foreground">+15% from last month</p>
-      </div>
+      <Card>
+        <CardHeader>
+          <CardTitle>Total Active Owners</CardTitle>
+        </CardHeader>
+        <CardContent className="pl-2">
+          <ChartContainer
+            config={{
+              owners: {
+                label: "Active Owners",
+                color: "hsl(var(--chart-5))",
+              },
+            }}
+            className="h-[300px]"
+          >
+            <ResponsiveContainer width="100%" height="100%">
+              <LineChart data={activeOwnersData}>
+                <CartesianGrid strokeDasharray="3 3" />
+                <XAxis dataKey="name" />
+                <YAxis />
+                <ChartTooltip content={<ChartTooltipContent />} />
+                <Legend />
+                <Line
+                  type="monotone"
+                  dataKey="owners"
+                  stroke="var(--color-owners)"
+                  strokeWidth={2}
+                />
+              </LineChart>
+            </ResponsiveContainer>
+          </ChartContainer>
+        </CardContent>
+      </Card>
     </div>
   );
 }
@@ -70,12 +331,9 @@ export default function PetClinicDashboard() {
   const toggleSidebar = () => setSidebarOpen(!sidebarOpen);
 
   const handleLogout = () => {
-    // Display toast on logout
     toast.success("Successfully logged out!");
-
-    // Redirect to homepage after 1 second
     setTimeout(() => {
-      router.push("/"); // Correct usage in the app directory
+      router.push("/");
     }, 1000);
   };
 
@@ -128,10 +386,10 @@ export default function PetClinicDashboard() {
             </Button>
           ))}
 
-          {/* Logout Button under Reports */}
+          {/* Logout Button */}
           <Button
             variant="ghost"
-            className="w-full mt-8 flex items-center justify-start text-red-600" // Red color for logout
+            className="w-full mt-8 flex items-center justify-start text-red-600"
             onClick={handleLogout}
           >
             <LogOut className="mr-2 h-4 w-4" />
@@ -141,7 +399,7 @@ export default function PetClinicDashboard() {
       </aside>
 
       {/* Main Content */}
-      <main className="flex-1 p-4 overflow-auto">
+      <main className="flex-1 p-6 overflow-auto">
         {/* Dynamic Content */}
         {activeTab === "overview" && <Overview />}
         {activeTab === "appointments" && <Appointments />}

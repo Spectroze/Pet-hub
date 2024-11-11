@@ -15,7 +15,16 @@ import {
 import { Separator } from "@/components/ui/separator";
 import { Star } from "lucide-react";
 import { getCurrentUser } from "@/lib/appwrite";
-import { Client, Databases } from "appwrite";
+
+import {
+  Account,
+  Avatars,
+  Client,
+  Databases,
+  ID,
+  Query,
+  Storage,
+} from "appwrite";
 
 // Initialize Appwrite Client
 const client = new Client();
@@ -86,42 +95,44 @@ export default function FeedbackForm() {
     try {
       if (!user) {
         alert("User information not available. Please log in again.");
+        setLoading(false);
         return;
       }
 
+      // Prepare the data with the serviceTag set to "Pet Trainee"
       const data = {
         overallExperience: ratings["Overall Experience"] || 0,
         petHandling: ratings["Pet Handling"] || 0,
         staffFriendliness: ratings["Staff Friendliness"] || 0,
         easeOfBooking: ratings["Ease of Booking"] || 0,
         cleanliness: ratings["Cleanliness"] || 0,
-        experienceFeedback: review,
-        tags: selectedTags,
-        users: [user.$id], // Wrap the user's ID in an array
+        experienceFeedback: review || "", // Ensure review is a string
+        users: [user.$id], // Ensure user ID is wrapped in an array
+        serviceTag: "Pet Trainee", // Assign the service tag explicitly
       };
 
-      // Save data to the ratings collection
+      // Log data structure to verify
+      console.log("Submitting data:", data);
+
+      // Save the feedback to the database
       await databases.createDocument(
-        "670a040f000893eb8e06", // Database ID
+        appwriteConfig.databaseId, // Database ID
         "671bd05400135c37afc1", // Collection ID
-        "unique()", // Generates a unique document ID
+        ID.unique(), // Generates a unique document ID using Appwrite's ID helper
         data
       );
 
       alert("Review submitted successfully!");
-
-      // Reset form after submission
       setRatings({});
       setReview("");
       setSelectedTags([]);
     } catch (error) {
       console.error("Error submitting review:", error);
-      alert("Failed to submit review.");
+      alert("Failed to submit review. See console for details.");
     } finally {
       setLoading(false);
     }
   };
-
   return (
     <Card className="w-full max-w-6xl mx-auto mt-24">
       <CardHeader>

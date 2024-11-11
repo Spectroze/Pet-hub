@@ -70,19 +70,32 @@ export default function PetCareDashboard() {
 
   const handleAddPet = async (newPet) => {
     try {
-      const petPhotoUrl = newPet?.petPhotoId
-        ? `https://cloud.appwrite.io/v1/storage/buckets/${appwriteConfig.bucketId}/files/${newPet.petPhotoId}/view?project=${appwriteConfig.projectId}`
-        : "/placeholder.svg";
+      const petData = {
+        ownerId: userId, // Use the logged-in user's ID as owner
+        petName: newPet.petName,
+        petType: newPet.petType,
+        petAge: newPet.petAge,
+        petSpecies: newPet.petSpecies,
+        petServices: newPet.petServices,
+        petPhotoId: newPet.petPhotoId || null, // Optional photo ID
+      };
 
+      // Save the new pet to the database
+      const savedPet = await databases.createDocument(
+        appwriteConfig.databaseId,
+        appwriteConfig.petCollectionId,
+        petData
+      );
+
+      // Add pet to the local state for immediate display
       setPets((prevPets) => [
         ...prevPets,
         {
-          name: newPet?.petName || "No Name",
-          type: newPet?.petType || "No Type",
-          age: newPet?.petAge || "No Age",
-          species: newPet?.petSpecies || "None",
-          carePlan: newPet?.petServices || "No Plan",
-          petPhoto: petPhotoUrl,
+          ...petData,
+          petPhoto: savedPet.petPhotoId
+            ? `https://cloud.appwrite.io/v1/storage/buckets/${appwriteConfig.bucketId}/files/${savedPet.petPhotoId}/view?project=${appwriteConfig.projectId}`
+            : "/placeholder.svg",
+          id: savedPet.$id,
         },
       ]);
     } catch (error) {
@@ -125,23 +138,7 @@ export default function PetCareDashboard() {
     );
   };
 
-  useEffect(() => {
-    // Load pets (adjust this to your needs)
-    const loadPets = async () => {
-      try {
-        const response = await databases.listDocuments(
-          appwriteConfig.databaseId,
-          appwriteConfig.petCollectionId
-        );
-        setPets(response.documents || []);
-      } catch (error) {
-        console.error("Error loading pets:", error);
-      }
-    };
-    loadPets();
-  }, []);
-
- const openNewAppointmentModal = (pet) => {
+  const openNewAppointmentModal = (pet) => {
     setSelectedPet(pet); // Set the pet details for the new appointment
     setShowNewAppointmentModal(true); // Show the appointment modal
   };
@@ -158,14 +155,25 @@ export default function PetCareDashboard() {
           appwriteConfig.databaseId,
           appwriteConfig.petCollectionId
         );
-        setPets(response.documents || []);
+        const loadedPets = response.documents.map((pet) => ({
+          name: pet.petName,
+          type: pet.petType,
+          age: pet.petAge,
+          species: pet.petSpecies,
+          carePlan: pet.petServices,
+          petPhoto: pet.petPhotoId
+            ? `https://cloud.appwrite.io/v1/storage/buckets/${appwriteConfig.bucketId}/files/${pet.petPhotoId}/view?project=${appwriteConfig.projectId}`
+            : "/placeholder.svg",
+          id: pet.$id,
+        }));
+        setPets(loadedPets);
       } catch (error) {
         console.error("Error loading pets:", error);
       }
     };
+
     loadPets();
   }, []);
-
 
   useEffect(() => {
     const checkSession = async () => {
@@ -487,7 +495,7 @@ export default function PetCareDashboard() {
                                 </p>
                                 <p className="text-sm text-gray-600">
                                   <span className="font-medium">
-                                  Pet Species:
+                                    Pet Species:
                                   </span>{" "}
                                   {pet.species}
                                 </p>

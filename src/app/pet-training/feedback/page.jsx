@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import {
   Card,
   CardContent,
@@ -18,6 +18,7 @@ import {
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { Dog, Cat, Rabbit, Fish, Star } from "lucide-react";
 
+// Icon mapping for pet types
 const petIcons = {
   dog: Dog,
   cat: Cat,
@@ -25,70 +26,35 @@ const petIcons = {
   fish: Fish,
 };
 
-export default function Component() {
-  const [feedbackList] = useState([
-    {
-      id: 1,
-      clientName: "John Doe",
-      petName: "Max",
-      petType: "dog",
-      rating: 5,
-      comment: "Max loved his grooming session!",
-      date: new Date(2023, 5, 15),
-    },
-    {
-      id: 2,
-      clientName: "Jane Smith",
-      petName: "Whiskers",
-      petType: "cat",
-      rating: 4,
-      comment: "Great cat-sitting service, Whiskers was happy.",
-      date: new Date(2023, 5, 20),
-    },
-    {
-      id: 3,
-      clientName: "Bob Johnson",
-      petName: "Hoppy",
-      petType: "rabbit",
-      rating: 3,
-      comment: "Decent rabbit care, but could use more attention.",
-      date: new Date(2023, 5, 25),
-    },
-    {
-      id: 4,
-      clientName: "Alice Brown",
-      petName: "Bubbles",
-      petType: "fish",
-      rating: 5,
-      comment: "Excellent aquarium cleaning service!",
-      date: new Date(2023, 6, 1),
-    },
-    {
-      id: 5,
-      clientName: "Charlie Wilson",
-      petName: "Rocky",
-      petType: "dog",
-      rating: 4,
-      comment: "Rocky enjoyed his stay at the pet hotel.",
-      date: new Date(2023, 6, 5),
-    },
-  ]);
-
+export default function Feedback() {
+  // State to hold feedback data
+  const [feedbackList, setFeedbackList] = useState([]);
   const [sortBy, setSortBy] = useState("date");
   const [filterPetType, setFilterPetType] = useState("all");
+  const [filterServiceTag, setFilterServiceTag] = useState("all");
 
-  const sortedAndFilteredFeedback = feedbackList
-    .filter(
-      (feedback) =>
-        filterPetType === "all" || feedback.petType === filterPetType
-    )
-    .sort((a, b) => {
-      if (sortBy === "date") {
-        return b.date.getTime() - a.date.getTime();
-      } else {
-        return b.rating - a.rating;
+  // Function to fetch feedback data (replace with your API call)
+  useEffect(() => {
+    const fetchFeedback = async () => {
+      try {
+        // Replace with your actual API call to fetch feedback data
+        const response = await fetch("/api/feedback"); // Example endpoint
+        const data = await response.json();
+        setFeedbackList(data);
+      } catch (error) {
+        console.error("Error fetching feedback data:", error);
       }
-    });
+    };
+
+    fetchFeedback();
+  }, []);
+
+  // Filter and sort feedback based on user selection
+
+  // Filter feedback for "Pet Trainee" service
+  const petTrainingFeedback = feedbackList.filter(
+    (feedback) => feedback.serviceTag === "Pet Trainee"
+  );
 
   return (
     <Card className="w-full max-w-8xl mx-auto bg-gradient-to-br from-cyan-900 to-blue-900 text-white pb-14">
@@ -103,6 +69,7 @@ export default function Component() {
       <CardContent>
         <div className="space-y-6">
           <div className="flex justify-center space-x-4">
+            {/* Sort Dropdown */}
             <Select value={sortBy} onValueChange={setSortBy}>
               <SelectTrigger className="w-[180px] bg-cyan-800 text-cyan-100 border-cyan-600">
                 <SelectValue placeholder="Sort by" />
@@ -112,6 +79,7 @@ export default function Component() {
                 <SelectItem value="rating">Sort by Rating</SelectItem>
               </SelectContent>
             </Select>
+            {/* Pet Type Filter Dropdown */}
             <Select value={filterPetType} onValueChange={setFilterPetType}>
               <SelectTrigger className="w-[180px] bg-cyan-800 text-cyan-100 border-cyan-600">
                 <SelectValue placeholder="Filter by pet" />
@@ -124,9 +92,26 @@ export default function Component() {
                 <SelectItem value="fish">Fish</SelectItem>
               </SelectContent>
             </Select>
+            {/* Service Tag Filter Dropdown */}
+            <Select
+              value={filterServiceTag}
+              onValueChange={setFilterServiceTag}
+            >
+              <SelectTrigger className="w-[180px] bg-cyan-800 text-cyan-100 border-cyan-600">
+                <SelectValue placeholder="Filter by service" />
+              </SelectTrigger>
+              <SelectContent className="bg-cyan-800 text-cyan-100">
+                <SelectItem value="all">All Services</SelectItem>
+                <SelectItem value="Pet Grooming">Pet Grooming</SelectItem>
+                <SelectItem value="Pet Trainee">Pet Trainee</SelectItem>
+                <SelectItem value="Pet Boarding">Pet Boarding</SelectItem>
+                <SelectItem value="Pet Clinic">Pet Clinic</SelectItem>
+              </SelectContent>
+            </Select>
           </div>
+          {/* Scrollable Feedback List */}
           <ScrollArea className="h-[500px] rounded-lg border border-cyan-600 bg-cyan-800/50 p-4">
-            {sortedAndFilteredFeedback.map((feedback) => {
+            {petTrainingFeedback.map((feedback) => {
               const PetIcon = petIcons[feedback.petType];
               return (
                 <div
@@ -159,7 +144,7 @@ export default function Component() {
                         )}
                       </div>
                       <p className="text-sm text-cyan-400 mt-1">
-                        {feedback.date.toLocaleDateString()}
+                        {new Date(feedback.date).toLocaleDateString()}
                       </p>
                     </div>
                   </div>
