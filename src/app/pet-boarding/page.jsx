@@ -1,4 +1,4 @@
-"use client"
+'use client'
 
 import { useState } from "react"
 import { useRouter } from "next/navigation"
@@ -19,12 +19,10 @@ import {
 import {
   Bell,
   Calendar,
-  Clock,
   DollarSign,
   Home,
   Menu,
   PawPrint,
-  Clipboard,
   BedDouble,
   LogOut,
   MessageCircle,
@@ -46,18 +44,15 @@ import Feedback from "./feedback/page"
 
 // Mock data for quick stats
 const quickStats = {
-  totalPets: 42,
-  upcomingCheckIns: 8,
-  upcomingCheckOuts: 5,
-  occupancyRate: 75,
+  totalPetsBoarding: 42,
+  totalPets: 150,
   monthlyRevenue: 15000,
-  newCustomers: 12,
 }
 
 // Mock user data for the avatar
 const ownerInfo = {
   name: "John Doe",
-  avatarUrl: "/images/avatar-placeholder.png", // Adjust path as needed
+  avatarUrl: "/images/avatar-placeholder.png",
 }
 
 // Mock data for charts
@@ -71,8 +66,14 @@ const boardingTrends = [
   { name: "Sun", dogs: 16, cats: 10, other: 3 },
 ]
 
-const popularServices = [{ name: "Boarding", value: 60 }]
-const COLORS = ["#6366f1", "#22c55e", "#eab308"]
+const roomOccupancy = [
+  { name: "Room 1", value: 8 },
+  { name: "Room 2", value: 10 },
+  { name: "Room 3", value: 12 },
+  { name: "Room 4", value: 7 },
+]
+
+const COLORS = ["#6366f1", "#22c55e", "#eab308", "#ef4444"]
 
 export default function Dashboard() {
   const [activeSection, setActiveSection] = useState("overview")
@@ -101,32 +102,25 @@ export default function Dashboard() {
   }
 
   const renderOverview = () => (
-    <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-4">
+    <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
       <Card className="bg-gray-800 text-white">
         <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
           <CardTitle className="text-sm font-medium">Total Pets Boarding</CardTitle>
+          <BedDouble className="h-4 w-4 text-gray-400" />
+        </CardHeader>
+        <CardContent>
+          <div className="text-2xl font-bold">{quickStats.totalPetsBoarding}</div>
+          <p className="text-xs text-gray-400">Currently in our care</p>
+        </CardContent>
+      </Card>
+      <Card className="bg-gray-800 text-white">
+        <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+          <CardTitle className="text-sm font-medium">Total Pets</CardTitle>
           <PawPrint className="h-4 w-4 text-gray-400" />
         </CardHeader>
         <CardContent>
           <div className="text-2xl font-bold">{quickStats.totalPets}</div>
-        </CardContent>
-      </Card>
-      <Card className="bg-gray-800 text-white">
-        <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-          <CardTitle className="text-sm font-medium">Upcoming Check-ins</CardTitle>
-          <Clock className="h-4 w-4 text-gray-400" />
-        </CardHeader>
-        <CardContent>
-          <div className="text-2xl font-bold">{quickStats.upcomingCheckIns}</div>
-        </CardContent>
-      </Card>
-      <Card className="bg-gray-800 text-white">
-        <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-          <CardTitle className="text-sm font-medium">Occupancy Rate</CardTitle>
-          <Home className="h-4 w-4 text-gray-400" />
-        </CardHeader>
-        <CardContent>
-          <div className="text-2xl font-bold">{quickStats.occupancyRate}%</div>
+          <p className="text-xs text-gray-400">Registered in our system</p>
         </CardContent>
       </Card>
       <Card className="bg-gray-800 text-white">
@@ -136,6 +130,7 @@ export default function Dashboard() {
         </CardHeader>
         <CardContent>
           <div className="text-2xl font-bold">${quickStats.monthlyRevenue}</div>
+          <p className="text-xs text-gray-400">This month's earnings</p>
         </CardContent>
       </Card>
       <Card className="col-span-full bg-gray-800 text-white">
@@ -152,20 +147,20 @@ export default function Dashboard() {
               <Legend />
               <Bar dataKey="dogs" fill="#6366f1" />
               <Bar dataKey="cats" fill="#22c55e" />
-              <Bar dataKey="other" fill="#eab308" />
+            
             </BarChart>
           </ResponsiveContainer>
         </CardContent>
       </Card>
-      <Card className="bg-gray-800 text-white">
+      <Card className="col-span-full md:col-span-2 bg-gray-800 text-white">
         <CardHeader>
-          <CardTitle>Popular Services</CardTitle>
+          <CardTitle>Room Occupancy</CardTitle>
         </CardHeader>
         <CardContent className="w-full h-[300px]">
           <ResponsiveContainer width="100%" height="100%">
             <PieChart>
               <Pie
-                data={popularServices}
+                data={roomOccupancy}
                 cx="50%"
                 cy="50%"
                 labelLine={false}
@@ -174,7 +169,7 @@ export default function Dashboard() {
                 dataKey="value"
                 label={({ name, percent }) => `${name} ${(percent * 100).toFixed(0)}%`}
               >
-                {popularServices.map((entry, index) => (
+                {roomOccupancy.map((entry, index) => (
                   <Cell key={`cell-${index}`} fill={COLORS[index % COLORS.length]} />
                 ))}
               </Pie>
@@ -198,7 +193,7 @@ export default function Dashboard() {
   const handleLogout = () => {
     toast.success("Successfully logged out!")
     setTimeout(() => {
-      router.push("/") // Redirect to homepage after 1 second
+      router.push("/")
     }, 1000)
   }
 

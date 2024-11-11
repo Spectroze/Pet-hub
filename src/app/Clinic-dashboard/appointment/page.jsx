@@ -16,11 +16,13 @@ import {
   Snackbar,
   Alert,
 } from "@mui/material";
-import { databases } from "../../../lib/appwrite";
-import { appwriteConfig } from "../../../lib/appwrite";
-import { Query } from "appwrite";
+import { Query,Account } from "appwrite"; // Import only what you need from Appwrite
+import { appwriteConfig, databases,  } from "../../../lib/appwrite"; // Import your configurations and services
 
 const localizer = momentLocalizer(moment);
+
+// Initialize the Appwrite Account object
+const account = new Account(appwriteConfig.client);
 
 export default function AppointmentCalendar({ databaseId, collectionId }) {
   const [events, setEvents] = useState([]);
@@ -92,22 +94,24 @@ export default function AppointmentCalendar({ databaseId, collectionId }) {
         databaseId || dbId,
         collectionId || petCollId
       );
+      console.log("Fetched documents:", response.documents);
 
-      const filteredAppointments = response.documents.filter(
-        (appointment) =>
-          appointment.petServices === "Pet Grooming" ||
-          appointment.petServices === "Pet Veterinary"
-      );
+      if (!response.documents || response.documents.length === 0) {
+        setError("No appointments found.");
+        setEvents([]);
+        setLoading(false);
+        return;
+      }
 
       const fetchedEvents = await Promise.all(
-        filteredAppointments.map(async (appointment) => {
+        response.documents.map(async (appointment) => {
           const { ownerName, ownerAvatar } = appointment.ownerId
             ? await getOwnerDetails(appointment.ownerId)
-            : { ownerName: "Unknown Owner", ownerAvatar: "/placeholder.svg" };
+            : { ownerName: "Unknown Owner", ownerAvatar: "/images/avatar-placeholder.png" };
 
           const petAvatar = appointment.petPhotoId
             ? constructAvatarUrl(appointment.petPhotoId)
-            : "/placeholder.svg";
+            : "/images/avatar-placeholder.png";
 
           return {
             id: appointment.$id,
@@ -124,6 +128,7 @@ export default function AppointmentCalendar({ databaseId, collectionId }) {
         })
       );
 
+      console.log("Fetched events:", fetchedEvents);
       setEvents(fetchedEvents);
     } catch (error) {
       console.error("Error fetching appointments:", error.message);
@@ -159,7 +164,7 @@ export default function AppointmentCalendar({ databaseId, collectionId }) {
 
   const handleAccept = async () => {
     try {
-      const currentUser = await account.get();
+      const currentUser = await account.get(); // Use the properly configured account object
 
       if (!currentUser || !currentUser.$id) {
         throw new Error("User is not authenticated");

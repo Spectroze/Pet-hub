@@ -9,6 +9,7 @@ import { Badge } from "@/components/ui/badge"
 import { Separator } from "@/components/ui/separator"
 import { Button } from "@/components/ui/button"
 import AddPetModal from "../modals/AddPetsModal"
+import { motion } from "framer-motion";
 import NewAppointmentModal from "@/app/modals/newAppointmentModal"
 import {
   Card,
@@ -251,12 +252,23 @@ export default function PetCareDashboard() {
   const PawPrintLoader = () => (
     <div className="flex flex-col items-center justify-center h-screen bg-gray-900">
       <div className="relative">
-        <div className="w-24 h-24 border-4 border-primary rounded-full animate-spin"></div>
-        <div className="absolute top-1/2 left-1/2 transform -translate-x-1/2 -translate-y-1/2">
-          <PawPrint className="w-12 h-12 text-primary animate-bounce" />
-        </div>
+   
+        <motion.div
+            animate={{
+              scale: [1, 1.2, 1],
+              rotate: [0, 360],
+            }}
+            transition={{
+              duration: 2,
+              ease: "easeInOut",
+              times: [0, 0.5, 1],
+              repeat: Infinity,
+            }}
+          >
+            <PawPrint className="h-24 w-24 text-white " />
+          </motion.div>
       </div>
-      <p className="mt-4 text-lg font-medium text-primary animate-pulse">
+      <p className="mt-4 text-lg font-medium text-white animate-pulse">
         Loading your pet paradise...
       </p>
     </div>
