@@ -65,7 +65,8 @@ export function BooknowModal({ showBooknowModal, setShowBooknowModal }) {
     time: [], // Initialize as array
     services: [], // Initialize as array
     clinic: [], // Initialize as array
-    room: [], // Initialize as array
+    room: [],
+    staus: ["Pending"],
   });
 
   const servicePrices = {

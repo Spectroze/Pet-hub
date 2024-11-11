@@ -16,13 +16,22 @@ import {
   Snackbar,
   Alert,
 } from "@mui/material";
-import { Query,Account } from "appwrite"; // Import only what you need from Appwrite
-import { appwriteConfig, databases,  } from "../../../lib/appwrite"; // Import your configurations and services
+import { Query, Account, Client } from "appwrite";
+import { appwriteConfig, databases } from "../../../lib/appwrite";
 
 const localizer = momentLocalizer(moment);
 
-// Initialize the Appwrite Account object
-const account = new Account(appwriteConfig.client);
+// Initialize Appwrite Client
+const client = new Client();
+client
+  .setEndpoint("https://cloud.appwrite.io/v1")
+  .setProject("67094c000023e950be96");
+
+// Set the client to the appwriteConfig object
+appwriteConfig.client = client;
+
+// Initialize the Appwrite Account object using the configured client
+const account = new Account(client);
 
 export default function AppointmentCalendar({ databaseId, collectionId }) {
   const [events, setEvents] = useState([]);
@@ -35,7 +44,7 @@ export default function AppointmentCalendar({ databaseId, collectionId }) {
   const [appointmentDetails, setAppointmentDetails] = useState({
     petOwner: "",
     service: "",
-    status: "Scheduled",
+    status: [],
     petAvatar: "",
     userAvatar: "",
   });
@@ -107,7 +116,10 @@ export default function AppointmentCalendar({ databaseId, collectionId }) {
         response.documents.map(async (appointment) => {
           const { ownerName, ownerAvatar } = appointment.ownerId
             ? await getOwnerDetails(appointment.ownerId)
-            : { ownerName: "Unknown Owner", ownerAvatar: "/images/avatar-placeholder.png" };
+            : {
+                ownerName: "Unknown Owner",
+                ownerAvatar: "/images/avatar-placeholder.png",
+              };
 
           const petAvatar = appointment.petPhotoId
             ? constructAvatarUrl(appointment.petPhotoId)
@@ -171,7 +183,7 @@ export default function AppointmentCalendar({ databaseId, collectionId }) {
       }
 
       await databases.updateDocument(dbId, petCollId, selectedEvent.id, {
-        status: "Accepted",
+        status: ["Accepted"],
       });
       showNotification("Appointment Accepted", "success");
       fetchAppointments();
@@ -193,9 +205,10 @@ export default function AppointmentCalendar({ databaseId, collectionId }) {
 
   const handleDecline = async () => {
     try {
+      // Convert the declineReason to an array
       await databases.updateDocument(dbId, petCollId, selectedEvent.id, {
-        status: "Declined",
-        declineReason: declineReason,
+        status: ["Declined"],
+        declineReason: [declineReason], // Wrap declineReason in an array
       });
       showNotification("Appointment Declined", "warning");
       fetchAppointments();
@@ -317,15 +330,26 @@ export default function AppointmentCalendar({ databaseId, collectionId }) {
                     .tz(selectedEvent.start, "Asia/Manila")
                     .format("h:mm A")}
                 </Typography>
+                <Typography variant="body1" color="primary" mt={2}>
+                  <strong>Status:</strong> {selectedEvent.status}
+                </Typography>
               </Box>
             </Box>
           )}
         </DialogContent>
         <DialogActions>
-          <Button onClick={handleAccept} color="primary">
+          <Button
+            onClick={handleAccept}
+            color="primary"
+            disabled={selectedEvent?.status === "Accepted"}
+          >
             Accept
           </Button>
-          <Button onClick={handleOpenDeclineDialog} color="secondary">
+          <Button
+            onClick={handleOpenDeclineDialog}
+            color="secondary"
+            disabled={selectedEvent?.status === "Accepted"}
+          >
             Decline
           </Button>
           <Button onClick={handleCloseViewDialog}>Close</Button>
