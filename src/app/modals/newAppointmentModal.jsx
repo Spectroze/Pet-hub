@@ -94,14 +94,17 @@ export default function NewAppointmentModal({ isOpen, onClose, pet }) {
       const ownerId = await getCurrentUserId();
       if (!ownerId) throw new Error("User ID not retrieved");
 
+      // Ensure petPayment is within the valid range
+      const validatedPayment = Math.max(500, Math.min(1200, Number(payment)));
+
       const appointmentData = {
         petServices: services,
         petDate: [date],
         petTime: [time],
         petClinic: [clinic],
         petRoom: [room],
-        petPayment: Number(payment),
-        ownerId,
+        petPayment: validatedPayment,
+        ownerId, 
         petId: pet?.id,
         petName: pet?.name,
         petType: pet?.type,
