@@ -98,11 +98,16 @@ export default function AppointmentCalendar({ databaseId, collectionId }) {
     setError("");
 
     try {
-      // Use Query.contains to filter documents where "petServices" array includes "pet training"
+      // Use Query.contains to filter documents where "petServices" array includes "pet veterinary" or "pet grooming"
       const response = await databases.listDocuments(
         databaseId || dbId,
         collectionId || petCollId,
-        [Query.contains("petServices", "Pet Training")]
+        [
+          Query.or([
+            Query.contains("petServices", "Pet Veterinary"),
+            Query.contains("petServices", "Pet Grooming"),
+          ]),
+        ]
       );
 
       if (!response.documents || response.documents.length === 0) {
@@ -139,6 +144,8 @@ export default function AppointmentCalendar({ databaseId, collectionId }) {
           };
         })
       );
+
+      setEvents(fetchedEvents);
     } catch (error) {
       console.error("Error fetching appointments:", error.message);
       setError("Failed to fetch appointments. Please try again later.");

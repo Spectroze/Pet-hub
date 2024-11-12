@@ -61,6 +61,21 @@ export default function Notifications() {
     fetchAppointments();
   }, []);
 
+  // Format date into a more human-readable format
+  const formatDate = (dateString) => {
+    if (!dateString) return "N/A";
+    const date = new Date(dateString);
+    return date.toLocaleString("en-US", {
+      weekday: "short",
+      year: "numeric",
+      month: "short",
+      day: "numeric",
+      hour: "numeric",
+      minute: "numeric",
+      hour12: true,
+    });
+  };
+
   const openNotificationModal = (notification) => {
     setSelectedNotification(notification);
     setIsModalOpen(true);
@@ -107,8 +122,7 @@ export default function Notifications() {
                     ? "Your appointment is declined"
                     : notification.message || "Appointment Update"}
                 </TableCell>
-
-                <TableCell>{notification.$updatedAt || "N/A"}</TableCell>
+                <TableCell>{formatDate(notification.$updatedAt)}</TableCell>
                 <TableCell>
                   <span className="px-2 py-1 rounded text-sm">
                     {notification.status}
@@ -141,7 +155,7 @@ export default function Notifications() {
               </DialogHeader>
               <div className="py-4">
                 <p className="text-sm text-purple-400 mb-2">
-                  Date: {selectedNotification.$updatedAt || "N/A"}
+                  Date: {formatDate(selectedNotification.$updatedAt)}
                 </p>
                 <p className="text-sm font-semibold text-gray-200">
                   Status: <span>{selectedNotification.status}</span>

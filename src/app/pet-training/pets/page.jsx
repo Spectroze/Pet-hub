@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import {
@@ -13,62 +13,31 @@ import {
 } from "@/components/ui/table";
 import { Search, Edit, Trash2, PlusCircle } from "lucide-react";
 import { toast } from "react-hot-toast";
+import { databases, appwriteConfig } from "../../../lib/appwrite"; // Import Appwrite configuration
+import { Query } from "appwrite";
 
 export default function Pets() {
-  const [petRecords, setPetRecords] = useState([
-    {
-      id: 1,
-      name: "Max",
-      species: "Dog",
-      breed: "Labrador",
-      age: 5,
-      owner: "John Doe",
-      lastCheckup: new Date(2023, 5, 15),
-      photo: "https://placekitten.com/200/300",
-    },
-    {
-      id: 2,
-      name: "Whiskers",
-      species: "Cat",
-      breed: "Siamese",
-      age: 3,
-      owner: "Jane Smith",
-      lastCheckup: new Date(2023, 5, 20),
-      photo: "https://placekitten.com/200/300",
-    },
-    {
-      id: 3,
-      name: "Buddy",
-      species: "Dog",
-      breed: "Golden Retriever",
-      age: 7,
-      owner: "Bob Johnson",
-      lastCheckup: new Date(2023, 5, 25),
-      photo: "https://placekitten.com/200/300",
-    },
-    {
-      id: 4,
-      name: "Nemo",
-      species: "Fish",
-      breed: "Clownfish",
-      age: 1,
-      owner: "Alice Brown",
-      lastCheckup: new Date(2023, 6, 1),
-      photo: "https://placekitten.com/200/300",
-    },
-    {
-      id: 5,
-      name: "Tweety",
-      species: "Bird",
-      breed: "Canary",
-      age: 2,
-      owner: "Charlie Wilson",
-      lastCheckup: new Date(2023, 6, 5),
-      photo: "https://placekitten.com/200/300",
-    },
-  ]);
-
+  const [petRecords, setPetRecords] = useState([]);
   const [searchTerm, setSearchTerm] = useState("");
+
+  // Fetch pet records from Appwrite on component mount
+  useEffect(() => {
+    const fetchPetRecords = async () => {
+      try {
+        const response = await databases.listDocuments(
+          appwriteConfig.databaseId,
+          appwriteConfig.petCollectionId
+        );
+        console.log("Fetched pets:", response.documents); // Debugging log
+        setPetRecords(response.documents);
+      } catch (error) {
+        console.error("Error fetching pet records:", error);
+        toast.error("Failed to fetch pet records.");
+      }
+    };
+
+    fetchPetRecords();
+  }, []);
 
   const handleEdit = (id) => {
     toast.success(`Editing pet record with ID: ${id}`);
@@ -76,103 +45,108 @@ export default function Pets() {
 
   const handleDelete = (id) => {
     setPetRecords((prevRecords) =>
-      prevRecords.filter((record) => record.id !== id)
+      prevRecords.filter((record) => record.$id !== id)
     );
     toast.success("Pet record deleted successfully!");
   };
 
   const filteredRecords = petRecords.filter(
     (record) =>
-      record.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
-      record.owner.toLowerCase().includes(searchTerm.toLowerCase()) ||
-      record.species.toLowerCase().includes(searchTerm.toLowerCase()) ||
-      record.breed.toLowerCase().includes(searchTerm.toLowerCase())
+      record.petName?.toLowerCase().includes(searchTerm.toLowerCase()) ||
+      record.petSpecies?.toLowerCase().includes(searchTerm.toLowerCase()) ||
+      record.breed?.toLowerCase().includes(searchTerm.toLowerCase())
   );
 
   return (
-    <div className="w-full space-y-4 bg-gradient-to-br from-blue-50 to-purple-50 p-6 rounded-lg">
+    <div className="w-full space-y-4 bg-gradient-to-br from-gray-900 to-gray-800 p-6 rounded-lg">
       <div className="flex flex-col sm:flex-row items-center justify-between gap-4">
-        <h2 className="text-3xl font-bold flex items-center gap-2 text-purple-700">
-          <PlusCircle className="h-8 w-8 text-purple-500" />
+        <h2 className="text-3xl font-bold flex items-center gap-2 text-[#FF6B6B]">
+          <PlusCircle className="h-8 w-8 text-[#FF6B6B]" />
           Pet Records
         </h2>
         <div className="flex items-center space-x-2 w-full sm:w-auto">
-          <Search className="h-5 w-5 text-purple-500" />
+          <Search className="h-5 w-5 text-white" />
           <Input
             placeholder="Search pet records..."
             value={searchTerm}
             onChange={(e) => setSearchTerm(e.target.value)}
-            className="max-w-sm border-purple-300 focus:border-purple-500 focus:ring-purple-500"
+            className="max-w-sm bg-gray-800 border-gray-700 focus:border-primary focus:ring-primary text-white"
           />
         </div>
       </div>
-      <div className="rounded-md border border-purple-200 overflow-hidden bg-white shadow-lg">
+      <div className="rounded-md border border-gray-700 overflow-hidden bg-gray-800 shadow-lg">
         <Table>
           <TableHeader>
-            <TableRow className="bg-purple-100">
-              <TableHead className="w-[150px] text-purple-700">Photo</TableHead>
-              <TableHead className="w-[150px] text-purple-700">
-                Pet Name
-              </TableHead>
-              <TableHead className="text-purple-700">Species</TableHead>
-              <TableHead className="text-purple-700">Age</TableHead>
-              <TableHead className="text-purple-700">Owner</TableHead>
-              <TableHead className="text-right text-purple-700">
-                Actions
-              </TableHead>
+            <TableRow className="bg-gray-900">
+              <TableHead className="w-[150px] text-white">Photo</TableHead>
+              <TableHead className="w-[150px] text-white">Pet Name</TableHead>
+              <TableHead className="text-white">Species</TableHead>
+              <TableHead className="text-white">Age</TableHead>
+              <TableHead className="text-right text-white">Actions</TableHead>
             </TableRow>
           </TableHeader>
           <TableBody>
-            {filteredRecords.map((record) => (
-              <TableRow
-                key={record.id}
-                className="hover:bg-purple-50 transition-colors"
-              >
-                <TableCell>
-                  <img
-                    src={record.photo}
-                    alt={record.name}
-                    className="w-16 h-16 object-cover rounded-full"
-                  />
-                </TableCell>
-                <TableCell className="font-medium text-purple-700">
-                  {record.name}
-                </TableCell>
-                <TableCell>{record.species}</TableCell>
-                <TableCell>{record.age} years</TableCell>
-                <TableCell>{record.owner}</TableCell>
-                <TableCell className="text-right">
-                  <div className="flex justify-end space-x-2">
-                    <Button
-                      variant="outline"
-                      size="sm"
-                      onClick={() => handleEdit(record.id)}
-                      className="flex items-center gap-2 text-purple-600 hover:text-purple-700 hover:bg-purple-100"
-                    >
-                      <Edit className="h-4 w-4" />
-                      Edit
-                    </Button>
-                    <Button
-                      variant="outline"
-                      size="sm"
-                      onClick={() => handleDelete(record.id)}
-                      className="flex items-center gap-2 text-red-500 hover:text-red-700 hover:bg-red-100"
-                    >
-                      <Trash2 className="h-4 w-4" />
-                      Delete
-                    </Button>
-                  </div>
+            {filteredRecords.length > 0 ? (
+              filteredRecords.map((record) => (
+                <TableRow
+                  key={record.$id}
+                  className="hover:bg-gray-700 transition-colors"
+                >
+                  <TableCell>
+                    <img
+                      src={record.petPhotoId || " "}
+                      alt={record.petName || "Pet"}
+                      className="w-16 h-16 object-cover rounded-full"
+                    />
+                  </TableCell>
+                  <TableCell className="font-medium text-primary">
+                    {record.petName || "Unknown"}
+                  </TableCell>
+                  <TableCell className="text-gray-300">
+                    {record.petSpecies || "Unknown"}
+                  </TableCell>
+                  <TableCell className="text-gray-300">
+                    {record.petAge ? `${record.petAge} years` : "N/A"}
+                  </TableCell>
+                  <TableCell className="text-right">
+                    <div className="flex justify-end space-x-2">
+                      <Button
+                        variant="outline"
+                        size="sm"
+                        onClick={() => handleEdit(record.$id)}
+                        className="flex items-center gap-2 text-primary hover:text-primary-foreground hover:bg-primary"
+                      >
+                        <Edit className="h-4 w-4" />
+                        Edit
+                      </Button>
+                      <Button
+                        variant="outline"
+                        size="sm"
+                        onClick={() => handleDelete(record.$id)}
+                        className="flex items-center gap-2 text-destructive hover:text-destructive-foreground hover:bg-destructive"
+                      >
+                        <Trash2 className="h-4 w-4" />
+                        Delete
+                      </Button>
+                    </div>
+                  </TableCell>
+                </TableRow>
+              ))
+            ) : (
+              <TableRow>
+                <TableCell colSpan="5" className="text-center text-gray-400">
+                  No pet records found.
                 </TableCell>
               </TableRow>
-            ))}
+            )}
           </TableBody>
         </Table>
       </div>
       {filteredRecords.length === 0 && (
-        <div className="text-center py-8 text-purple-500 bg-white rounded-lg shadow-inner">
-          <PlusCircle className="h-12 w-12 mx-auto mb-4 text-purple-400" />
+        <div className="text-center py-8 text-primary bg-gray-800 rounded-lg shadow-inner">
+          <PlusCircle className="h-12 w-12 mx-auto mb-4 text-primary" />
           <p className="text-lg font-semibold">No pet records found.</p>
-          <p className="text-sm">
+          <p className="text-sm text-gray-400">
             Try adjusting your search or add a new pet record.
           </p>
         </div>
