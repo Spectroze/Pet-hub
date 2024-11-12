@@ -1,11 +1,11 @@
-'use client'
+"use client";
 
-import { useState } from "react"
-import { Button } from "@/components/ui/button"
-import Appointments from "./appointment/page"
-import Pets from "./pets/page"
-import Feedback from "./feedback/page"
-import Owners from "./owner/page"
+import { useState } from "react";
+import { Button } from "@/components/ui/button";
+import Appointments from "./appointment/page";
+import Pets from "./pets/page";
+import Feedback from "./feedback/page";
+import Owners from "./owner/page";
 
 import {
   Menu,
@@ -19,18 +19,37 @@ import {
   Scissors,
   Stethoscope,
   MessageCircle,
-} from "lucide-react"
-import { Avatar, AvatarImage, AvatarFallback } from "@/components/ui/avatar"
-import { toast } from "react-hot-toast"
-import { useRouter } from "next/navigation"
-import { Bar, BarChart, Line, LineChart, ResponsiveContainer, Tooltip, XAxis, YAxis } from "recharts"
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
-import { ChartContainer, ChartTooltip, ChartTooltipContent } from "@/components/ui/chart"
+} from "lucide-react";
+import { Avatar, AvatarImage, AvatarFallback } from "@/components/ui/avatar";
+import { toast } from "react-hot-toast";
+import { useRouter } from "next/navigation";
+import {
+  Bar,
+  BarChart,
+  Line,
+  LineChart,
+  ResponsiveContainer,
+  Tooltip,
+  XAxis,
+  YAxis,
+} from "recharts";
+import {
+  Card,
+  CardContent,
+  CardDescription,
+  CardHeader,
+  CardTitle,
+} from "@/components/ui/card";
+import {
+  ChartContainer,
+  ChartTooltip,
+  ChartTooltipContent,
+} from "@/components/ui/chart";
 
 const ownerInfo = {
   name: "John Doe",
   avatarUrl: "/images/avatar-placeholder.png",
-}
+};
 
 const navigationItems = [
   { name: "Overview", icon: Home },
@@ -38,8 +57,7 @@ const navigationItems = [
   { name: "Pets", icon: PawPrint },
   { name: "Owners", icon: Users },
   { name: "Feedback", icon: MessageCircle },
-
-]
+];
 
 // Mock data for the analytics
 const analyticsData = {
@@ -47,17 +65,53 @@ const analyticsData = {
   totalPets: 450,
   totalOwners: 890,
   totalRevenue: 78500,
-}
+};
 
 // Updated mock data for the monthly analytics chart (removed petsBoarding)
 const monthlyData = [
-  { month: "Jan", appointments: 95, petGrooming: 50, veterinary: 80, revenue: 5200 },
-  { month: "Feb", appointments: 100, petGrooming: 55, veterinary: 85, revenue: 5800 },
-  { month: "Mar", appointments: 120, petGrooming: 60, veterinary: 90, revenue: 6500 },
-  { month: "Apr", appointments: 110, petGrooming: 58, veterinary: 88, revenue: 6200 },
-  { month: "May", appointments: 130, petGrooming: 65, veterinary: 95, revenue: 7000 },
-  { month: "Jun", appointments: 140, petGrooming: 70, veterinary: 100, revenue: 7500 },
-]
+  {
+    month: "Jan",
+    appointments: 95,
+    petGrooming: 50,
+    veterinary: 80,
+    revenue: 5200,
+  },
+  {
+    month: "Feb",
+    appointments: 100,
+    petGrooming: 55,
+    veterinary: 85,
+    revenue: 5800,
+  },
+  {
+    month: "Mar",
+    appointments: 120,
+    petGrooming: 60,
+    veterinary: 90,
+    revenue: 6500,
+  },
+  {
+    month: "Apr",
+    appointments: 110,
+    petGrooming: 58,
+    veterinary: 88,
+    revenue: 6200,
+  },
+  {
+    month: "May",
+    appointments: 130,
+    petGrooming: 65,
+    veterinary: 95,
+    revenue: 7000,
+  },
+  {
+    month: "Jun",
+    appointments: 140,
+    petGrooming: 70,
+    veterinary: 100,
+    revenue: 7500,
+  },
+];
 
 // Mock data for revenue analytics (removed boarding)
 const revenueData = [
@@ -67,20 +121,22 @@ const revenueData = [
   { month: "Apr", checkups: 2300, surgeries: 1800, grooming: 800 },
   { month: "May", checkups: 2700, surgeries: 2200, grooming: 700 },
   { month: "Jun", checkups: 2900, surgeries: 2400, grooming: 700 },
-]
+];
 
 function AnalyticsCard({ title, value, icon: Icon }) {
   return (
     <Card className="bg-gray-800 shadow-lg">
       <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-        <CardTitle className="text-sm font-medium text-gray-200">{title}</CardTitle>
+        <CardTitle className="text-sm font-medium text-gray-200">
+          {title}
+        </CardTitle>
         <Icon className="h-4 w-4 text-[#FF6B6B]" />
       </CardHeader>
       <CardContent>
         <div className="text-2xl font-bold text-white">{value}</div>
       </CardContent>
     </Card>
-  )
+  );
 }
 
 function Analytics() {
@@ -267,48 +323,50 @@ function Analytics() {
         </CardContent>
       </Card>
     </div>
-  )
+  );
 }
 
 export default function Component() {
-  const [activeTab, setActiveTab] = useState("overview")
-  const [sidebarOpen, setSidebarOpen] = useState(true)
-  const router = useRouter()
+  const [activeTab, setActiveTab] = useState("overview");
+  const [sidebarOpen, setSidebarOpen] = useState(true);
+  const router = useRouter();
 
-  const toggleSidebar = () => setSidebarOpen(!sidebarOpen)
+  const toggleSidebar = () => setSidebarOpen(!sidebarOpen);
 
   const handleLogout = () => {
-    toast.success("Successfully logged out!")
+    toast.success("Successfully logged out!");
     setTimeout(() => {
-      router.push("/")
-    }, 1000)
-  }
+      router.push("/");
+    }, 1000);
+  };
 
   return (
-    <div className="flex h-screen bg-gray-900 text-gray-100">
+    <div className="flex h-screen bg-[#111827] text-gray-100">
       <aside
-        className={`bg-gray-800 ${
+        className={`bg-[#1F2937] ${
           sidebarOpen ? "w-64" : "w-20"
         } min-h-screen p-4 transition-all duration-300 ease-in-out relative`}
       >
         <Button
-          variant="outline"
+          variant="ghost"
           size="icon"
           onClick={toggleSidebar}
-          className="absolute top-4 right-4 bg-gray-700 hover:bg-gray-600"
+          className="absolute top-4 right-4 text-gray-400 hover:text-white hover:bg-[#374151]"
         >
           <Menu className="h-5 w-5" />
           <span className="sr-only">Toggle sidebar</span>
         </Button>
 
         <div className="flex flex-col items-center mt-10 space-y-2">
-          <Avatar className="h-20 w-20">
+          <Avatar className="h-20 w-20 border-2 border-gray-700">
             <AvatarImage src={ownerInfo.avatarUrl} alt="User avatar" />
             <AvatarFallback>{ownerInfo.name?.[0] || "U"}</AvatarFallback>
           </Avatar>
           {sidebarOpen && (
             <div className="text-center">
-              <p className="text-sm font-medium text-gray-200">{ownerInfo.name || "Guest"}</p>
+              <p className="text-sm font-medium text-gray-200">
+                {ownerInfo.name || "Guest"}
+              </p>
               <p className="text-xs text-gray-400">Clinic Name</p>
             </div>
           )}
@@ -318,23 +376,29 @@ export default function Component() {
           {navigationItems.map((item) => (
             <Button
               key={item.name}
-              variant={activeTab === item.name.toLowerCase() ? "secondary" : "ghost"}
+              variant="ghost"
               className={`w-full justify-start mb-2 ${
                 sidebarOpen ? "pl-4" : "justify-center"
-              } hover:bg-gray-700 text-gray-200`}
+              } ${
+                activeTab === item.name.toLowerCase()
+                  ? "bg-[#374151] text-white"
+                  : "text-gray-400 hover:bg-[#374151] hover:text-white"
+              }`}
               onClick={() => setActiveTab(item.name.toLowerCase())}
             >
-              <item.icon className="mr-2 h-4 w-4 text-[#FF6B6B]" />
+              <item.icon className="mr-2 h-5 w-5" />
               {sidebarOpen && <span>{item.name}</span>}
             </Button>
           ))}
 
           <Button
             variant="ghost"
-            className="w-full mt-8 flex items-center justify-start text-red-400 hover:bg-gray-700 hover:text-red-300"
+            className={`w-full mt-8 flex items-center ${
+              sidebarOpen ? "justify-start pl-4" : "justify-center"
+            } text-red-400 hover:bg-[#374151] hover:text-red-300`}
             onClick={handleLogout}
           >
-            <LogOut className="mr-2 h-4 w-4" />
+            <LogOut className="mr-2 h-5 w-5" />
             {sidebarOpen && <span>Logout</span>}
           </Button>
         </nav>
@@ -346,8 +410,7 @@ export default function Component() {
         {activeTab === "pets" && <Pets />}
         {activeTab === "owners" && <Owners />}
         {activeTab === "feedback" && <Feedback />}
-  
       </main>
     </div>
-  )
+  );
 }

@@ -20,7 +20,6 @@ import { useRouter } from "next/navigation";
 import { useRequireAuth } from "@/store/auth";
 
 export default function PetcareAdminDashboard() {
-  useRequireAuth();
   const [activeTab, setActiveTab] = useState("overview");
   const [isSidebarOpen, setIsSidebarOpen] = useState(true);
 
