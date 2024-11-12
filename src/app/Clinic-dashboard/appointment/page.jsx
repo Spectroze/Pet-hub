@@ -16,7 +16,7 @@ import {
   Snackbar,
   Alert,
 } from "@mui/material";
-import { Query, Account, Client } from "appwrite";
+import { Account, Client, Query } from "appwrite";
 import { appwriteConfig, databases } from "../../../lib/appwrite";
 
 const localizer = momentLocalizer(moment);
@@ -93,17 +93,22 @@ export default function AppointmentCalendar({ databaseId, collectionId }) {
     const parsedDate = moment.tz(combined, "YYYY-MM-DD HH:mm", "Asia/Manila");
     return parsedDate.isValid() ? parsedDate.toDate() : new Date();
   };
-
   const fetchAppointments = async () => {
     setLoading(true);
     setError("");
 
     try {
+      // Use Query.contains to filter documents where "petServices" array includes "pet veterinary" or "pet grooming"
       const response = await databases.listDocuments(
         databaseId || dbId,
-        collectionId || petCollId
+        collectionId || petCollId,
+        [
+          Query.or([
+            Query.contains("petServices", "Pet Veterinary"),
+            Query.contains("petServices", "Pet Grooming"),
+          ]),
+        ]
       );
-      console.log("Fetched documents:", response.documents);
 
       if (!response.documents || response.documents.length === 0) {
         setError("No appointments found.");
@@ -127,7 +132,7 @@ export default function AppointmentCalendar({ databaseId, collectionId }) {
 
           return {
             id: appointment.$id,
-            title: appointment.petServices || "No Title",
+            title: appointment.petServices?.join(", ") || "No Title",
             petOwner: ownerName,
             petName: appointment.petName || "Unknown Pet",
             petSpecies: appointment.petSpecies || "Unknown Species",
@@ -140,7 +145,6 @@ export default function AppointmentCalendar({ databaseId, collectionId }) {
         })
       );
 
-      console.log("Fetched events:", fetchedEvents);
       setEvents(fetchedEvents);
     } catch (error) {
       console.error("Error fetching appointments:", error.message);
