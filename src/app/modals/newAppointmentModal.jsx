@@ -104,13 +104,14 @@ export default function NewAppointmentModal({ isOpen, onClose, pet }) {
         petClinic: [clinic],
         petRoom: [room],
         petPayment: validatedPayment,
-        ownerId, 
+        ownerId,
         petId: pet?.id,
         petName: pet?.name,
         petType: pet?.type,
         petSpecies: pet?.species,
         petAge: pet?.age,
         petPhotoId: pet?.photoId || "N/A",
+        status: ["Pending"],
       };
 
       await saveAppointmentToDatabase(appointmentData);
