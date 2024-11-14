@@ -79,6 +79,7 @@ export default function Notifications() {
               <TableCell className="font-bold text-purple-100">
                 Message
               </TableCell>
+
               <TableCell className="font-bold text-purple-100">Date</TableCell>
               <TableCell className="font-bold text-purple-100">
                 Status
