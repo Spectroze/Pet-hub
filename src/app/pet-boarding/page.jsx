@@ -1,8 +1,9 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { useRouter } from "next/navigation";
 import { toast } from "react-hot-toast";
+import { getCurrentUser, fetchUserAndPetInfo } from "@/lib/appwrite";
 import {
   BarChart,
   Bar,
@@ -26,6 +27,8 @@ import {
   BedDouble,
   LogOut,
   MessageCircle,
+  MenuIcon,
+  Edit,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import {
@@ -41,6 +44,7 @@ import PetRecords from "../pet-boarding/records/page";
 import RoomManagement from "../pet-boarding/room/page";
 import Notifications from "../pet-boarding/notifications/page";
 import Feedback from "./feedback/page";
+import { Input } from "@/components/ui/input";
 
 // Mock data for quick stats
 const quickStats = {
@@ -79,7 +83,80 @@ export default function Dashboard() {
   const [activeSection, setActiveSection] = useState("overview");
   const [sidebarOpen, setSidebarOpen] = useState(true);
   const router = useRouter();
+  const [isEditingOwner, setIsEditingOwner] = useState(false);
+  const toggleEditOwner = () => setIsEditingOwner((prev) => !prev);
+  const [userId, setUserId] = useState(null); // Declare userId state
+  const [loading, setLoading] = useState(true); // Add loading state
 
+  const [ownerInfo, setOwnerInfo] = useState({
+    name: "",
+    email: "",
+    phone: "",
+    avatarUrl: "/placeholder.svg",
+  });
+  const handleOwnerChange = (e) => {
+    const { name, value } = e.target;
+    setOwnerInfo((prev) => ({ ...prev, [name]: value }));
+  };
+  useEffect(() => {
+    const checkSession = async () => {
+      try {
+        const currentUser = await getCurrentUser();
+        if (currentUser && currentUser.$id) {
+          setUserId(currentUser.$id);
+        } else {
+          router.push("/");
+        }
+      } catch (err) {
+        console.error("Error fetching current user: ", err);
+        router.push("/");
+      }
+    };
+    checkSession();
+  }, [router]);
+
+  useEffect(() => {
+    if (!userId) return;
+
+    const loadData = async () => {
+      try {
+        // Fetch user and pet data associated with the authenticated user
+        const { user, pet } = await fetchUserAndPetInfo(userId);
+
+        // Update owner info state with user-specific data
+        setOwnerInfo({
+          name: user?.name || "Guest",
+          avatarUrl: user?.avatar || "/placeholder.svg", // Default avatar if none exists
+        });
+      } catch (error) {
+        console.error("Failed to load user or pet data:", error);
+        setError("Failed to load user or pet data.");
+      } finally {
+        setLoading(false);
+      }
+    };
+
+    loadData();
+  }, [userId]);
+  const handleSaveOwner = async () => {
+    try {
+      await databases.updateDocument(
+        appwriteConfig.databaseId,
+        appwriteConfig.userCollectionId,
+        userId,
+        {
+          name: ownerInfo.name,
+          email: ownerInfo.email,
+          phone: ownerInfo.phone,
+        }
+      );
+      setIsEditingOwner(false);
+      toast.success("Profile updated successfully!"); // Show success toast
+    } catch (error) {
+      console.error("Error updating owner:", error);
+      toast.error("Failed to update profile."); // Show error toast
+    }
+  };
   const toggleSidebar = () => setSidebarOpen(!sidebarOpen);
 
   const renderSection = () => {
@@ -149,7 +226,9 @@ export default function Dashboard() {
               <YAxis stroke="#9ca3af" />
               <Tooltip
                 contentStyle={{ backgroundColor: "#1f2937", border: "none" }}
+                labelStyle={{ color: "#9ca3af" }}
               />
+
               <Legend />
               <Bar dataKey="dogs" fill="#6366f1" />
               <Bar dataKey="cats" fill="#22c55e" />
@@ -193,13 +272,13 @@ export default function Dashboard() {
     </div>
   );
 
-  const menuItems = [
-    { name: "Overview", icon: Home, section: "overview" },
-    { name: "Appointments", icon: Calendar, section: "appointments" },
-    { name: "Pet Records", icon: PawPrint, section: "petRecords" },
-    { name: "Rooms", icon: BedDouble, section: "rooms" },
-    { name: "Notifications", icon: Bell, section: "notifications" },
-    { name: "Feedback", icon: MessageCircle, section: "feedback" },
+  const navItems = [
+    { id: "overview", name: "Overview", icon: Home },
+    { id: "appointments", name: "Appointments", icon: Calendar },
+    { id: "petRecords", name: "Pet Records", icon: PawPrint },
+    { id: "rooms", name: "Rooms", icon: BedDouble },
+    { id: "notifications", name: "Notifications", icon: Bell },
+    { id: "feedback", name: "Feedback", icon: MessageCircle },
   ];
 
   const handleLogout = () => {
@@ -213,82 +292,93 @@ export default function Dashboard() {
     <div className="flex h-screen bg-gray-900 text-white">
       {/* Sidebar */}
       <aside
-        className={`bg-[#1F2937] fixed top-0 left-0 ${
-          sidebarOpen ? "w-56" : "w-20"
-        } h-full transition-all duration-300 ease-in-out z-20`}
+        className={`bg-gray-800 ${
+          sidebarOpen ? "w-64" : "w-20"
+        } min-h-screen p-4 flex flex-col relative transition-all`}
       >
-        <div className="flex items-center justify-between p-4">
-          <Button
-            variant="ghost"
-            size="icon"
-            onClick={toggleSidebar}
-            className="absolute top-2 right-2 text-gray-400 hover:text-white hover:bg-[#374151]"
-          >
-            <Menu className="h-5 w-5" />
-          </Button>
-        </div>
+        <Button
+          variant="outline"
+          className={`absolute top-4 right-4 transition-all ${
+            sidebarOpen ? "mr-2" : "ml-0"
+          } bg-gray-700 text-gray-200 hover:bg-gray-600`}
+          onClick={() => setSidebarOpen(!sidebarOpen)}
+        >
+          <MenuIcon className="h-5 w-5" />
+        </Button>
 
-        {/* Avatar and User Info */}
-        <div className="flex flex-col items-center mt-6 space-y-2">
-          <Avatar className="h-16 w-16 border-2 border-gray-700">
+        <div className="flex flex-col items-center mt-16 space-y-2">
+          {/* Avatar with onClick handler to toggle editing */}
+          <Avatar
+            className="h-20 w-20 border-2 border-gray-600 cursor-pointer"
+            onClick={toggleEditOwner}
+          >
             <AvatarImage src={ownerInfo.avatarUrl} alt="User" />
-            <AvatarFallback className="bg-[#374151] text-white">
-              {ownerInfo.name?.[0] || "U"}
-            </AvatarFallback>
+            <AvatarFallback>{ownerInfo.name?.[0] || "U"}</AvatarFallback>
           </Avatar>
+
           {sidebarOpen && (
-            <div className="text-center">
+            <div className="text-center space-y-2">
               <p className="text-sm font-medium text-gray-200">
                 {ownerInfo.name || "Guest"}
               </p>
               <p className="text-xs text-gray-400">Pet Boarding</p>
+
+              {isEditingOwner ? (
+                <>
+                  <Input
+                    name="name"
+                    value={ownerInfo.name}
+                    onChange={handleOwnerChange}
+                    placeholder="Name"
+                    className="mt-2 bg-gray-700 text-gray-100"
+                  />
+
+                  <Button
+                    onClick={handleSaveOwner}
+                    className="bg-blue-600 hover:bg-blue-700 text-white mt-2"
+                  >
+                    <Edit className="mr-2 h-4 w-4" />
+                    Save Profile
+                  </Button>
+                </>
+              ) : (
+                <></>
+              )}
             </div>
           )}
         </div>
 
-        {/* Navigation */}
-        <nav className="mt-6 px-2 space-y-1">
-          {menuItems.map((item) => (
+        {/* Navigation Items */}
+        <nav className="space-y-2 border-t border-gray-700 pt-4 mt-4">
+          {navItems.map(({ id, name, icon: Icon }) => (
             <Button
-              key={item.name}
-              variant="ghost"
-              className={`w-full flex items-center ${
-                sidebarOpen ? "justify-start px-3" : "justify-center"
-              } ${
-                activeSection === item.section
-                  ? "bg-[#374151] text-white"
-                  : "text-gray-400 hover:bg-[#374151] hover:text-white"
-              } transition-colors`}
-              onClick={() => setActiveSection(item.section)}
+              key={id}
+              variant={activeSection === id ? "secondary" : "ghost"}
+              className={`w-full justify-start ${!sidebarOpen && "px-2"} ${
+                activeSection === id ? "bg-gray-700" : "hover:bg-gray-700"
+              } text-gray-200`}
+              onClick={() => setActiveSection(id)}
             >
-              <item.icon
-                className={`h-5 w-5 ${
-                  activeSection === item.section
-                    ? "text-white"
-                    : "text-gray-400"
-                }`}
-              />
-              {sidebarOpen && <span className="ml-3 text-sm">{item.name}</span>}
+              <Icon className={`h-5 w-5 ${sidebarOpen && "mr-2"}`} />
+              {sidebarOpen && <span>{name}</span>}
             </Button>
           ))}
-
-          {/* Logout Button */}
-          <Button
-            variant="ghost"
-            className={`w-full flex items-center mt-4 ${
-              sidebarOpen ? "justify-start px-3" : "justify-center"
-            } text-red-400 hover:bg-[#374151] hover:text-red-300`}
-            onClick={handleLogout}
-          >
-            <LogOut className="h-5 w-5" />
-            {sidebarOpen && <span className="ml-3 text-sm">Logout</span>}
-          </Button>
         </nav>
+        <Button
+          variant="ghost"
+          className={`w-full mt-auto justify-start ${
+            !sidebarOpen && "px-2"
+          } text-red-500 hover:bg-gray-700`}
+          onClick={handleLogout}
+        >
+          <LogOut className={`h-5 w-5 ${sidebarOpen && "mr-2"}`} />
+          {sidebarOpen && <span>Logout</span>}
+        </Button>
       </aside>
       {/* Main content */}
       <div
         className={`flex-1 transition-all duration-300 ${
-          sidebarOpen ? "ml-56" : "ml-20"
+          sidebarOpen ? "ml-0" : "ml-0"
         } overflow-auto bg-gray-900`}
       >
         <header className="bg-gray-800 border-b border-gray-700 p-4">

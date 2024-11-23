@@ -38,6 +38,7 @@ import {
 const roomOccupancyData = [
   { name: "Room 1", value: 30 },
   { name: "Room 2", value: 25 },
+  
   { name: "Room 3", value: 20 },
   { name: "Room 4", value: 15 },
 ];
