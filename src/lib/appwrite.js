@@ -16,6 +16,7 @@ export const appwriteConfig = {
   userCollectionId: "670a04240019b97fcf05",
   petCollectionId: "670ab2db00351bc09a92",
   bucketId: "670ab439002597c2ae84",
+  roomCollectionId: "6738afcd000d644b6853",
 };
 
 const client = new Client();

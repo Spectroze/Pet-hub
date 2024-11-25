@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import {
   Card,
   CardContent,
@@ -9,14 +9,13 @@ import {
   CardTitle,
 } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
-import { Badge } from "@/components/ui/badge";
 import {
   Dialog,
   DialogContent,
   DialogDescription,
   DialogHeader,
   DialogTitle,
-  DialogTrigger,
+  DialogFooter,
 } from "@/components/ui/dialog";
 import { Label } from "@/components/ui/label";
 import {
@@ -26,15 +25,15 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
+import { databases, appwriteConfig } from "@/lib/appwrite";
+import { ToastContainer, toast } from "react-toastify";
+import "react-toastify/dist/ReactToastify.css";
 
-// Mock data for rooms
 const initialRooms = [
-  { id: 1, number: "1", type: "Standard", status: "Occupied", pet: "Buddy" },
-  { id: 2, number: "2", type: "Deluxe", status: "Available" },
-  { id: 3, number: "3", type: "Standard", status: "Reserved" },
-  { id: 4, number: "4", type: "Suite", status: "Cleaning" },
-  { id: 5, number: "5", type: "Standard", status: "Available" },
-  // Add more rooms as needed
+  { $id: null, number: "1", status: null },
+  { $id: null, number: "2", status: null },
+  { $id: null, number: "3", status: null },
+  { $id: null, number: "4", status: null },
 ];
 
 export default function RoomManagement() {
@@ -42,83 +41,148 @@ export default function RoomManagement() {
   const [selectedRoom, setSelectedRoom] = useState(null);
   const [isDialogOpen, setIsDialogOpen] = useState(false);
 
-  // Handle when a room is clicked, opens dialog
+  useEffect(() => {
+    const fetchRooms = async () => {
+      try {
+        const response = await databases.listDocuments(
+          appwriteConfig.databaseId,
+          appwriteConfig.roomCollectionId
+        );
+        if (response.documents.length > 0) {
+          setRooms(response.documents);
+        } else {
+          console.log("No rooms found in database. Using initial data.");
+        }
+      } catch (error) {
+        console.error("Error fetching rooms from database:", error.message);
+      }
+    };
+
+    fetchRooms();
+  }, []);
+
   const handleRoomClick = (room) => {
     setSelectedRoom(room);
     setIsDialogOpen(true);
   };
 
-  // Handle status change of a room
-  const handleStatusChange = (status) => {
-    if (selectedRoom) {
+  const handleStatusChange = async (status) => {
+    if (!selectedRoom) {
+      console.error("No room selected.");
+      return;
+    }
+
+    try {
+      let updatedRoom = { ...selectedRoom, status };
+
+      if (!selectedRoom.$id) {
+        const response = await databases.createDocument(
+          appwriteConfig.databaseId,
+          appwriteConfig.roomCollectionId,
+          ID.unique(),
+          {
+            number: selectedRoom.number,
+            status: [status],
+          }
+        );
+        updatedRoom = { ...selectedRoom, status, $id: response.$id };
+        console.log(`Room ${selectedRoom.number} created in the database.`);
+      } else {
+        await databases.updateDocument(
+          appwriteConfig.databaseId,
+          appwriteConfig.roomCollectionId,
+          selectedRoom.$id,
+          {
+            status: [status],
+          }
+        );
+        console.log(`Room ${selectedRoom.number} updated in the database.`);
+      }
+
       const updatedRooms = rooms.map((room) =>
-        room.id === selectedRoom.id ? { ...room, status } : room
+        room.number === selectedRoom.number ? updatedRoom : room
       );
       setRooms(updatedRooms);
-      setSelectedRoom({ ...selectedRoom, status });
+      setSelectedRoom(updatedRoom);
+
+      // Show toast notification
+      toast.success(
+        `Status of Room ${selectedRoom.number} changed to ${status}`
+      );
+    } catch (error) {
+      console.error(
+        `Failed to update room ${selectedRoom.number}:`,
+        error.message
+      );
+      toast.error("Failed to update the status. Please try again.");
     }
   };
 
-  // Assign colors based on room status
-  const getStatusColor = (status) => {
+  const getCardColor = (status) => {
     switch (status) {
       case "Occupied":
-        return "bg-red-500";
+        return "bg-red-500 text-white";
       case "Available":
-        return "bg-green-500";
+        return "bg-green-500 text-white";
       case "Reserved":
-        return "bg-yellow-500";
+        return "bg-yellow-500 text-black";
       case "Cleaning":
-        return "bg-blue-500";
+        return "bg-blue-500 text-white";
       default:
-        return "bg-gray-500";
+        return "bg-gray-500 text-white";
     }
   };
 
   return (
-    <div>
-      <Card>
+    <div className="container mx-auto p-4">
+      <ToastContainer />
+      <Card className="bg-card">
         <CardHeader>
-          <CardTitle>Room Management</CardTitle>
+          <CardTitle className="text-2xl font-bold text-primary">
+            Room Management
+          </CardTitle>
           <CardDescription>View and manage room occupancy</CardDescription>
         </CardHeader>
         <CardContent>
           <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4">
             {rooms.map((room) => (
-              <Button
-                key={room.id}
-                variant="outline"
-                className="h-24 flex flex-col items-start justify-between p-4"
+              <div
+                key={room.number}
+                className={`h-24 flex flex-col items-center justify-center p-4 rounded-lg shadow-md cursor-pointer transition-colors ${getCardColor(
+                  room.status
+                )}`}
                 onClick={() => handleRoomClick(room)}
               >
-                <div className="font-semibold">Room {room.number}</div>
-                <div className="text-sm">{room.type}</div>
-                <Badge className={getStatusColor(room.status)}>
-                  {room.status}
-                </Badge>
-              </Button>
+                <div className="text-lg font-semibold">Room {room.number}</div>
+                <div className="flex items-center gap-1">
+                  {room.status || "No Status"}
+                </div>
+              </div>
             ))}
           </div>
         </CardContent>
       </Card>
 
-      {/* Dialog for managing room details */}
       <Dialog open={isDialogOpen} onOpenChange={setIsDialogOpen}>
-        <DialogContent>
+        <DialogContent className="sm:max-w-[425px]">
           <DialogHeader>
-            <DialogTitle>Room {selectedRoom?.number}</DialogTitle>
+            <DialogTitle className="text-2xl font-bold">
+              Room {selectedRoom?.number}
+            </DialogTitle>
             <DialogDescription>
               Manage room details and occupancy
             </DialogDescription>
           </DialogHeader>
-          <div className="space-y-4">
-            <div>
-              <Label>Status</Label>
+          <div className="grid gap-4 py-4">
+            <div className="grid grid-cols-4 items-center gap-4">
+              <Label htmlFor="status" className="text-right">
+                Status
+              </Label>
               <Select
                 onValueChange={(value) => handleStatusChange(value)}
-                defaultValue={selectedRoom?.status}
+                defaultValue={selectedRoom?.status || undefined}
               >
-                <SelectTrigger>
+                <SelectTrigger className="col-span-3">
                   <SelectValue placeholder="Select a status" />
                 </SelectTrigger>
                 <SelectContent>
@@ -129,14 +193,12 @@ export default function RoomManagement() {
                 </SelectContent>
               </Select>
             </div>
-
-            {selectedRoom?.pet && (
-              <div>
-                <Label>Pet in the room</Label>
-                <div className="font-medium">{selectedRoom.pet}</div>
-              </div>
-            )}
           </div>
+          <DialogFooter>
+            <Button type="submit" onClick={() => setIsDialogOpen(false)}>
+              Save changes
+            </Button>
+          </DialogFooter>
         </DialogContent>
       </Dialog>
     </div>
