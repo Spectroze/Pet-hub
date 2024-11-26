@@ -5,6 +5,8 @@ import { Button } from "@/components/ui/button";
 import { Client, Databases, Account, Query, ID } from "appwrite";
 import NewAppointmentModal from "@/app/modals/newAppointmentModal";
 import { toast } from "react-toastify";
+import { Card, CardHeader, CardTitle, CardContent } from "@/components/ui/card";
+import { Calendar, Clock, Clipboard, MapPin, DollarSign } from "lucide-react";
 
 const appwriteConfig = {
   endpoint: "https://cloud.appwrite.io/v1",
@@ -65,8 +67,8 @@ export default function Appointment() {
     if (!date) return "N/A";
     return new Date(date).toLocaleDateString("en-PH", {
       year: "numeric",
-      month: "2-digit",
-      day: "2-digit",
+      month: "long",
+      day: "numeric",
     });
   };
 
@@ -114,84 +116,91 @@ export default function Appointment() {
   };
 
   return (
-    <div className="container mx-auto p-4">
-      <div className="mb-8">
-        <h2 className="text-2xl font-bold mb-4">Appointments</h2>
-        <p className="mb-6">Schedule and manage your pet care appointments.</p>
+    <div className="container mx-auto p-4 bg-gray-900 text-gray-100 min-h-screen">
+      <CardHeader>
+        <CardTitle className="text-2xl font-bold text-gray-100">
+          Your Pet's Appointments
+        </CardTitle>
+      </CardHeader>
 
-        <div className="overflow-x-auto">
-          <table className="min-w-full bg-white border border-gray-300">
-            <thead>
-              <tr>
-                <th className="px-4 py-2 border">Pet Name</th>
-                <th className="px-4 py-2 border">Service</th>
-                <th className="px-4 py-2 border">Date</th>
-                <th className="px-4 py-2 border">Time</th>
-                <th className="px-4 py-2 border">Species</th>
-                <th className="px-4 py-2 border">Age</th>
-                <th className="px-4 py-2 border">Clinic</th>
-                <th className="px-4 py-2 border">Room</th>
-                <th className="px-4 py-2 border">Payment</th>
-              </tr>
-            </thead>
-            <tbody>
-              {appointments.length > 0 ? (
-                appointments.map((appointment) => (
-                  <tr key={appointment.$id}>
-                    <td className="px-4 py-2 border">
-                      {appointment.petName || "N/A"}
-                    </td>
-                    <td className="px-4 py-2 border">
-                      {Array.isArray(appointment.petServices)
-                        ? appointment.petServices[0] || "N/A"
-                        : appointment.petServices || "N/A"}
-                    </td>
-                    <td className="px-4 py-2 border">
-                      {formatDate(appointment.petDate)}
-                    </td>
-                    <td className="px-4 py-2 border">
-                      {formatTime(appointment.petTime)}
-                    </td>
-                    <td className="px-4 py-2 border">
-                      {appointment.petSpecies || "N/A"}
-                    </td>
-                    <td className="px-4 py-2 border">
-                      {appointment.petAge || "N/A"}
-                    </td>
-                    <td className="px-4 py-2 border">
-                      {appointment.petClinic || "N/A"}
-                    </td>
-                    <td className="px-4 py-2 border">
-                      {appointment.petRoom || "N/A"}
-                    </td>
-                    <td className="px-4 py-2 border">
-                      {appointment.petPayment || "N/A"} ₱
-                    </td>
-                  </tr>
-                ))
-              ) : (
-                <tr>
-                  <td className="px-4 py-2 border text-center" colSpan="9">
-                    No appointments found.
+      <div className="overflow-x-auto shadow-lg shadow-blue-500/20 rounded-lg">
+        <table className="min-w-full bg-gray-800 border border-gray-700 rounded-lg overflow-hidden">
+          <thead>
+            <tr className="bg-gray-750">
+              <th className="px-4 py-2 border border-gray-600 text-left text-gray-300">
+                Pet Name
+              </th>
+              <th className="px-4 py-2 border border-gray-600 text-left text-gray-300">
+                Service
+              </th>
+              <th className="px-4 py-2 border border-gray-600 text-left text-gray-300">
+                Date
+              </th>
+              <th className="px-4 py-2 border border-gray-600 text-left text-gray-300">
+                Time
+              </th>
+              <th className="px-4 py-2 border border-gray-600 text-left text-gray-300">
+                Clinic
+              </th>
+              <th className="px-4 py-2 border border-gray-600 text-left text-gray-300">
+                Room
+              </th>
+              <th className="px-4 py-2 border border-gray-600 text-left text-gray-300">
+                Payment
+              </th>
+              <th className="px-4 py-2 border border-gray-600 text-left text-gray-300">
+                Status
+              </th>
+            </tr>
+          </thead>
+          <tbody>
+            {appointments.length > 0 ? (
+              appointments.map((appointment) => (
+                <tr
+                  key={appointment.$id}
+                  className="hover:bg-gray-750 transition-colors duration-150"
+                >
+                  <td className="px-4 py-2 border border-gray-600 text-gray-300">
+                    {appointment.petName || "N/A"}
+                  </td>
+                  <td className="px-4 py-2 border border-gray-600 text-gray-300">
+                    {Array.isArray(appointment.petServices)
+                      ? appointment.petServices[0] || "N/A"
+                      : appointment.petServices || "N/A"}
+                  </td>
+                  <td className="px-4 py-2 border border-gray-600 text-gray-300">
+                    {formatDate(appointment.petDate)}
+                  </td>
+                  <td className="px-4 py-2 border border-gray-600 text-gray-300">
+                    {formatTime(appointment.petTime)}
+                  </td>
+                  <td className="px-4 py-2 border border-gray-600 text-gray-300">
+                    {appointment.petClinic || "N/A"}
+                  </td>
+                  <td className="px-4 py-2 border border-gray-600 text-gray-300">
+                    {appointment.petRoom || "N/A"}
+                  </td>
+                  <td className="px-4 py-2 border border-gray-600 text-gray-300">
+                    {appointment.petPayment || "N/A"} ₱
+                  </td>
+                  <td className="px-4 py-2 border border-gray-600 text-gray-300">
+                    {appointment.status}
                   </td>
                 </tr>
-              )}
-            </tbody>
-          </table>
-        </div>
+              ))
+            ) : (
+              <tr>
+                <td
+                  className="px-4 py-2 border border-gray-600 text-center text-gray-300"
+                  colSpan="7"
+                >
+                  No appointments found.
+                </td>
+              </tr>
+            )}
+          </tbody>
+        </table>
       </div>
-
-      {/* Book New Appointment Button */}
-      <Button className="w-full" onClick={openNewAppointmentModal}>
-        Book New Appointment
-      </Button>
-
-      {/* Render NewAppointmentModal */}
-      <NewAppointmentModal
-        isOpen={isNewAppointmentModalOpen}
-        onClose={closeNewAppointmentModal}
-        onCreateAppointment={handleCreateAppointment} // Pass the handleCreateAppointment function
-      />
     </div>
   );
 }

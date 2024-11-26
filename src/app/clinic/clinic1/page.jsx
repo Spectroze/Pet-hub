@@ -1,51 +1,77 @@
 "use client";
-import React, { useRef, useState } from "react";
-import { Canvas, useFrame, useLoader } from "@react-three/fiber";
-import { OrbitControls, PerspectiveCamera } from "@react-three/drei";
-import * as THREE from "three";
+import React, { useEffect, useRef, useState } from "react";
 import {
   Dialog,
-  DialogTrigger,
   DialogContent,
   DialogHeader,
   DialogTitle,
-  DialogDescription,
   DialogFooter,
 } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
-import { CalendarDaysIcon, CameraIcon, MapPinIcon } from "lucide-react"; // Icons
-
-// Panorama Component
-function Panorama() {
-  const mesh = useRef(null);
-  const texture = useLoader(
-    THREE.TextureLoader,
-    "/images/panorama.jpeg?height=2000&width=4000"
-  );
-
-  useFrame(() => {
-    if (mesh.current) {
-      mesh.current.rotation.y += 0.0005;
-    }
-  });
-
-  return (
-    <mesh ref={mesh}>
-      <sphereGeometry args={[500, 60, 40]} />
-      <meshBasicMaterial map={texture} side={THREE.BackSide} />
-    </mesh>
-  );
-}
+import { MapPinIcon, CameraIcon } from "lucide-react";
+import { databases, appwriteConfig } from "@/lib/appwrite";
 
 export default function Clinic2() {
+  const [rooms, setRooms] = useState([]); // Room data state
   const [selectedRoom, setSelectedRoom] = useState(null);
+  const [isDialogOpen, setIsDialogOpen] = useState(false); // Modal open state
 
+  // Room Previews with Static Images
   const roomPreviews = [
-    { id: 1, name: "Room 1", imgSrc: "/images/room1.JPG" },
-    { id: 2, name: "Room 2", imgSrc: "/images/room2.JPG" },
-    { id: 3, name: "Room 3", imgSrc: "/images/room3.JPG" },
-    { id: 4, name: "Room 4", imgSrc: "/images/room4.JPG" },
+    { id: "1", name: "Room 1", imgSrc: "/images/room1.JPG" },
+    { id: "2", name: "Room 2", imgSrc: "/images/room2.JPG" },
+    { id: "3", name: "Room 3", imgSrc: "/images/room3.JPG" },
+    { id: "4", name: "Room 4", imgSrc: "/images/room4.JPG" },
   ];
+
+  // Fetch room data from the database and merge with static images
+  useEffect(() => {
+    const fetchRoomData = async () => {
+      try {
+        const response = await databases.listDocuments(
+          appwriteConfig.databaseId,
+          appwriteConfig.roomCollectionId
+        );
+
+        // Merge fetched data with static image previews
+        const mergedRooms = roomPreviews.map((room) => {
+          const fetchedRoom = response.documents.find(
+            (doc) => doc.number[0] === room.id // Extracting the number from the database document
+          );
+          return {
+            ...room,
+            status: fetchedRoom ? fetchedRoom.status[0] : "No Status", // Extract the first status value
+          };
+        });
+
+        setRooms(mergedRooms); // Update the rooms state with merged data
+      } catch (error) {
+        console.error("Error fetching room data:", error.message);
+      }
+    };
+
+    fetchRoomData();
+  }, []);
+
+  const getStatusColor = (status) => {
+    switch (status) {
+      case "Available":
+        return "bg-green-500 text-white";
+      case "Occupied":
+        return "bg-red-500 text-white";
+      case "Reserved":
+        return "bg-yellow-500 text-black";
+      case "Cleaning":
+        return "bg-blue-500 text-white";
+      default:
+        return "bg-gray-500 text-white";
+    }
+  };
+
+  const handleRoomClick = (room) => {
+    setSelectedRoom(room);
+    setIsDialogOpen(true);
+  };
 
   return (
     <div className="bg-muted rounded-xl overflow-hidden shadow-lg mb-20">
@@ -55,7 +81,7 @@ export default function Clinic2() {
           alt="Pet Boarding Room"
           width={800}
           height={500}
-          className="w-fulls h-[300px] sm:h-[400px] object-cover"
+          className="w-full h-[300px] sm:h-[400px] object-cover"
           style={{ aspectRatio: "800/500", objectFit: "cover" }}
         />
         <div className="absolute inset-0 bg-gradient-to-t from-black/50 to-transparent" />
@@ -82,95 +108,64 @@ export default function Clinic2() {
 
       {/* Room Previews Section */}
       <div className="p-4 sm:p-6">
-        <div className="flex items-center gap-2 cursor-pointer">
-          <CameraIcon className="w-5 h-5 text-primary" />
-          <h3 className="text-lg font-medium">Room Previews</h3>
-        </div>
+        <h4 className="text-lg font-medium mb-2">Room Previews</h4>
+        <div className="grid grid-cols-2 gap-4">
+          {rooms.map((room) => (
+            <div
+              key={room.id}
+              className="p-4 border rounded-lg shadow-md bg-white flex flex-col items-center cursor-pointer"
+              onClick={() => handleRoomClick(room)}
+            >
+              <img
+                src={room.imgSrc}
+                alt={room.name}
+                className="rounded-lg shadow-md w-full h-[100px] object-cover mb-2"
+              />
+              <h5 className="text-lg font-semibold">{room.name}</h5>
 
-        {/* Panorama Room Viewer */}
-        <Dialog>
-          <DialogTrigger asChild>
-            <div className="flex items-center gap-2 cursor-pointer">
-              <CameraIcon className="w-5 h-5 text-primary" />
-              <h3 className="text-lg font-medium">View 360 Camera</h3>
-            </div>
-          </DialogTrigger>
-          <DialogContent className="w-full h-full max-w-none max-h-none p-0 m-0">
-            <DialogHeader className="absolute z-10 top-0 left-0 p-4 text-white">
-              <DialogTitle>Pet Boarding Room</DialogTitle>
-              <DialogDescription>
-                Take a virtual tour of our cozy pet boarding room.
-              </DialogDescription>
-            </DialogHeader>
-            <div className="w-screen h-screen">
-              <Canvas>
-                {/* Camera Setup */}
-                <PerspectiveCamera
-                  makeDefault
-                  fov={75} // Adjust Field of View for zoom effect
-                  position={[0, 0, 10]} // Start farther back to allow zooming in
-                />
-                <Panorama />
-                <OrbitControls
-                  enableZoom={true} // Enable zooming
-                  zoomSpeed={1.0} // Adjust zoom sensitivity
-                  minDistance={5} // Prevent zooming too close
-                  maxDistance={500} // Prevent zooming too far away
-                  enablePan={false} // Disable panning
-                  enableDamping={true}
-                  dampingFactor={0.2}
-                  rotateSpeed={-0.5}
-                />
-              </Canvas>
-            </div>
-          </DialogContent>
-        </Dialog>
-
-        {/* Room Previews Section */}
-        <div className="mt-6">
-          <h4 className="text-lg font-medium mb-2">Room Previews</h4>
-          <div className="flex gap-4">
-            {roomPreviews.map((room) => (
-              <div
-                key={room.id}
-                className="w-[150px] h-[120px] cursor-pointer"
-                onClick={() => setSelectedRoom(room)}
+              {/* Styled Status Badge */}
+              <span
+                className={`px-3 py-1 rounded-full text-sm font-bold ${getStatusColor(
+                  room.status
+                )}`}
               >
-                <img
-                  src={room.imgSrc}
-                  alt={room.name}
-                  className="rounded-lg shadow-md w-full h-full object-cover"
-                />
-                <h5 className="text-center text-sm mt-1">{room.name}</h5>
-              </div>
-            ))}
-          </div>
+                {room.status || "No Status"}
+              </span>
+            </div>
+          ))}
         </div>
-
-        {/* Modal for Room Preview */}
-        <Dialog
-          open={!!selectedRoom}
-          onOpenChange={() => setSelectedRoom(null)}
-        >
-          <DialogContent className="sm:max-w-lg space-y-4">
-            {selectedRoom && (
-              <>
-                <DialogHeader>
-                  <DialogTitle>{selectedRoom.name}</DialogTitle>
-                </DialogHeader>
-                <img
-                  src={selectedRoom.imgSrc}
-                  alt={selectedRoom.name}
-                  className="w-full h-auto rounded-lg shadow-md"
-                />
-                <DialogFooter>
-                  <Button onClick={() => setSelectedRoom(null)}>Close</Button>
-                </DialogFooter>
-              </>
-            )}
-          </DialogContent>
-        </Dialog>
       </div>
+
+      {/* Modal for Room Details */}
+      <Dialog open={isDialogOpen} onOpenChange={() => setIsDialogOpen(false)}>
+        <DialogContent>
+          {selectedRoom && (
+            <>
+              <DialogHeader>
+                <DialogTitle>{selectedRoom.name}</DialogTitle>
+              </DialogHeader>
+              <img
+                src={selectedRoom.imgSrc}
+                alt={selectedRoom.name}
+                className="rounded-lg shadow-md w-full h-auto mb-4"
+              />
+              <p className="text-sm">
+                This Room Is:{" "}
+                <span
+                  className={`px-3 py-1 rounded-full text-sm font-bold ${getStatusColor(
+                    selectedRoom.status
+                  )}`}
+                >
+                  {selectedRoom.status || "No Status"}
+                </span>
+              </p>
+              <DialogFooter>
+                <Button onClick={() => setIsDialogOpen(false)}>Close</Button>
+              </DialogFooter>
+            </>
+          )}
+        </DialogContent>
+      </Dialog>
     </div>
   );
 }

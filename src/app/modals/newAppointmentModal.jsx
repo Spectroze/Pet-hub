@@ -45,12 +45,16 @@ export default function NewAppointmentModal({ isOpen, onClose, pet }) {
     petSpecies: "N/A",
     petAge: "N/A",
   });
+  // Helper function to validate document IDs
+  const isValidDocumentId = (id) => {
+    const regex = /^[a-zA-Z0-9_]{1,36}$/;
+    return regex.test(id);
+  };
 
   useEffect(() => {
     const fetchPetDetails = async () => {
-      if (pet) {
+      if (pet && isValidDocumentId(pet)) {
         try {
-          console.log("Fetching details for petId:", pet); // Debugging log
           const petData = await databases.getDocument(
             appwriteConfig.databaseId,
             appwriteConfig.petCollectionId,
@@ -66,7 +70,7 @@ export default function NewAppointmentModal({ isOpen, onClose, pet }) {
           console.error("Error fetching pet details:", error);
         }
       } else {
-        console.warn("No petId provided for fetching pet details.");
+        console.warn("Invalid pet document ID format:", pet);
       }
     };
 
@@ -74,13 +78,13 @@ export default function NewAppointmentModal({ isOpen, onClose, pet }) {
   }, [isOpen, pet]);
 
   const handleServiceChange = (selectedService) => {
-    setServices([selectedService]);
+    setServices([selectedService]); // Always set services as an array with one or more items
     setPayment(
       {
         "Pet Grooming": "500",
         "Veterinary Care": "1500",
         "Pet Training": "1000",
-        "Pet Boarding": "100",
+        "Pet Boarding": "1000 ",
       }[selectedService] || "0"
     );
   };
@@ -90,19 +94,24 @@ export default function NewAppointmentModal({ isOpen, onClose, pet }) {
       const ownerId = await getCurrentUserId();
       if (!ownerId) throw new Error("User ID not retrieved");
 
+      // Ensure petPayment is within the valid range
+      const validatedPayment = Math.max(500, Math.min(1200, Number(payment)));
+
       const appointmentData = {
-        services,
-        date,
-        time,
-        clinic,
-        room,
-        payment: Number(payment),
+        petServices: services,
+        petDate: [date],
+        petTime: [time],
+        petClinic: [clinic],
+        petRoom: [room],
+        petPayment: validatedPayment,
         ownerId,
-        petId: pet?.id, // pet ID if available
+        petId: pet?.id,
         petName: pet?.name,
         petType: pet?.type,
         petSpecies: pet?.species,
         petAge: pet?.age,
+        petPhotoId: pet?.photoId || "N/A",
+        status: ["Pending"],
       };
 
       await saveAppointmentToDatabase(appointmentData);
@@ -123,68 +132,82 @@ export default function NewAppointmentModal({ isOpen, onClose, pet }) {
           <DialogTitle>Book New Appointment</DialogTitle>
         </DialogHeader>
 
-        <div className="grid grid-cols-2 gap-4">
-          <div className="flex flex-col gap-4">
-            <h2 className="text-lg font-bold">Pet Details</h2>
+        <div className="flex flex-col gap-6">
+          <div className="grid grid-cols-2 gap-4">
             <p>Pet Name: {pet.name}</p>
             <p>Pet Type: {pet.type}</p>
             <p>Pet Species: {pet.species}</p>
             <p>Pet Age: {pet.age}</p>
-
-            <label>Service</label>
-            <Select onValueChange={handleServiceChange}>
-              <SelectTrigger>
-                <SelectValue placeholder="Select a service" />
-              </SelectTrigger>
-              <SelectContent>
-                <SelectItem value="Pet Grooming">Pet Grooming</SelectItem>
-                <SelectItem value="Veterinary Care">Veterinary Care</SelectItem>
-                <SelectItem value="Pet Training">Pet Training</SelectItem>
-                <SelectItem value="Pet Boarding">Pet Boarding</SelectItem>
-              </SelectContent>
-            </Select>
-
-            <label>Date</label>
-            <Input
-              type="date"
-              value={date}
-              onChange={(e) => setDate(e.target.value)}
-            />
-            <label>Time</label>
-            <Input
-              type="time"
-              value={time}
-              onChange={(e) => setTime(e.target.value)}
-            />
           </div>
 
-          <div className="flex flex-col gap-4">
-            <label>Clinic</label>
-            <Select onValueChange={(value) => setClinic(value)}>
-              <SelectTrigger>
-                <SelectValue placeholder="Select a clinic" />
-              </SelectTrigger>
-              <SelectContent>
-                <SelectItem value="Clinic 1">Clinic 1</SelectItem>
-                <SelectItem value="Clinic 2">Clinic 2</SelectItem>
-              </SelectContent>
-            </Select>
+          <div className="grid grid-cols-2 gap-4">
+            <div>
+              <label>Service</label>
+              <Select onValueChange={handleServiceChange}>
+                <SelectTrigger>
+                  <SelectValue placeholder="Select a service" />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="Pet Grooming">Pet Grooming</SelectItem>
+                  <SelectItem value="Veterinary Care">
+                    Veterinary Care
+                  </SelectItem>
+                  <SelectItem value="Pet Training">Pet Training</SelectItem>
+                  <SelectItem value="Pet Boarding">Pet Boarding</SelectItem>
+                </SelectContent>
+              </Select>
+            </div>
 
-            <label>Room</label>
-            <Select onValueChange={(value) => setRoom(value)}>
-              <SelectTrigger>
-                <SelectValue placeholder="Select a room" />
-              </SelectTrigger>
-              <SelectContent>
-                <SelectItem value="Room 1">Room 1</SelectItem>
-                <SelectItem value="Room 2">Room 2</SelectItem>
-                <SelectItem value="Room 3">Room 3</SelectItem>
-                <SelectItem value="Room 4">Room 4</SelectItem>
-              </SelectContent>
-            </Select>
+            <div>
+              <label>Clinic</label>
+              <Select onValueChange={(value) => setClinic(value)}>
+                <SelectTrigger>
+                  <SelectValue placeholder="Select a clinic" />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="Clinic 1">Clinic 1</SelectItem>
+                  <SelectItem value="Clinic 2">Clinic 2</SelectItem>
+                </SelectContent>
+              </Select>
+            </div>
 
-            <label>Payment (₱)</label>
-            <p className="text-lg font-semibold text-gray-700">₱{payment}</p>
+            <div>
+              <label>Date</label>
+              <Input
+                type="date"
+                value={date}
+                onChange={(e) => setDate(e.target.value)}
+              />
+            </div>
+
+            <div>
+              <label>Room</label>
+              <Select onValueChange={(value) => setRoom(value)}>
+                <SelectTrigger>
+                  <SelectValue placeholder="Select a room" />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="Room 1">Room 1</SelectItem>
+                  <SelectItem value="Room 2">Room 2</SelectItem>
+                  <SelectItem value="Room 3">Room 3</SelectItem>
+                  <SelectItem value="Room 4">Room 4</SelectItem>
+                </SelectContent>
+              </Select>
+            </div>
+
+            <div>
+              <label>Time</label>
+              <Input
+                type="time"
+                value={time}
+                onChange={(e) => setTime(e.target.value)}
+              />
+            </div>
+
+            <div>
+              <label>Payment (₱)</label>
+              <p className="text-lg font-semibold text-gray-700">₱{payment}</p>
+            </div>
           </div>
         </div>
 

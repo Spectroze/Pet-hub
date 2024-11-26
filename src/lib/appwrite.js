@@ -16,6 +16,7 @@ export const appwriteConfig = {
   userCollectionId: "670a04240019b97fcf05",
   petCollectionId: "670ab2db00351bc09a92",
   bucketId: "670ab439002597c2ae84",
+  roomCollectionId: "6738afcd000d644b6853",
 };
 
 const client = new Client();
@@ -73,21 +74,28 @@ export async function createUser(
 ) {
   try {
     await ensureFreshSession();
-    const phone = personalInfo.phone.replace(/\D/g, "").trim();
 
+    const phone = personalInfo.phone.replace(/\D/g, "").trim();
+    if (phone.length > 11) {
+      throw new Error("Phone number must be 11 characters or fewer.");
+    }
+
+    // Upload the avatar and get the constructed URL
     let avatarUrl = "/placeholder.svg";
     if (personalInfo.ownerPhoto) {
       avatarUrl = await uploadFileAndGetUrl(personalInfo.ownerPhoto);
     }
 
+    // Create user account
     const newAccount = await account.create(
       ID.unique(),
       personalInfo.email,
       personalInfo.password,
       personalInfo.name
     );
+    console.log("Account created:", newAccount);
 
-    // Add user document with permissions
+    // Create user document
     const newUser = await databases.createDocument(
       appwriteConfig.databaseId,
       appwriteConfig.userCollectionId,
@@ -97,21 +105,20 @@ export async function createUser(
         name: personalInfo.name,
         email: personalInfo.email,
         phone,
-        avatar: avatarUrl,
+        avatar: avatarUrl, // Store the avatar URL directly
         role,
-      },
-      [
-        Permission.read(Role.user(newAccount.$id)),
-        Permission.write(Role.user(newAccount.$id)),
-      ]
+      }
     );
+    console.log("User document created:", newUser);
+
+    // Upload the pet photo and store its URL
 
     let petPhotoUrl = "/placeholder.svg";
     if (petInfo.photo) {
       petPhotoUrl = await uploadFileAndGetUrl(petInfo.photo);
     }
 
-    // Add pet document with permissions
+    // Create pet document with petPayment included
     const petDocument = await databases.createDocument(
       appwriteConfig.databaseId,
       appwriteConfig.petCollectionId,
@@ -122,31 +129,30 @@ export async function createUser(
         petType: petInfo.type,
         petSpecies: petInfo.species,
         petAge: petInfo.age,
-        petServices: petInfo.services,
-        petPhotoId: petPhotoUrl,
+        petServices: petInfo.services, // Ensure it is an array, not a string
+        petPhotoId: petPhotoUrl, // Store pet photo URL
         petClinic: petInfo.clinic,
         petRoom: petInfo.room,
         petDate: petInfo.date,
         petTime: petInfo.time,
-        petPayment: petPayment,
-      },
-      [
-        Permission.read(Role.user(newAccount.$id)),
-        Permission.write(Role.user(newAccount.$id)),
-      ]
+        petPayment: petPayment, // Adding the calculated payment
+      }
     );
+    console.log("Pet document created:", petDocument);
 
+    // Create session for the user
     const session = await account.createEmailPasswordSession(
       personalInfo.email,
       personalInfo.password
     );
+    console.log("Session created:", session);
+
     return { newUser, petDocument };
   } catch (error) {
     console.error("Error creating user:", error.message);
     throw new Error(error.message || "Error during user registration");
   }
 }
-
 // Upload File to Appwrite Storage
 export async function uploadFile(file) {
   try {
@@ -165,6 +171,7 @@ export async function uploadFile(file) {
 
 // Sign In
 export async function signIn(email, password) {
+  // Step 1: Ensure any existing session is cleared
   try {
     const existingSession = await account.get();
     if (existingSession) {
@@ -175,12 +182,36 @@ export async function signIn(email, password) {
     console.log("No active session found. Proceeding with login.");
   }
 
-  // Now attempt to create a new session
+  // Step 2: Attempt to create a new session
   try {
     const session = await account.createEmailPasswordSession(email, password);
 
+    // Step 3: Retrieve the current account
     const currentAccount = await account.get();
     if (!currentAccount) throw new Error("Unable to retrieve account.");
+
+    // Step 4: Fetch the user's status from the database
+    const userResponse = await databases.listDocuments(
+      appwriteConfig.databaseId,
+      appwriteConfig.userCollectionId,
+      [Query.equal("accountId", currentAccount.$id)]
+    );
+
+    if (userResponse.total === 0) {
+      throw new Error("User document not found.");
+    }
+
+    const userDocument = userResponse.documents[0];
+    const userStatus = userDocument.status; // This should be an array, e.g., ["active"] or ["disabled"]
+
+    // Step 5: Check if the user's status is "disabled"
+    if (userStatus.includes("disabled")) {
+      // Delete the session to prevent access
+      await account.deleteSession("current");
+      throw new Error("This account is disabled and cannot log in.");
+    }
+
+    // Step 6: If the status is "active", allow sign-in
     return currentAccount;
   } catch (error) {
     console.error("Error signing in:", error.message);
@@ -337,6 +368,7 @@ export const createAccount = async (email, password, accountData) => {
         ...accountData,
         accountId: user.$id, // Add the accountId field
         email: user.email,
+        status: ["active"],
       }
     );
 
@@ -350,12 +382,18 @@ export const createAccount = async (email, password, accountData) => {
 // Update an existing account in the user collection
 export const updateAccount = async (accountId, updatedData) => {
   try {
+    // Ensure the status field is an array
+    if (updatedData.status && !Array.isArray(updatedData.status)) {
+      updatedData.status = [updatedData.status];
+    }
+
     await databases.updateDocument(
       appwriteConfig.databaseId,
       appwriteConfig.userCollectionId,
       accountId,
       updatedData
     );
+    console.log("Account updated successfully.");
   } catch (error) {
     console.error("Error updating account:", error.message);
     throw error;
@@ -465,3 +503,35 @@ export async function getPetPhotoIdByName(petName) {
     throw new Error("Could not retrieve pet photo ID");
   }
 }
+
+// Enable an account by updating the status to ["active"]
+export const enableAccount = async (accountId) => {
+  try {
+    await databases.updateDocument(
+      appwriteConfig.databaseId,
+      appwriteConfig.userCollectionId,
+      accountId,
+      { status: ["active"] } // Set status as an array with "active"
+    );
+    console.log("Account enabled successfully.");
+  } catch (error) {
+    console.error("Error enabling account:", error.message);
+    throw new Error("Failed to enable account");
+  }
+};
+
+// Disable an account by updating the status to ["disabled"]
+export const disableAccount = async (accountId) => {
+  try {
+    await databases.updateDocument(
+      appwriteConfig.databaseId,
+      appwriteConfig.userCollectionId,
+      accountId,
+      { status: ["disabled"] } // Set status as an array with "disabled"
+    );
+    console.log("Account disabled successfully.");
+  } catch (error) {
+    console.error("Error disabling account:", error.message);
+    throw new Error("Failed to disable account");
+  }
+};

@@ -1,7 +1,6 @@
 "use client";
-
-import React, { useState } from "react";
-import { BellIcon, CheckIcon, Trash2Icon, XIcon } from "lucide-react";
+import React, { useState, useEffect } from "react";
+import { BellIcon } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import {
   Table,
@@ -18,129 +17,103 @@ import {
   DialogDescription,
   DialogFooter,
 } from "@/components/ui/dialog";
+import { Query, Account, Client } from "appwrite";
+import { appwriteConfig, databases } from "../../../lib/appwrite";
 
-const notifications = [
-  {
-    id: 1,
-    type: "Appointment",
-    message: "Vet appointment tomorrow",
-    date: "2024-10-15",
-    status: "Unread",
-    details:
-      "Your pet has a scheduled vet appointment tomorrow at 2:00 PM. Please ensure you arrive 10 minutes early.",
-  },
-  {
-    id: 2,
-    type: "Reminder",
-    message: "Monthly grooming session",
-    date: "2024-10-10",
-    status: "Read",
-    details:
-      "Don't forget to book your pet's monthly grooming session. Regular grooming helps maintain your pet's health and appearance.",
-  },
-  {
-    id: 3,
-    type: "Alert",
-    message: "Vaccination due next week",
-    date: "2024-10-08",
-    status: "Unread",
-    details:
-      "Your pet's vaccination is due next week. Please schedule an appointment with your veterinarian to ensure your pet stays protected.",
-  },
-];
+// Initialize Appwrite Client
+const client = new Client();
+client
+  .setEndpoint("https://cloud.appwrite.io/v1")
+  .setProject("67094c000023e950be96");
+
+// Set the client to the appwriteConfig object
+appwriteConfig.client = client;
+
+// Initialize the Appwrite Account object using the configured client
+const account = new Account(client);
 
 export default function Notifications() {
-  const [data, setData] = useState(notifications);
+  const [data, setData] = useState([]);
   const [selectedNotification, setSelectedNotification] = useState(null);
   const [isModalOpen, setIsModalOpen] = useState(false);
 
-  const markAsRead = (id) => {
-    const updatedData = data.map((notification) =>
-      notification.id === id
-        ? { ...notification, status: "Read" }
-        : notification
-    );
-    setData(updatedData);
+  // Fetch appointment details for the logged-in user
+  const fetchAppointments = async () => {
+    try {
+      // Get the logged-in user's details
+      const user = await account.get();
+      const userId = user.$id;
+
+      // Fetch only the logged-in user's appointments
+      const response = await databases.listDocuments(
+        appwriteConfig.databaseId,
+        "670ab2db00351bc09a92", // Use the petCollectionId
+        [Query.equal("ownerId", userId), Query.orderDesc("$updatedAt")]
+      );
+
+      setData(response.documents || []);
+    } catch (error) {
+      console.error("Error fetching appointment details:", error);
+    }
   };
 
-  const deleteNotification = (id) => {
-    setData(data.filter((notification) => notification.id !== id));
-    setIsModalOpen(false);
-  };
+  useEffect(() => {
+    fetchAppointments();
+  }, []);
 
   const openNotificationModal = (notification) => {
     setSelectedNotification(notification);
     setIsModalOpen(true);
-    if (notification.status === "Unread") {
-      markAsRead(notification.id);
-    }
   };
 
   return (
-    <div className="w-full max-w-8xl mx-auto bg-white shadow-lg rounded-lg p-6">
-      <h2 className="text-2xl font-semibold mb-4">Notifications</h2>
-      <div className="overflow-auto">
+    <div className="w-full max-w-8xl mx-auto bg-gray-900 shadow-lg rounded-lg p-6 text-gray-100">
+      <h2 className="text-3xl font-semibold mb-6 text-purple-300">
+        Notifications
+      </h2>
+      <div className="overflow-auto rounded-lg border border-gray-700">
         <Table className="w-full">
           <TableHeader>
-            <TableRow className="bg-gray-100">
-              <TableCell className="font-bold">Type</TableCell>
-              <TableCell className="font-bold">Message</TableCell>
-              <TableCell className="font-bold">Date</TableCell>
-              <TableCell className="font-bold">Status</TableCell>
-              <TableCell className="font-bold">Actions</TableCell>
+            <TableRow className="bg-purple-900">
+              <TableCell className="font-bold text-purple-100">Type</TableCell>
+              <TableCell className="font-bold text-purple-100">
+                Message
+              </TableCell>
+
+              <TableCell className="font-bold text-purple-100">Date</TableCell>
+              <TableCell className="font-bold text-purple-100">
+                Status
+              </TableCell>
             </TableRow>
           </TableHeader>
           <TableBody>
             {data.map((notification) => (
               <TableRow
-                key={notification.id}
-                className={`${
-                  notification.status === "Unread" ? "bg-yellow-50" : "bg-white"
-                } hover:bg-gray-50 transition cursor-pointer`}
+                key={notification.$id}
+                className="hover:bg-purple-700 transition cursor-pointer"
                 onClick={() => openNotificationModal(notification)}
               >
                 <TableCell>
                   <div className="flex items-center gap-2">
-                    <BellIcon className="w-5 h-5 text-primary" />
-                    {notification.type}
+                    <BellIcon className="w-5 h-5 text-purple-300" />
+                    {notification.type || "Appointment"}
                   </div>
                 </TableCell>
-                <TableCell>{notification.message}</TableCell>
-                <TableCell>{notification.date}</TableCell>
                 <TableCell>
-                  <span
-                    className={`px-2 py-1 rounded text-sm ${
-                      notification.status === "Unread"
-                        ? "bg-yellow-100 text-yellow-800"
-                        : "bg-green-100 text-green-800"
-                    }`}
-                  >
+                  {Array.isArray(notification.status) &&
+                  notification.status[0]?.toLowerCase() === "accepted"
+                    ? "Your appointment is accepted"
+                    : Array.isArray(notification.status) &&
+                      notification.status[0]?.toLowerCase() === "declined"
+                    ? "Your appointment is declined"
+                    : notification.message || "Appointment Update"}
+                </TableCell>
+
+                <TableCell>{notification.$updatedAt || "N/A"}</TableCell>
+                <TableCell>
+                  <span className="px-2 py-1 rounded text-sm">
                     {notification.status}
                   </span>
-                </TableCell>
-                <TableCell className="flex gap-2">
-                  {notification.status === "Unread" && (
-                    <Button
-                      size="sm"
-                      variant="outline"
-                      onClick={(e) => {
-                        e.stopPropagation();
-                        markAsRead(notification.id);
-                      }}
-                    >
-                      <CheckIcon className="w-4 h-4 mr-1" /> Mark as Read
-                    </Button>
-                  )}
-                  <Button
-                    size="sm"
-                    variant="destructive"
-                    onClick={(e) => {
-                      e.stopPropagation();
-                      deleteNotification(notification.id);
-                    }}
-                  >
-                    <Trash2Icon className="w-4 h-4 mr-1" /> Delete
-                  </Button>
                 </TableCell>
               </TableRow>
             ))}
@@ -149,42 +122,48 @@ export default function Notifications() {
       </div>
 
       <Dialog open={isModalOpen} onOpenChange={setIsModalOpen}>
-        <DialogContent>
+        <DialogContent className="bg-gray-800 text-gray-100 border border-purple-500">
           {selectedNotification && (
             <>
               <DialogHeader>
-                <DialogTitle>{selectedNotification.type}</DialogTitle>
-                <DialogDescription>
-                  {selectedNotification.message}
+                <DialogTitle className="text-2xl text-purple-300">
+                  {selectedNotification.type || "Appointment"}
+                </DialogTitle>
+                <DialogDescription className="text-gray-300">
+                  {Array.isArray(selectedNotification.status) &&
+                  selectedNotification.status[0]?.toLowerCase() === "accepted"
+                    ? "Your appointment is accepted"
+                    : Array.isArray(selectedNotification.status) &&
+                      selectedNotification.status[0]?.toLowerCase() ===
+                        "declined"
+                    ? "Your appointment is declined"
+                    : selectedNotification.message || "Appointment Update"}
                 </DialogDescription>
               </DialogHeader>
               <div className="py-4">
-                <p className="text-sm text-gray-500 mb-2">
-                  Date: {selectedNotification.date}
+                <p className="text-sm text-purple-400 mb-2">
+                  Date: {selectedNotification.$updatedAt || "N/A"}
                 </p>
-                <p className="text-sm mb-2">{selectedNotification.details}</p>
-                <p className="text-sm font-semibold">
-                  Status:{" "}
-                  <span
-                    className={`px-2 py-1 rounded ${
-                      selectedNotification.status === "Unread"
-                        ? "bg-yellow-100 text-yellow-800"
-                        : "bg-green-100 text-green-800"
-                    }`}
-                  >
-                    {selectedNotification.status}
-                  </span>
+                <p className="text-sm font-semibold text-gray-200">
+                  Status: <span>{selectedNotification.status}</span>
                 </p>
+                {Array.isArray(selectedNotification.status) &&
+                  selectedNotification.status[0]?.toLowerCase() ===
+                    "declined" && (
+                    <p className="text-sm text-red-400 mt-2">
+                      <strong>Reason for Decline:</strong>{" "}
+                      {selectedNotification.declineReason ||
+                        "No reason provided."}
+                    </p>
+                  )}
               </div>
               <DialogFooter>
-                <Button variant="outline" onClick={() => setIsModalOpen(false)}>
-                  Close
-                </Button>
                 <Button
-                  variant="destructive"
-                  onClick={() => deleteNotification(selectedNotification.id)}
+                  variant="outline"
+                  className="bg-gray-700 text-gray-200 hover:bg-gray-600 border-purple-500"
+                  onClick={() => setIsModalOpen(false)}
                 >
-                  <Trash2Icon className="w-4 h-4 mr-1" /> Delete
+                  Close
                 </Button>
               </DialogFooter>
             </>

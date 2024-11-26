@@ -20,7 +20,7 @@ function Panorama() {
   const mesh = useRef(null);
   const texture = useLoader(
     THREE.TextureLoader,
-    "/images/clinic2.JPG?height=2000&width=4000"
+    "/images/panorama1.jpeg?height=2000&width=4000"
   );
 
   useFrame(() => {
@@ -41,10 +41,10 @@ export default function Clinic2() {
   const [selectedRoom, setSelectedRoom] = useState(null);
 
   const roomPreviews = [
-    { id: 1, name: "Room 1", imgSrc: "/images/room1.JPG" },
-    { id: 2, name: "Room 2", imgSrc: "/images/room2.JPG" },
-    { id: 3, name: "Room 3", imgSrc: "/images/room3.JPG" },
-    { id: 4, name: "Room 4", imgSrc: "/images/room4.JPG" },
+    { id: 1, name: "Room 1", imgSrc: "/images/roomA.jpeg" },
+    { id: 2, name: "Room 2", imgSrc: "/images/roomB.jpeg" },
+    { id: 3, name: "Room 3", imgSrc: "/images/roomC.jpeg" },
+    { id: 4, name: "Room 4", imgSrc: "/images/roomD.jpeg" },
   ];
 
   return (
@@ -72,10 +72,10 @@ export default function Clinic2() {
             className="flex items-center mt-2 text-white gap-2 hover:underline"
           >
             <MapPinIcon className="w-5 h-5" />
-            <span>The animal Doctor</span>
+            <span>Doc Tin</span>
           </a>
           <p className="text-sm sm:text-base text-white">
-            Sitio Kinalapan Brgy. Pingit Baler Aurora
+            Near at Petron Baler Aurora
           </p>
         </div>
       </div>

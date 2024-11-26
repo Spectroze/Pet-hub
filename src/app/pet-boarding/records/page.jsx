@@ -1,181 +1,173 @@
 "use client";
 
-import { useState } from "react";
-import {
-  Card,
-  CardContent,
-  CardDescription,
-  CardFooter,
-  CardHeader,
-  CardTitle,
-} from "@/components/ui/card";
-import { Input } from "@/components/ui/input";
-import { Label } from "@/components/ui/label";
+import { useEffect, useState } from "react";
 import { Button } from "@/components/ui/button";
-import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { Textarea } from "@/components/ui/textarea";
+import { Input } from "@/components/ui/input";
+import {
+  Table,
+  TableBody,
+  TableCell,
+  TableHead,
+  TableHeader,
+  TableRow,
+} from "@/components/ui/table";
+import { Search, Edit, Trash2, PlusCircle } from "lucide-react";
+import { toast } from "react-hot-toast";
+import { databases, appwriteConfig } from "../../../lib/appwrite";
 
-// Mock data for pet profiles
-const initialPets = [
-  {
-    id: 1,
-    name: "Buddy",
-    age: 5,
-    breed: "Golden Retriever",
-    gender: "Male",
-    owner: "John Doe",
-    contact: "123-456-7890",
-    emergencyVet: "Dr. Smith",
-    vaccinations: [
-      { name: "Rabies", date: "2023-01-15" },
-      { name: "DHPP", date: "2023-02-20" },
-    ],
-    notes: "Friendly and energetic. Loves to play fetch.",
-    visits: [
-      {
-        date: "2023-03-10",
-        reason: "Annual checkup",
-        notes: "All clear, slight tartar buildup",
-      },
-      {
-        date: "2023-04-15",
-        reason: "Grooming",
-        notes: "Nails trimmed, coat brushed",
-      },
-    ],
-  },
-  // Add more pet profiles as needed
-];
+export default function Pets() {
+  const [petRecords, setPetRecords] = useState([]);
+  const [searchTerm, setSearchTerm] = useState("");
+  const [isLoading, setIsLoading] = useState(false);
 
-export default function PetRecords() {
-  const [pets, setPets] = useState(initialPets);
-  const [selectedPet, setSelectedPet] = useState(null);
-  const [newNote, setNewNote] = useState("");
-
-  const handleSelectPet = (pet) => {
-    setSelectedPet(pet);
+  // Fetch pet records from the database
+  const fetchPetRecords = async () => {
+    setIsLoading(true);
+    try {
+      const response = await databases.listDocuments(
+        appwriteConfig.databaseId,
+        appwriteConfig.petCollectionId
+      );
+      const pets = response.documents.map((pet) => ({
+        id: pet.$id,
+        name: pet.petName,
+        species: pet.petSpecies,
+        breed: pet.petBreed || "Unknown Breed", // Add fallback
+        age: pet.petAge || "Unknown Age", // Add fallback
+        lastCheckup: pet.lastCheckup || "N/A",
+        photo: pet.petPhotoId || "https://placekitten.com/200/300", // Default photo
+      }));
+      setPetRecords(pets);
+      setIsLoading(false);
+    } catch (error) {
+      console.error("Error fetching pet records:", error.message);
+      toast.error("Failed to fetch pet records.");
+      setIsLoading(false);
+    }
   };
 
-  const handleAddNote = () => {
-    if (newNote.trim() && selectedPet) {
-      const updatedPets = pets.map((pet) => {
-        if (pet.id === selectedPet.id) {
-          return {
-            ...pet,
-            notes: pet.notes + "\n" + newNote,
-          };
-        }
-        return pet;
-      });
-      setPets(updatedPets);
-      setSelectedPet({
-        ...selectedPet,
-        notes: selectedPet.notes + "\n" + newNote,
-      });
-      setNewNote("");
+  // UseEffect to fetch records on component mount
+  useEffect(() => {
+    fetchPetRecords();
+  }, []);
+
+  // Handle search functionality
+  const filteredRecords = petRecords.filter((record) =>
+    record.name.toLowerCase().includes(searchTerm.toLowerCase())
+  );
+
+  const handleEdit = (id) => {
+    toast.success(`Editing pet record with ID: ${id}`);
+  };
+
+  const handleDelete = async (id) => {
+    try {
+      await databases.deleteDocument(
+        appwriteConfig.databaseId,
+        appwriteConfig.petCollectionId,
+        id
+      );
+      setPetRecords((prevRecords) =>
+        prevRecords.filter((record) => record.id !== id)
+      );
+      toast.success("Pet record deleted successfully!");
+    } catch (error) {
+      console.error("Error deleting pet record:", error.message);
+      toast.error("Failed to delete pet record.");
     }
   };
 
   return (
-    <div className="grid gap-6 md:grid-cols-2">
-      <Card>
-        <CardHeader>
-          <CardTitle>Pet Profiles</CardTitle>
-          <CardDescription>Select a pet to view details</CardDescription>
-        </CardHeader>
-        <CardContent>
-          <ul className="space-y-2">
-            {pets.map((pet) => (
-              <li key={pet.id}>
-                <Button
-                  variant="outline"
-                  className="w-full justify-start"
-                  onClick={() => handleSelectPet(pet)}
+    <div className="w-full space-y-4 bg-gradient-to-br from-gray-900 to-gray-800 p-6 rounded-lg">
+      <div className="flex flex-col sm:flex-row items-center justify-between gap-4">
+        <h2 className="text-3xl font-bold flex items-center gap-2 text-[#FF6B6B]">
+          <PlusCircle className="h-8 w-8 text-[#FF6B6B]" />
+          Pet Records
+        </h2>
+        <div className="flex items-center space-x-2 w-full sm:w-auto">
+          <Search className="h-5 w-5 text-white" />
+          <Input
+            placeholder="Search pet records..."
+            value={searchTerm}
+            onChange={(e) => setSearchTerm(e.target.value)}
+            className="max-w-sm bg-gray-800 border-gray-700 focus:border-primary focus:ring-primary text-white"
+          />
+        </div>
+      </div>
+      {isLoading ? (
+        <div className="text-center py-8 text-primary bg-gray-800 rounded-lg shadow-inner">
+          <p className="text-lg font-semibold">Loading pet records...</p>
+        </div>
+      ) : (
+        <div className="rounded-md border border-gray-700 overflow-hidden bg-gray-800 shadow-lg">
+          <Table>
+            <TableHeader>
+              <TableRow className="bg-gray-900">
+                <TableHead className="w-[150px] text-white">Photo</TableHead>
+                <TableHead className="w-[150px] text-white">Pet Name</TableHead>
+                <TableHead className="text-white">Species</TableHead>
+                <TableHead className="text-white">Age</TableHead>
+                <TableHead className="text-right text-white">Actions</TableHead>
+              </TableRow>
+            </TableHeader>
+            <TableBody>
+              {filteredRecords.map((record) => (
+                <TableRow
+                  key={record.id}
+                  className="hover:bg-gray-700 transition-colors"
                 >
-                  {pet.name} - {pet.breed}
-                </Button>
-              </li>
-            ))}
-          </ul>
-        </CardContent>
-      </Card>
-      {selectedPet && (
-        <Card>
-          <CardHeader>
-            <CardTitle>{selectedPet.name}'s Profile</CardTitle>
-            <CardDescription>
-              {selectedPet.breed}, {selectedPet.age} years old
-            </CardDescription>
-          </CardHeader>
-          <CardContent>
-            <Tabs defaultValue="details">
-              <TabsList>
-                <TabsTrigger value="details">Details</TabsTrigger>
-                <TabsTrigger value="medical">Medical</TabsTrigger>
-                <TabsTrigger value="visits">Visits</TabsTrigger>
-              </TabsList>
-              <TabsContent value="details">
-                <div className="space-y-2">
-                  <p>
-                    <strong>Gender:</strong> {selectedPet.gender}
-                  </p>
-                  <p>
-                    <strong>Owner:</strong> {selectedPet.owner}
-                  </p>
-                  <p>
-                    <strong>Contact:</strong> {selectedPet.contact}
-                  </p>
-                  <p>
-                    <strong>Emergency Vet:</strong> {selectedPet.emergencyVet}
-                  </p>
-                </div>
-              </TabsContent>
-              <TabsContent value="medical">
-                <div className="space-y-2">
-                  <h4 className="font-semibold">Vaccinations</h4>
-                  <ul className="list-disc list-inside">
-                    {selectedPet.vaccinations.map((vacc, index) => (
-                      <li key={index}>
-                        {vacc.name} - {vacc.date}
-                      </li>
-                    ))}
-                  </ul>
-                </div>
-              </TabsContent>
-              <TabsContent value="visits">
-                <div className="space-y-2">
-                  {selectedPet.visits.map((visit, index) => (
-                    <div key={index} className="border-b pb-2">
-                      <p>
-                        <strong>{visit.date}:</strong> {visit.reason}
-                      </p>
-                      <p>{visit.notes}</p>
+                  <TableCell>
+                    <img
+                      src={record.photo}
+                      alt={record.name}
+                      className="w-16 h-16 object-cover rounded-full"
+                    />
+                  </TableCell>
+                  <TableCell className="font-medium text-primary">
+                    {record.name}
+                  </TableCell>
+                  <TableCell className="text-gray-300">
+                    {record.species}
+                  </TableCell>
+                  <TableCell className="text-gray-300">
+                    {record.age} years
+                  </TableCell>
+                  <TableCell className="text-right">
+                    <div className="flex justify-end space-x-2">
+                      <Button
+                        variant="outline"
+                        size="sm"
+                        onClick={() => handleEdit(record.id)}
+                        className="flex items-center gap-2 text-primary hover:text-primary-foreground hover:bg-primary"
+                      >
+                        <Edit className="h-4 w-4" />
+                        Edit
+                      </Button>
+                      <Button
+                        variant="outline"
+                        size="sm"
+                        onClick={() => handleDelete(record.id)}
+                        className="flex items-center gap-2 text-destructive hover:text-destructive-foreground hover:bg-destructive"
+                      >
+                        <Trash2 className="h-4 w-4" />
+                        Delete
+                      </Button>
                     </div>
-                  ))}
-                </div>
-              </TabsContent>
-            </Tabs>
-          </CardContent>
-          <CardFooter className="flex flex-col items-start">
-            <Label htmlFor="notes" className="mb-2">
-              Notes
-            </Label>
-            <Textarea
-              id="notes"
-              value={selectedPet.notes}
-              readOnly
-              className="w-full mb-2"
-            />
-            <div className="flex w-full space-x-2">
-              <Input
-                placeholder="Add a new note"
-                value={newNote}
-                onChange={(e) => setNewNote(e.target.value)}
-              />
-              <Button onClick={handleAddNote}>Add Note</Button>
-            </div>
-          </CardFooter>
-        </Card>
+                  </TableCell>
+                </TableRow>
+              ))}
+            </TableBody>
+          </Table>
+        </div>
+      )}
+      {filteredRecords.length === 0 && !isLoading && (
+        <div className="text-center py-8 text-primary bg-gray-800 rounded-lg shadow-inner">
+          <PlusCircle className="h-12 w-12 mx-auto mb-4 text-primary" />
+          <p className="text-lg font-semibold">No pet records found.</p>
+          <p className="text-sm text-gray-400">
+            Try adjusting your search or add a new pet record.
+          </p>
+        </div>
       )}
     </div>
   );
