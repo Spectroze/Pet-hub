@@ -1,19 +1,12 @@
 "use client";
 
 import { useEffect, useState } from "react";
-import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
-import {
-  Table,
-  TableBody,
-  TableCell,
-  TableHead,
-  TableHeader,
-  TableRow,
-} from "@/components/ui/table";
-import { Search, Edit, Trash2, PlusCircle } from "lucide-react";
+import { Search, PlusCircle } from "lucide-react";
 import { toast } from "react-hot-toast";
 import { databases, appwriteConfig } from "../../../lib/appwrite";
+import { Card, CardContent } from "@/components/ui/card";
+import { Badge } from "@/components/ui/badge";
 
 export default function Pets() {
   const [petRecords, setPetRecords] = useState([]);
@@ -32,56 +25,32 @@ export default function Pets() {
         id: pet.$id,
         name: pet.petName,
         species: pet.petSpecies,
-        breed: pet.petBreed || "Unknown Breed", // Add fallback
-        age: pet.petAge || "Unknown Age", // Add fallback
-        lastCheckup: pet.lastCheckup || "N/A",
-        photo: pet.petPhotoId || "https://placekitten.com/200/300", // Default photo
+        age: pet.petAge || "Unknown Age",
+        photo: pet.petPhotoId || "https://placekitten.com/200/300",
+        services: pet.petServices || ["No Services Available"],
       }));
       setPetRecords(pets);
-      setIsLoading(false);
     } catch (error) {
       console.error("Error fetching pet records:", error.message);
       toast.error("Failed to fetch pet records.");
+    } finally {
       setIsLoading(false);
     }
   };
 
-  // UseEffect to fetch records on component mount
   useEffect(() => {
     fetchPetRecords();
   }, []);
 
-  // Handle search functionality
   const filteredRecords = petRecords.filter((record) =>
     record.name.toLowerCase().includes(searchTerm.toLowerCase())
   );
 
-  const handleEdit = (id) => {
-    toast.success(`Editing pet record with ID: ${id}`);
-  };
-
-  const handleDelete = async (id) => {
-    try {
-      await databases.deleteDocument(
-        appwriteConfig.databaseId,
-        appwriteConfig.petCollectionId,
-        id
-      );
-      setPetRecords((prevRecords) =>
-        prevRecords.filter((record) => record.id !== id)
-      );
-      toast.success("Pet record deleted successfully!");
-    } catch (error) {
-      console.error("Error deleting pet record:", error.message);
-      toast.error("Failed to delete pet record.");
-    }
-  };
-
   return (
-    <div className="w-full space-y-4 bg-gradient-to-br from-gray-900 to-gray-800 p-6 rounded-lg">
+    <div className="w-full space-y-6 bg-gradient-to-br from-gray-900 to-gray-800 p-8 rounded-xl">
       <div className="flex flex-col sm:flex-row items-center justify-between gap-4">
-        <h2 className="text-3xl font-bold flex items-center gap-2 text-[#FF6B6B]">
-          <PlusCircle className="h-8 w-8 text-[#FF6B6B]" />
+        <h2 className="text-4xl font-bold flex items-center gap-3 text-[#FF6B6B]">
+          <PlusCircle className="h-10 w-10 text-[#FF6B6B]" />
           Pet Records
         </h2>
         <div className="flex items-center space-x-2 w-full sm:w-auto">
@@ -90,81 +59,72 @@ export default function Pets() {
             placeholder="Search pet records..."
             value={searchTerm}
             onChange={(e) => setSearchTerm(e.target.value)}
-            className="max-w-sm bg-gray-800 border-gray-700 focus:border-primary focus:ring-primary text-white"
+            className="max-w-sm bg-gray-800 border-gray-700 focus:border-[#FF6B6B] focus:ring-[#FF6B6B] text-white"
           />
         </div>
       </div>
       {isLoading ? (
-        <div className="text-center py-8 text-primary bg-gray-800 rounded-lg shadow-inner">
-          <p className="text-lg font-semibold">Loading pet records...</p>
+        <div className="text-center py-12 text-[#FF6B6B] bg-gray-800 rounded-lg shadow-xl">
+          <p className="text-xl font-semibold">Loading pet records...</p>
         </div>
       ) : (
-        <div className="rounded-md border border-gray-700 overflow-hidden bg-gray-800 shadow-lg">
-          <Table>
-            <TableHeader>
-              <TableRow className="bg-gray-900">
-                <TableHead className="w-[150px] text-white">Photo</TableHead>
-                <TableHead className="w-[150px] text-white">Pet Name</TableHead>
-                <TableHead className="text-white">Species</TableHead>
-                <TableHead className="text-white">Age</TableHead>
-                <TableHead className="text-right text-white">Actions</TableHead>
-              </TableRow>
-            </TableHeader>
-            <TableBody>
-              {filteredRecords.map((record) => (
-                <TableRow
-                  key={record.id}
-                  className="hover:bg-gray-700 transition-colors"
-                >
-                  <TableCell>
-                    <img
-                      src={record.photo}
-                      alt={record.name}
-                      className="w-16 h-16 object-cover rounded-full"
-                    />
-                  </TableCell>
-                  <TableCell className="font-medium text-primary">
-                    {record.name}
-                  </TableCell>
-                  <TableCell className="text-gray-300">
-                    {record.species}
-                  </TableCell>
-                  <TableCell className="text-gray-300">
-                    {record.age} years
-                  </TableCell>
-                  <TableCell className="text-right">
-                    <div className="flex justify-end space-x-2">
-                      <Button
-                        variant="outline"
-                        size="sm"
-                        onClick={() => handleEdit(record.id)}
-                        className="flex items-center gap-2 text-primary hover:text-primary-foreground hover:bg-primary"
-                      >
-                        <Edit className="h-4 w-4" />
-                        Edit
-                      </Button>
-                      <Button
-                        variant="outline"
-                        size="sm"
-                        onClick={() => handleDelete(record.id)}
-                        className="flex items-center gap-2 text-destructive hover:text-destructive-foreground hover:bg-destructive"
-                      >
-                        <Trash2 className="h-4 w-4" />
-                        Delete
-                      </Button>
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+          {filteredRecords.map((record) => (
+            <Card
+              key={record.id}
+              className="bg-gray-800 border-gray-700 overflow-hidden shadow-lg hover:shadow-2xl transition-shadow duration-300"
+            >
+              <CardContent className="p-0">
+                <div className="relative">
+                  <img
+                    src={record.photo}
+                    alt={record.name}
+                    className="w-full h-48 object-cover"
+                  />
+                  <div className="absolute bottom-0 left-0 right-0 bg-gradient-to-t from-gray-900 to-transparent p-4">
+                    <h3 className="text-2xl font-bold text-white mb-1">
+                      {record.species}
+                    </h3>
+                  </div>
+                </div>
+                <div className="p-6 space-y-4">
+                  <div className="flex justify-between items-center">
+                    <span className="text-gray-400 text-lg">Pet Name:</span>
+                    <span className="text-[#FF6B6B] font-bold text-xl">
+                      {record.name}
+                    </span>
+                  </div>
+                  <div className="flex justify-between items-center">
+                    <span className="text-gray-400 text-lg">Age:</span>
+                    <span className="text-white font-semibold bg-gray-700 px-3 rounded-full">
+                      {record.age}
+                    </span>
+                  </div>
+                  <div className="flex justify-between items-center mt-2">
+                    <span className="text-gray-400 text-lg">Services:</span>
+                    <div className="flex flex-wrap gap-2 justify-end">
+                      {record.services.map((service, index) => (
+                        <Badge
+                          key={index}
+                          variant="secondary"
+                          className="bg-[#FF6B6B] text-white hover:bg-[#FF8C8C]"
+                        >
+                          {service}
+                        </Badge>
+                      ))}
                     </div>
-                  </TableCell>
-                </TableRow>
-              ))}
-            </TableBody>
-          </Table>
+                  </div>
+                </div>
+              </CardContent>
+            </Card>
+          ))}
         </div>
       )}
       {filteredRecords.length === 0 && !isLoading && (
-        <div className="text-center py-8 text-primary bg-gray-800 rounded-lg shadow-inner">
-          <PlusCircle className="h-12 w-12 mx-auto mb-4 text-primary" />
-          <p className="text-lg font-semibold">No pet records found.</p>
-          <p className="text-sm text-gray-400">
+        <div className="text-center py-12 text-[#FF6B6B] bg-gray-800 rounded-lg shadow-xl">
+          <PlusCircle className="h-16 w-16 mx-auto mb-4 text-[#FF6B6B]" />
+          <p className="text-2xl font-bold mb-2">No pet records found.</p>
+          <p className="text-lg text-gray-400">
             Try adjusting your search or add a new pet record.
           </p>
         </div>

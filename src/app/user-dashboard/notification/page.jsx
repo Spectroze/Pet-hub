@@ -19,6 +19,7 @@ import {
 } from "@/components/ui/dialog";
 import { Query, Account, Client } from "appwrite";
 import { appwriteConfig, databases } from "../../../lib/appwrite";
+import moment from "moment-timezone"; // Import moment-timezone
 
 // Initialize Appwrite Client
 const client = new Client();
@@ -36,6 +37,11 @@ export default function Notifications() {
   const [data, setData] = useState([]);
   const [selectedNotification, setSelectedNotification] = useState(null);
   const [isModalOpen, setIsModalOpen] = useState(false);
+
+  // Fetch last viewed timestamp from localStorage
+  const [lastViewed, setLastViewed] = useState(
+    localStorage.getItem("lastViewedNotifications") || new Date().toISOString()
+  );
 
   // Fetch appointment details for the logged-in user
   const fetchAppointments = async () => {
@@ -59,11 +65,20 @@ export default function Notifications() {
 
   useEffect(() => {
     fetchAppointments();
-  }, []);
+  }, [lastViewed]);
 
   const openNotificationModal = (notification) => {
     setSelectedNotification(notification);
     setIsModalOpen(true);
+
+    const now = new Date().toISOString();
+    setLastViewed(now); // Update the state
+    localStorage.setItem("lastViewedNotifications", now); // Persist to localStorage
+  };
+
+  const isNewNotification = (notification) => {
+    // Check if the notification timestamp is after the last viewed timestamp
+    return moment(notification.$updatedAt).isAfter(moment(lastViewed));
   };
 
   return (
@@ -79,7 +94,6 @@ export default function Notifications() {
               <TableCell className="font-bold text-purple-100">
                 Message
               </TableCell>
-
               <TableCell className="font-bold text-purple-100">Date</TableCell>
               <TableCell className="font-bold text-purple-100">
                 Status
@@ -90,7 +104,11 @@ export default function Notifications() {
             {data.map((notification) => (
               <TableRow
                 key={notification.$id}
-                className="hover:bg-purple-700 transition cursor-pointer"
+                className={`hover:bg-purple-700 transition cursor-pointer ${
+                  isNewNotification(notification)
+                    ? "bg-purple-800 text-white" // Highlight new notifications
+                    : ""
+                }`}
                 onClick={() => openNotificationModal(notification)}
               >
                 <TableCell>
@@ -108,8 +126,11 @@ export default function Notifications() {
                     ? "Your appointment is declined"
                     : notification.message || "Appointment Update"}
                 </TableCell>
-
-                <TableCell>{notification.$updatedAt || "N/A"}</TableCell>
+                <TableCell>
+                  {moment
+                    .tz(notification.$updatedAt, "Asia/Manila")
+                    .format("MMMM D, YYYY h:mm A") || "N/A"}
+                </TableCell>
                 <TableCell>
                   <span className="px-2 py-1 rounded text-sm">
                     {notification.status}
@@ -142,7 +163,10 @@ export default function Notifications() {
               </DialogHeader>
               <div className="py-4">
                 <p className="text-sm text-purple-400 mb-2">
-                  Date: {selectedNotification.$updatedAt || "N/A"}
+                  Date:{" "}
+                  {moment
+                    .tz(selectedNotification.$updatedAt, "Asia/Manila")
+                    .format("MMMM D, YYYY h:mm A") || "N/A"}
                 </p>
                 <p className="text-sm font-semibold text-gray-200">
                   Status: <span>{selectedNotification.status}</span>

@@ -1,3 +1,4 @@
+"use client";
 import React, { useState, useEffect } from "react";
 import {
   Dialog,
@@ -44,6 +45,7 @@ export default function NewAppointmentModal({ isOpen, onClose, pet }) {
     petType: "N/A",
     petSpecies: "N/A",
     petAge: "N/A",
+    petPhotoId: null,
   });
   // Helper function to validate document IDs
   const isValidDocumentId = (id) => {
@@ -53,29 +55,57 @@ export default function NewAppointmentModal({ isOpen, onClose, pet }) {
 
   useEffect(() => {
     const fetchPetDetails = async () => {
-      if (pet && isValidDocumentId(pet)) {
+      // Check if pet is an object with details or just an ID
+      if (pet && typeof pet === "object") {
+        console.log("Using provided pet details:", pet); // Debug log
+        setPetDetails({
+          petName: pet.name || "N/A",
+          petType: pet.type || "N/A",
+          petSpecies: pet.species || "N/A",
+          petAge: pet.age || "N/A",
+          petPhotoId: pet.petPhoto || null, // Assume petPhoto is already a URL or ID
+        });
+      } else if (pet && isValidDocumentId(pet)) {
         try {
+          console.log("Fetching pet details for ID:", pet); // Debug log
           const petData = await databases.getDocument(
             appwriteConfig.databaseId,
             appwriteConfig.petCollectionId,
             pet
           );
+          console.log("Fetched pet data:", petData); // Debug log
+
           setPetDetails({
             petName: petData.petName || "N/A",
             petType: petData.petType || "N/A",
             petSpecies: petData.petSpecies || "N/A",
             petAge: petData.petAge || "N/A",
+            petPhotoId: petData.petPhotoId || null,
           });
         } catch (error) {
           console.error("Error fetching pet details:", error);
+          setPetDetails({
+            petName: "N/A",
+            petType: "N/A",
+            petSpecies: "N/A",
+            petAge: "N/A",
+            petPhotoId: null,
+          });
         }
       } else {
-        console.warn("Invalid pet document ID format:", pet);
+        console.warn("Invalid pet ID or object provided:", pet);
+        setPetDetails({
+          petName: "N/A",
+          petType: "N/A",
+          petSpecies: "N/A",
+          petAge: "N/A",
+          petPhotoId: null,
+        });
       }
     };
 
-    if (isOpen) fetchPetDetails();
-  }, [isOpen, pet]);
+    if (isOpen) fetchPetDetails(); // Only fetch when modal is open
+  }, [isOpen, pet]); // Trigger fetch when isOpen or pet changes
 
   const handleServiceChange = (selectedService) => {
     setServices([selectedService]); // Always set services as an array with one or more items
@@ -105,16 +135,18 @@ export default function NewAppointmentModal({ isOpen, onClose, pet }) {
         petRoom: [room],
         petPayment: validatedPayment,
         ownerId,
-        petId: pet?.id,
-        petName: pet?.name,
-        petType: pet?.type,
-        petSpecies: pet?.species,
-        petAge: pet?.age,
-        petPhotoId: pet?.photoId || "N/A",
+        petId: pet?.id, // Add pet ID
+        petName: petDetails.petName, // Fetch from petDetails
+        petType: petDetails.petType,
+        petSpecies: petDetails.petSpecies,
+        petAge: petDetails.petAge,
+        petPhotoId: petDetails.petPhotoId, // Include the petPhotoId here
         status: ["Pending"],
       };
 
-      await saveAppointmentToDatabase(appointmentData);
+      console.log("Saving appointment data:", appointmentData); // Debug log
+
+      await saveAppointmentToDatabase(appointmentData); // Ensure your database handler handles this object
       alert("Appointment saved successfully!");
       onClose();
     } catch (error) {
@@ -127,17 +159,33 @@ export default function NewAppointmentModal({ isOpen, onClose, pet }) {
 
   return (
     <Dialog open={isOpen} onOpenChange={onClose}>
-      <DialogContent>
+      <DialogContent
+        className="max-h-[90vh] overflow-y-auto p-4 rounded-lg w-full max-w-[600px]" // Adjusted height and added responsiveness
+      >
         <DialogHeader>
           <DialogTitle>Book New Appointment</DialogTitle>
         </DialogHeader>
 
         <div className="flex flex-col gap-6">
+          {/* Display debug message if photo is missing */}
+          {petDetails.petPhotoId ? (
+            <div className="mt-4">
+              <label>Pet Photo</label>
+              <img
+                src={petDetails.petPhotoId} // Directly use the provided URL
+                alt={`${petDetails.petName}'s photo`}
+                className="w-32 h-32 object-cover rounded"
+              />
+            </div>
+          ) : (
+            <p className="text-gray-500">No photo available for this pet.</p>
+          )}
+
           <div className="grid grid-cols-2 gap-4">
-            <p>Pet Name: {pet.name}</p>
-            <p>Pet Type: {pet.type}</p>
-            <p>Pet Species: {pet.species}</p>
-            <p>Pet Age: {pet.age}</p>
+            <p>Pet Name: {petDetails.petName}</p>
+            <p>Pet Type: {petDetails.petType}</p>
+            <p>Pet Species: {petDetails.petSpecies}</p>
+            <p>Pet Age: {petDetails.petAge}</p>
           </div>
 
           <div className="grid grid-cols-2 gap-4">

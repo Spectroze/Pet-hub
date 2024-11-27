@@ -13,43 +13,59 @@ import {
   Box,
   Avatar,
   TextField,
+  Snackbar,
+  Alert,
 } from "@mui/material";
-import { databases } from "../../../lib/appwrite";
-import { appwriteConfig } from "../../../lib/appwrite";
-import { Query } from "appwrite";
+import { Query, Account, Client } from "appwrite";
+import { appwriteConfig, databases } from "../../../lib/appwrite";
 
 const localizer = momentLocalizer(moment);
+
+// Initialize Appwrite Client
+const client = new Client();
+client
+  .setEndpoint("https://cloud.appwrite.io/v1")
+  .setProject("67094c000023e950be96");
+
+// Set the client to the appwriteConfig object
+appwriteConfig.client = client;
+
+// Initialize the Appwrite Account object using the configured client
+const account = new Account(client);
 
 export default function AppointmentCalendar({ databaseId, collectionId }) {
   const [events, setEvents] = useState([]);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState("");
   const [openViewDialog, setOpenViewDialog] = useState(false);
-  const [openDeclineDialog, setOpenDeclineDialog] = useState(false); // State for decline dialog
-  const [declineReason, setDeclineReason] = useState(""); // State for decline reason
+  const [openDeclineDialog, setOpenDeclineDialog] = useState(false);
+  const [declineReason, setDeclineReason] = useState("");
   const [selectedEvent, setSelectedEvent] = useState(null);
   const [appointmentDetails, setAppointmentDetails] = useState({
     petOwner: "",
     service: "",
-    status: "Scheduled",
+    status: [],
     petAvatar: "",
     userAvatar: "",
   });
   const [currentDate, setCurrentDate] = useState(new Date());
   const [view, setView] = useState(Views.WEEK);
+  const [notification, setNotification] = useState({
+    open: false,
+    message: "",
+    severity: "info",
+  });
 
   const dbId = appwriteConfig.databaseId;
   const petCollId = appwriteConfig.petCollectionId;
   const usersCollId = appwriteConfig.userCollectionId;
 
-  // Helper function to construct avatar URL
   const constructAvatarUrl = (avatarId) => {
     return avatarId.startsWith("http")
       ? avatarId
       : `https://cloud.appwrite.io/v1/storage/buckets/${appwriteConfig.bucketId}/files/${avatarId}/view?project=${appwriteConfig.projectId}`;
   };
 
-  // Helper function to get owner details
   const getOwnerDetails = async (ownerId) => {
     if (!ownerId)
       return { ownerName: "Unknown Owner", ownerAvatar: "/placeholder.svg" };
@@ -72,14 +88,12 @@ export default function AppointmentCalendar({ databaseId, collectionId }) {
     }
   };
 
-  // Helper function to parse date and time
   const parseDateTime = (date, time = "00:00") => {
     const combined = `${date} ${time}`;
     const parsedDate = moment.tz(combined, "YYYY-MM-DD HH:mm", "Asia/Manila");
     return parsedDate.isValid() ? parsedDate.toDate() : new Date();
   };
 
-  // Fetch appointments and filter for "Pet Boarding" services
   const fetchAppointments = async () => {
     setLoading(true);
     setError("");
@@ -89,20 +103,27 @@ export default function AppointmentCalendar({ databaseId, collectionId }) {
         databaseId || dbId,
         collectionId || petCollId
       );
+      console.log("Fetched documents:", response.documents);
 
-      const filteredAppointments = response.documents.filter(
-        (appointment) => appointment.petServices === "Pet Boarding"
-      );
+      if (!response.documents || response.documents.length === 0) {
+        setError("No appointments found.");
+        setEvents([]);
+        setLoading(false);
+        return;
+      }
 
       const fetchedEvents = await Promise.all(
-        filteredAppointments.map(async (appointment) => {
+        response.documents.map(async (appointment) => {
           const { ownerName, ownerAvatar } = appointment.ownerId
             ? await getOwnerDetails(appointment.ownerId)
-            : { ownerName: "Unknown Owner", ownerAvatar: "/placeholder.svg" };
+            : {
+                ownerName: "Unknown Owner",
+                ownerAvatar: "/images/avatar-placeholder.png",
+              };
 
           const petAvatar = appointment.petPhotoId
             ? constructAvatarUrl(appointment.petPhotoId)
-            : "/placeholder.svg";
+            : "/images/avatar-placeholder.png";
 
           return {
             id: appointment.$id,
@@ -114,10 +135,12 @@ export default function AppointmentCalendar({ databaseId, collectionId }) {
             userAvatar: ownerAvatar,
             start: parseDateTime(appointment.petDate, appointment.petTime),
             end: parseDateTime(appointment.petDate, appointment.petTime),
+            status: appointment.status || "Scheduled",
           };
         })
       );
 
+      console.log("Fetched events:", fetchedEvents);
       setEvents(fetchedEvents);
     } catch (error) {
       console.error("Error fetching appointments:", error.message);
@@ -147,44 +170,58 @@ export default function AppointmentCalendar({ databaseId, collectionId }) {
     setSelectedEvent(null);
   };
 
-  // Handle accept action
+  const showNotification = (message, severity = "info") => {
+    setNotification({ open: true, message, severity });
+  };
+
   const handleAccept = async () => {
     try {
+      const currentUser = await account.get();
+
+      if (!currentUser || !currentUser.$id) {
+        throw new Error("User is not authenticated");
+      }
+
       await databases.updateDocument(dbId, petCollId, selectedEvent.id, {
-        status: "Accepted",
+        status: ["Accepted"],
       });
-      alert("Appointment Accepted");
-      fetchAppointments(); // Refresh appointments
+      showNotification("Appointment Accepted", "success");
+      fetchAppointments();
       handleCloseViewDialog();
     } catch (error) {
       console.error("Error accepting appointment:", error);
-      alert("Failed to accept appointment.");
+      showNotification(
+        error.message.includes("not authorized")
+          ? "You are not authorized to perform this action."
+          : "Failed to accept appointment.",
+        "error"
+      );
     }
   };
 
-  // Open the decline reason dialog
-  const handleOpenDeclineDialog = () => {
-    setOpenDeclineDialog(true);
-  };
-
-  // Handle decline action
   const handleDecline = async () => {
     try {
-      // Update the appointment status and decline reason in the database
       await databases.updateDocument(dbId, petCollId, selectedEvent.id, {
-        status: "Declined",
-        declineReason: declineReason, // Save the decline reason
+        status: ["Declined"],
+        declineReason: [declineReason],
       });
-      alert("Appointment Declined");
-      fetchAppointments(); // Refresh appointments
+      showNotification("Appointment Declined", "warning");
+      fetchAppointments();
       setOpenDeclineDialog(false);
       handleCloseViewDialog();
     } catch (error) {
       console.error("Error declining appointment:", error);
-      alert("Failed to decline appointment.");
+      showNotification(
+        error.message.includes("not authorized")
+          ? "You are not authorized to perform this action."
+          : "Failed to decline appointment.",
+        "error"
+      );
     }
   };
-
+  const handleOpenDeclineDialog = () => {
+    setOpenDeclineDialog(true);
+  };
   return (
     <div>
       {loading ? (
@@ -208,18 +245,17 @@ export default function AppointmentCalendar({ databaseId, collectionId }) {
           onNavigate={setCurrentDate}
           eventPropGetter={(event) => ({
             style: {
-              backgroundColor:
-                event.status === "Accepted"
-                  ? "#4caf50"
-                  : event.status === "Declined"
-                  ? "#f44336"
-                  : "#3174ad",
+              backgroundColor: event.status.includes("Accepted")
+                ? "#4caf50"
+                : event.status.includes("Declined")
+                ? "#f44336"
+                : "#3174ad",
+              color: "white",
             },
           })}
         />
       )}
 
-      {/* Dialog for viewing appointment details */}
       <Dialog open={openViewDialog} onClose={handleCloseViewDialog}>
         <DialogTitle>Appointment Details</DialogTitle>
         <DialogContent>
@@ -291,22 +327,32 @@ export default function AppointmentCalendar({ databaseId, collectionId }) {
                     .tz(selectedEvent.start, "Asia/Manila")
                     .format("h:mm A")}
                 </Typography>
+                <Typography variant="body1" color="primary" mt={2}>
+                  <strong>Status:</strong> {selectedEvent.status}
+                </Typography>
               </Box>
             </Box>
           )}
         </DialogContent>
         <DialogActions>
-          <Button onClick={handleAccept} color="primary">
+          <Button
+            onClick={handleAccept}
+            color="primary"
+            disabled={selectedEvent?.status === "Accepted"}
+          >
             Accept
           </Button>
-          <Button onClick={handleOpenDeclineDialog} color="secondary">
+          <Button
+            onClick={handleOpenDeclineDialog}
+            color="secondary"
+            disabled={selectedEvent?.status === "Accepted"}
+          >
             Decline
           </Button>
           <Button onClick={handleCloseViewDialog}>Close</Button>
         </DialogActions>
       </Dialog>
 
-      {/* Decline Reason Dialog */}
       <Dialog
         open={openDeclineDialog}
         onClose={() => setOpenDeclineDialog(false)}
@@ -333,6 +379,21 @@ export default function AppointmentCalendar({ databaseId, collectionId }) {
           <Button onClick={() => setOpenDeclineDialog(false)}>Cancel</Button>
         </DialogActions>
       </Dialog>
+
+      {/* Snackbar for notifications */}
+      <Snackbar
+        open={notification.open}
+        autoHideDuration={6000}
+        onClose={() => setNotification({ ...notification, open: false })}
+      >
+        <Alert
+          onClose={() => setNotification({ ...notification, open: false })}
+          severity={notification.severity}
+          sx={{ width: "100%" }}
+        >
+          {notification.message}
+        </Alert>
+      </Snackbar>
     </div>
   );
 }
