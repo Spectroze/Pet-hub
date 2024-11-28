@@ -7,7 +7,6 @@ import {
   Query,
   Storage,
 } from "appwrite";
-import { Permission, Role } from "appwrite";
 
 export const appwriteConfig = {
   endpoint: "https://cloud.appwrite.io/v1",
