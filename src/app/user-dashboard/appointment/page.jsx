@@ -61,43 +61,44 @@ export default function Appointment() {
     const styles = `
       <style>
         @page {
-          size: 8.5in 11in; /* Full short bond paper size */
-          margin: 0; /* No margins for full page usage */
-       
+          size: 8.5in 11in; /* Full letter-size page */
+          margin: 0; /* Remove all margins for edge-to-edge printing */
         }
         body {
           font-family: system-ui, -apple-system, sans-serif;
-          margin: 0;
-          padding: 0;
+          margin: 0; /* No margins on the body */
+          padding: 0; /* No padding on the body */
           line-height: 1.4;
           color: #333;
-          width: 100%; /* Ensure it spans the full width */
-          height: 100%; /* Ensure it spans the full height */
+          width: 100%; /* Fill the page horizontally */
+          height: 100%; /* Fill the page vertically */
         }
         .container {
-          max-width: 750px; /* Centered within the page */
-          margin: 20px auto; /* Provide spacing for inner content */
-          padding: 20px;
-          border: 1px solid #ddd;
-          border-radius: 8px;
-          background: #fff;
+          width: 100%; /* Full width */
+          height: 100%; /* Full height */
+          padding: 40px; /* Add internal padding for content spacing */
+          box-sizing: border-box; /* Include padding in total width/height */
+          display: flex;
+          flex-direction: column;
+          justify-content: space-between;
+          background: #fff; /* Ensure a white background */
         }
         .header {
           text-align: center;
           margin-bottom: 20px;
         }
         .header h1 {
-          font-size: 22px;
+          font-size: 24px;
           font-weight: bold;
           margin: 0;
         }
         .header h2 {
-          font-size: 16px;
+          font-size: 18px;
           font-weight: 600;
           margin: 8px 0;
         }
         .header p {
-          font-size: 12px;
+          font-size: 14px;
           color: #666;
           margin: 0;
         }
@@ -114,7 +115,7 @@ export default function Appointment() {
           background: #f9f9f9;
         }
         .section h3 {
-          font-size: 14px;
+          font-size: 16px;
           font-weight: 600;
           margin-bottom: 8px;
         }
@@ -132,20 +133,19 @@ export default function Appointment() {
           border: 1px solid #ddd;
           border-radius: 8px;
           padding: 12px;
-          margin-bottom: 20px;
           background: #f9f9f9;
           display: grid;
           grid-template-columns: 1fr 1fr;
           column-gap: 40px;
+          margin-bottom: 20px;
         }
         .details p {
-          font-size: 12px;
+          font-size: 14px;
           margin: 4px 0;
         }
         .signature-section {
           display: flex;
           justify-content: space-between;
-          margin-top: 20px;
           padding-top: 20px;
           border-top: 1px solid #ddd;
         }
@@ -159,7 +159,7 @@ export default function Appointment() {
         }
         .terms {
           text-align: center;
-          font-size: 10px;
+          font-size: 12px;
           margin-top: 12px;
           color: #666;
         }
@@ -212,31 +212,31 @@ export default function Appointment() {
   
             <!-- Date, Time, Clinic, and Room -->
             <div class="details">
-              <p><strong>Date:</strong><br>${formatDate(
+              <p><strong>Date:</strong> ${formatDate(
                 selectedAppointment?.petDate
               )}</p>
-              <p><strong>Time:</strong><br>${formatTime(
+              <p><strong>Time:</strong> ${formatTime(
                 selectedAppointment?.petTime
               )}</p>
-              <p><strong>Clinic:</strong><br>${
+              <p><strong>Clinic:</strong> ${
                 selectedAppointment?.petClinic || "N/A"
               }</p>
-              <p><strong>Room:</strong><br>${
+              <p><strong>Room:</strong> ${
                 selectedAppointment?.petRoom || "N/A"
               }</p>
             </div>
   
             <!-- Services, Payment, and Status -->
             <div class="details">
-              <p><strong>Services:</strong><br>${
+              <p><strong>Services:</strong> ${
                 Array.isArray(selectedAppointment?.petServices)
                   ? selectedAppointment.petServices.join(", ")
                   : selectedAppointment?.petServices || "N/A"
               }</p>
-              <p><strong>Payment:</strong><br>${
+              <p><strong>Payment:</strong> ${
                 selectedAppointment?.petPayment || "N/A"
               } ₱</p>
-              <p><strong>Status:</strong><br>${
+              <p><strong>Status:</strong> ${
                 selectedAppointment?.status || "N/A"
               }</p>
             </div>

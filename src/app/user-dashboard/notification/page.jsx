@@ -106,7 +106,7 @@ export default function Notifications() {
                 key={notification.$id}
                 className={`hover:bg-purple-700 transition cursor-pointer ${
                   isNewNotification(notification)
-                    ? "bg-purple-800 text-white" // Highlight new notifications
+                    ? "bg-green-800 text-white" // Highlight new notifications
                     : ""
                 }`}
                 onClick={() => openNotificationModal(notification)}

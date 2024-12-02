@@ -45,6 +45,8 @@ export function BooknowModal({ showBooknowModal, setShowBooknowModal }) {
   const [payment, setPayment] = useState(0);
   const [isLoading, setIsLoading] = useState(false);
   const [missingFields, setMissingFields] = useState([]); // Track missing fields
+  const [dropdownOpen, setDropdownOpen] = useState(false); // Control dropdown visibility
+
   const router = useRouter();
 
   const [personalInfo, setPersonalInfo] = useState({
@@ -54,28 +56,37 @@ export function BooknowModal({ showBooknowModal, setShowBooknowModal }) {
     phone: "",
     ownerPhoto: null,
   });
-
   const [petInfo, setPetInfo] = useState({
     name: "",
     type: "",
     species: "",
     age: "",
     photo: null,
-    date: [], // Initialize as array
-    time: [], // Initialize as array
-    services: [], // Initialize as array
-    clinic: [], // Initialize as array
+    date: [],
+    time: [],
+    services: [], // Initialize as an empty array
+    clinic: [],
     room: [],
-    staus: ["Pending"],
+    status: ["Pending"],
   });
 
+  const servicesOptions = [
+    "Pet Boarding",
+    "Pet Grooming",
+    "Veterinary Care",
+    "Pet Training",
+  ];
   const servicePrices = {
     "Pet Boarding": 1000,
     "Pet Grooming": 500,
     "Pet Veterinary": 700,
     "Pet Training": 1200,
   };
-
+  // Check if room and clinic selection is required
+  const requiresClinicAndRoom = petInfo.services.some(
+    (service) => service !== "Pet Training"
+  );
+  // currentDate
   const currentDate = new Date().toISOString().split("T")[0];
 
   const getCurrentTime = () => {
@@ -95,9 +106,13 @@ export function BooknowModal({ showBooknowModal, setShowBooknowModal }) {
 
   useEffect(() => {
     if (petInfo.services.length > 0) {
-      const selectedService = petInfo.services[0];
-      const price = servicePrices[selectedService] || 0;
-      setPayment(price);
+      const totalPrice = petInfo.services.reduce(
+        (total, service) => total + (servicePrices[service] || 0),
+        0
+      );
+      setPayment(totalPrice);
+    } else {
+      setPayment(0); // Reset payment if no services are selected
     }
   }, [petInfo.services]);
 
@@ -187,13 +202,14 @@ export function BooknowModal({ showBooknowModal, setShowBooknowModal }) {
     }
   };
 
-  const handleServiceChange = (value) => {
-    setPetInfo((prev) => ({
-      ...prev,
-      services: prev.services.includes(value)
-        ? prev.services
-        : [...prev.services, value],
-    }));
+  const handleServiceChange = (e) => {
+    const { checked, value } = e.target;
+    setPetInfo((prev) => {
+      const updatedServices = checked
+        ? [...prev.services, value] // Add service if checked
+        : prev.services.filter((service) => service !== value); // Remove service if unchecked
+      return { ...prev, services: updatedServices };
+    });
   };
 
   const handleClinicChange = (value) => {
@@ -239,20 +255,33 @@ export function BooknowModal({ showBooknowModal, setShowBooknowModal }) {
   const handleSubmit = async (e) => {
     e.preventDefault();
     setIsLoading(true);
+
     try {
-      const result = await createUser(personalInfo, petInfo, "user", payment);
+      // Combine age and unit into a single value
+      const ageWithUnit = `${petInfo.age} ${petInfo.ageUnit || ""}`.trim();
+
+      // Prepare pet data for submission
+      const petData = {
+        ...petInfo,
+        age: ageWithUnit, // Use concatenated age with unit
+      };
+
+      // Create user and pet entry
+      const result = await createUser(personalInfo, petData, "user", payment);
       console.log("User and Pet created:", result);
-      toast.success("Booking successful!"); // Show success toast
+
+      toast.success("Booking successful!");
       setShowBooknowModal(false);
       router.push("/user-dashboard");
     } catch (error) {
       console.error("Error during user registration:", error.message);
       setError(error.message);
-      toast.error("Booking failed. Please try again."); // Show error toast
+      toast.error("Booking failed. Please try again.");
     } finally {
       setIsLoading(false);
     }
   };
+
   // Breed options for Dog and Cat types
   const dogBreeds = [
     "Labrador Retriever",
@@ -436,13 +465,20 @@ export function BooknowModal({ showBooknowModal, setShowBooknowModal }) {
                           <SelectValue placeholder="Unit" />
                         </SelectTrigger>
                         <SelectContent>
-                          {["Day(s)", "Week(s)", "Month(s)", "Year(s)"].map(
-                            (unit) => (
-                              <SelectItem key={unit} value={unit}>
-                                {unit}
-                              </SelectItem>
-                            )
-                          )}
+                          {[
+                            "Day",
+                            "Days",
+                            "Week",
+                            "Weeks",
+                            "Month",
+                            "Months",
+                            "Year",
+                            "Years",
+                          ].map((unit) => (
+                            <SelectItem key={unit} value={unit}>
+                              {unit}
+                            </SelectItem>
+                          ))}
                         </SelectContent>
                       </Select>
                     </div>
@@ -481,21 +517,45 @@ export function BooknowModal({ showBooknowModal, setShowBooknowModal }) {
                     }
                   />
 
-                  <SelectField
-                    label="Pet Services"
-                    options={[
-                      "Pet Boarding",
-                      "Pet Grooming",
-                      "Pet Veterinary",
-                      "Pet Training",
-                    ]}
-                    onChange={handleServiceChange}
-                  />
+                  {/* Pet Services Section */}
+                  <div className="space-y-2">
+                    <label className="block text-sm font-medium text-gray-700">
+                      Pet Services
+                    </label>
+                    <div
+                      className="border rounded-md p-2 bg-white cursor-pointer"
+                      onClick={() => setDropdownOpen(!dropdownOpen)}
+                    >
+                      {petInfo.services.length > 0
+                        ? petInfo.services.join(", ")
+                        : "Select pet services"}
+                    </div>
 
-                  {/* Clinic and Room selection with room dependency on clinic */}
-                  {["Pet Boarding", "Pet Grooming", "Pet Veterinary"].includes(
-                    petInfo.services[0]
-                  ) && (
+                    {dropdownOpen && (
+                      <div className="absolute z-10 mt-2 bg-white shadow-md rounded-md w-full">
+                        {servicesOptions.map((service) => (
+                          <div
+                            key={service}
+                            className="flex items-center gap-2 px-4 py-2 hover:bg-gray-100"
+                          >
+                            <input
+                              type="checkbox"
+                              id={service}
+                              value={service}
+                              checked={petInfo.services.includes(service)}
+                              onChange={handleServiceChange}
+                            />
+                            <label htmlFor={service} className="text-sm">
+                              {service}
+                            </label>
+                          </div>
+                        ))}
+                      </div>
+                    )}
+                  </div>
+
+                  {/* Show Room and Clinic fields only if required */}
+                  {requiresClinicAndRoom && (
                     <>
                       <SelectField
                         label="Select Clinic"
@@ -515,22 +575,22 @@ export function BooknowModal({ showBooknowModal, setShowBooknowModal }) {
                       />
                     </>
                   )}
-                </div>
 
-                <div className="mt-4">
-                  <h3 className="text-lg font-bold">Payment Summary</h3>
-                  <p className="text-xl">Total Payment: ₱{payment}</p>
-                </div>
+                  <div className="mt-4">
+                    <h3 className="text-lg font-bold">Payment Summary</h3>
+                    <p className="text-xl">Total Payment: ₱{payment}</p>
+                  </div>
 
-                <div className="flex flex-col gap-3 sm:flex-row">
-                  <Button
-                    type="button"
-                    variant="outline"
-                    onClick={handlePreviousStep}
-                  >
-                    Back
-                  </Button>
-                  <Button type="submit">Submit</Button>
+                  <div className="flex flex-col gap-3 sm:flex-row">
+                    <Button
+                      type="button"
+                      variant="outline"
+                      onClick={handlePreviousStep}
+                    >
+                      Back
+                    </Button>
+                    <Button type="submit">Submit</Button>
+                  </div>
                 </div>
               </>
             )}

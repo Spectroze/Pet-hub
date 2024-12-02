@@ -1,16 +1,16 @@
-"use client"
+"use client";
 
-import React, { useEffect, useState } from "react"
-import { useRouter } from "next/navigation"
-import { appwriteConfig } from "@/lib/appwrite"
-import { fetchUserAndPetInfo, getCurrentUser } from "@/lib/appwrite"
-import { Avatar, AvatarImage, AvatarFallback } from "@/components/ui/avatar"
-import { Badge } from "@/components/ui/badge"
-import { Separator } from "@/components/ui/separator"
-import { Button } from "@/components/ui/button"
-import AddPetModal from "../modals/AddPetsModal"
+import React, { useEffect, useState } from "react";
+import { useRouter } from "next/navigation";
+import { appwriteConfig } from "@/lib/appwrite";
+import { fetchUserAndPetInfo, getCurrentUser } from "@/lib/appwrite";
+import { Avatar, AvatarImage, AvatarFallback } from "@/components/ui/avatar";
+import { Badge } from "@/components/ui/badge";
+import { Separator } from "@/components/ui/separator";
+import { Button } from "@/components/ui/button";
+import AddPetModal from "../modals/AddPetsModal";
 import { motion } from "framer-motion";
-import NewAppointmentModal from "@/app/modals/newAppointmentModal"
+import NewAppointmentModal from "@/app/modals/newAppointmentModal";
 import {
   Card,
   CardHeader,
@@ -18,9 +18,10 @@ import {
   CardDescription,
   CardContent,
   CardFooter,
-} from "@/components/ui/card"
-import { Input } from "@/components/ui/input"
-import { ToastContainer, toast } from "react-toastify"
+} from "@/components/ui/card";
+import { Input } from "@/components/ui/input";
+import { ToastContainer, toast } from "react-toastify";
+import "react-toastify/dist/ReactToastify.css";
 import {
   Edit,
   PawPrint,
@@ -31,26 +32,20 @@ import {
   Star as FeedbackIcon,
   Settings as SettingsIcon,
   PlusCircle,
-} from "lucide-react"
+} from "lucide-react";
 
-import { Client, Databases } from "appwrite"
+import { Client, Databases, Storage } from "appwrite";
 
-const client = new Client()
-client
-  .setEndpoint(appwriteConfig.endpoint)
-  .setProject(appwriteConfig.projectId)
-const databases = new Databases(client)
-
-import Appointment from "./appointment/page"
-import Notification from "./notification/page"
-import Feedback from "./feedback/page"
-import Setting from "./setting/page"
+import Appointment from "./appointment/page";
+import Notification from "./notification/page";
+import Feedback from "./feedback/page";
+import Setting from "./setting/page";
 
 export default function PetCareDashboard() {
-  const router = useRouter()
-  const [userId, setUserId] = useState(null)
-  const [showAddPetModal, setShowAddPetModal] = useState(false)
-  const [selectedPet, setSelectedPet] = useState(null)
+  const router = useRouter();
+  const [userId, setUserId] = useState(null);
+  const [showAddPetModal, setShowAddPetModal] = useState(false);
+  const [selectedPet, setSelectedPet] = useState(null);
 
   const [ownerInfo, setOwnerInfo] = useState({
     name: "",
@@ -58,23 +53,30 @@ export default function PetCareDashboard() {
     phone: "",
     status: "",
     avatarUrl: "/placeholder.svg",
-  })
+  });
 
-  const [sidebarOpen, setSidebarOpen] = useState(true)
-  const [activeSection, setActiveSection] = useState("overview")
-  const [isEditingOwner, setIsEditingOwner] = useState(false)
-  const [loading, setLoading] = useState(true)
-  const [error, setError] = useState(null)
+  const [sidebarOpen, setSidebarOpen] = useState(true);
+  const [activeSection, setActiveSection] = useState("overview");
+  const [isEditingOwner, setIsEditingOwner] = useState(false);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState(null);
+  const [newAvatarFile, setNewAvatarFile] = useState(null); // New avatar file
+  const [pets, setPets] = useState([]);
+  const [isEditingPet, setIsEditingPet] = useState(null);
+  const [showNewAppointmentModal, setShowNewAppointmentModal] = useState(false);
 
-  const [pets, setPets] = useState([])
-  const [isEditingPet, setIsEditingPet] = useState(null)
-  const [showNewAppointmentModal, setShowNewAppointmentModal] = useState(false)
+  const client = new Client();
+  client
+    .setEndpoint(appwriteConfig.endpoint)
+    .setProject(appwriteConfig.projectId);
+  const databases = new Databases(client);
+  const storage = new Storage(client); // Correctly initialize the storage
 
   const handleAddPet = async (newPet) => {
     try {
       const petPhotoUrl = newPet?.petPhotoId
         ? `https://cloud.appwrite.io/v1/storage/buckets/${appwriteConfig.bucketId}/files/${newPet.petPhotoId}/view?project=${appwriteConfig.projectId}`
-        : "/placeholder.svg"
+        : "/placeholder.svg";
 
       setPets((prevPets) => [
         ...prevPets,
@@ -85,56 +87,105 @@ export default function PetCareDashboard() {
           species: newPet?.petSpecies || "None",
           carePlan: newPet?.petServices || "No Plan",
           petPhoto: petPhotoUrl,
+          ownerId: userId,
         },
-      ])
-    } catch (error) {
- 
-    }
-  }
+      ]);
+    } catch (error) {}
+  };
 
-  const toggleEditOwner = () => setIsEditingOwner((prev) => !prev)
+  const toggleEditOwner = () => setIsEditingOwner((prev) => !prev);
 
   const handleOwnerChange = (e) => {
-    const { name, value } = e.target
-    setOwnerInfo((prev) => ({ ...prev, [name]: value }))
-  }
+    const { name, value } = e.target;
+    setOwnerInfo((prev) => ({ ...prev, [name]: value }));
+  };
+
+  const handleAvatarUpload = async (file) => {
+    try {
+      const response = await storage.createFile(
+        appwriteConfig.bucketId,
+        "unique()", // Unique ID for the file
+        file
+      );
+      return response.$id; // Return file ID
+    } catch (error) {
+      console.error("Error uploading avatar:", error);
+      toast.error("Failed to upload avatar.");
+      throw error;
+    }
+  };
 
   const handleSaveOwner = async () => {
+    const toastId = toast.loading("Updating profile...");
+
     try {
+      let avatarUrl = null;
+
+      // If a new avatar is selected, upload it and construct the full URL
+      if (newAvatarFile) {
+        const avatarId = await handleAvatarUpload(newAvatarFile);
+        avatarUrl = `https://cloud.appwrite.io/v1/storage/buckets/${appwriteConfig.bucketId}/files/${avatarId}/view?project=${appwriteConfig.projectId}`;
+      }
+
+      const updatedData = {
+        name: ownerInfo.name,
+        phone: ownerInfo.phone,
+      };
+
+      // If a new avatar URL is available, include it in the update
+      if (avatarUrl) {
+        updatedData.avatar = avatarUrl;
+      }
+
       await databases.updateDocument(
-        appwriteConfig.databaseId,
-        appwriteConfig.userCollectionId,
-        userId,
-        {
-          name: ownerInfo.name,
-          email: ownerInfo.email,
-          phone: ownerInfo.phone,
-        }
-      )
-      setIsEditingOwner(false)
-      toast.success("Profile updated successfully!") // Show success toast
+        appwriteConfig.databaseId, // Database ID
+        appwriteConfig.userCollectionId, // User collection ID
+        userId, // Current user ID
+        updatedData
+      );
+
+      if (avatarUrl) {
+        // Update the avatar URL locally for display
+        setOwnerInfo((prev) => ({ ...prev, avatarUrl }));
+      }
+
+      setIsEditingOwner(false);
+      setNewAvatarFile(null); // Reset new avatar file
+      toast.update(toastId, {
+        render: "Profile updated successfully!",
+        type: "success",
+        isLoading: false,
+        autoClose: 2000,
+      });
     } catch (error) {
-      console.error("Error updating owner:", error)
-      toast.error("Failed to update profile.") // Show error toast
+      console.error("Error updating owner profile:", error);
+      toast.update(toastId, {
+        render: "Failed to update profile. Try again!",
+        type: "error",
+        isLoading: false,
+        autoClose: 2000,
+      });
     }
-  }
-  const handleEditPet = (index) => setIsEditingPet(index)
+  };
+
+  const handleEditPet = (index) => setIsEditingPet(index);
 
   const handlePetChange = (e, index) => {
-    const { name, value } = e.target
+    const { name, value } = e.target;
     setPets((prevPets) =>
       prevPets.map((pet, i) => (i === index ? { ...pet, [name]: value } : pet))
-    )
-  }
+    );
+  };
+  // save pet
   const handleSavePet = async (index) => {
     try {
-      const pet = pets[index]
-  
+      const pet = pets[index];
+
       // Check if the pet object has an `id` property
       if (!pet.id) {
-        throw new Error("Missing document ID for the pet.")
+        throw new Error("Missing document ID for the pet.");
       }
-  
+
       // Update the pet details in the Appwrite database
       await databases.updateDocument(
         appwriteConfig.databaseId,
@@ -147,16 +198,15 @@ export default function PetCareDashboard() {
           petSpecies: pet.species,
           petServices: pet.carePlan,
         }
-      )
-  
-      setIsEditingPet(null) // Exit editing mode after saving
-      toast.success("Pet details saved successfully!") // Show a success toast
+      );
+
+      setIsEditingPet(null); // Exit editing mode after saving
+      toast.success("Pet details saved successfully!"); // Show a success toast
     } catch (error) {
-      console.error("Error saving pet details:", error)
-      toast.error("Failed to save pet details. Please try again.") // Show an error toast
+      console.error("Error saving pet details:", error);
+      toast.error("Failed to save pet details. Please try again."); // Show an error toast
     }
-  }
-  
+  };
 
   useEffect(() => {
     const loadPets = async () => {
@@ -164,62 +214,61 @@ export default function PetCareDashboard() {
         const response = await databases.listDocuments(
           appwriteConfig.databaseId,
           appwriteConfig.petCollectionId
-        )
+        );
         // Map over the documents to ensure each pet object includes the `id` property
         setPets(
           response.documents.map((doc) => ({
             ...doc,
             id: doc.$id, // Assign Appwrite's `$id` to `id`
           }))
-        )
+        );
       } catch (error) {
-        console.error("Error loading pets:", error)
+        console.error("Error loading pets:", error);
       }
-    }
-  }
-  )
+    };
+  });
   const openNewAppointmentModal = (pet) => {
-    setSelectedPet(pet)
-    setShowNewAppointmentModal(true)
-  }
+    setSelectedPet(pet);
+    setShowNewAppointmentModal(true);
+  };
 
   const closeNewAppointmentModal = () => {
-    setShowNewAppointmentModal(false)
-    setSelectedPet(null)
-  }
+    setShowNewAppointmentModal(false);
+    setSelectedPet(null);
+  };
 
   useEffect(() => {
     const checkSession = async () => {
       try {
-        const currentUser = await getCurrentUser()
+        const currentUser = await getCurrentUser();
         if (currentUser && currentUser.$id) {
-          setUserId(currentUser.$id)
+          setUserId(currentUser.$id);
         } else {
-          router.push("/")
+          router.push("/");
         }
       } catch (err) {
-        console.error("Error fetching current user: ", err)
-        router.push("/")
+        console.error("Error fetching current user: ", err);
+        router.push("/");
       }
-    }
-    checkSession()
-  }, [router])
+    };
+    checkSession();
+  }, [router]);
 
   useEffect(() => {
-    if (!userId) return
+    if (!userId) return;
 
     const loadData = async () => {
       try {
-        const { user, pet } = await fetchUserAndPetInfo(userId)
+        const { user, pet } = await fetchUserAndPetInfo(userId);
 
         setOwnerInfo({
           ...user,
           avatarUrl: user.avatar || "/placeholder.svg",
-        })
+        });
 
         const petPhotoUrl = pet?.petPhotoId?.startsWith("http")
           ? pet.petPhotoId
-          : `https://cloud.appwrite.io/v1/storage/buckets/${appwriteConfig.bucketId}/files/${pet.petPhotoId}/view?project=${appwriteConfig.projectId}`
+          : `https://cloud.appwrite.io/v1/storage/buckets/${appwriteConfig.bucketId}/files/${pet.petPhotoId}/view?project=${appwriteConfig.projectId}`;
 
         setPets([
           {
@@ -230,16 +279,16 @@ export default function PetCareDashboard() {
             carePlan: pet?.petServices || "No Plan",
             petPhoto: petPhotoUrl,
           },
-        ])
+        ]);
       } catch (error) {
-        setError("Failed to load user or pet data.")
+        setError("Failed to load user or pet data.");
       } finally {
-        setLoading(false)
+        setLoading(false);
       }
-    }
+    };
 
-    loadData()
-  }, [userId])
+    loadData();
+  }, [userId]);
 
   const navItems = [
     { icon: PawPrint, title: "My Pet's", id: "overview" },
@@ -247,35 +296,34 @@ export default function PetCareDashboard() {
     { icon: NotificationIcon, title: "Notifications", id: "notification" },
     { icon: FeedbackIcon, title: "Feedback", id: "feedback" },
     { icon: SettingsIcon, title: "Settings", id: "setting" },
-  ]
+  ];
 
   const PawPrintLoader = () => (
     <div className="flex flex-col items-center justify-center h-screen bg-gray-900">
       <div className="relative">
-   
         <motion.div
-            animate={{
-              scale: [1, 1.2, 1],
-              rotate: [0, 360],
-            }}
-            transition={{
-              duration: 2,
-              ease: "easeInOut",
-              times: [0, 0.5, 1],
-              repeat: Infinity,
-            }}
-          >
-            <PawPrint className="h-24 w-24 text-white " />
-          </motion.div>
+          animate={{
+            scale: [1, 1.2, 1],
+            rotate: [0, 360],
+          }}
+          transition={{
+            duration: 2,
+            ease: "easeInOut",
+            times: [0, 0.5, 1],
+            repeat: Infinity,
+          }}
+        >
+          <PawPrint className="h-24 w-24 text-white " />
+        </motion.div>
       </div>
       <p className="mt-4 text-lg font-medium text-white animate-pulse">
         Loading your pet paradise...
       </p>
     </div>
-  )
+  );
 
   if (loading) {
-    return <PawPrintLoader />
+    return <PawPrintLoader />;
   }
 
   if (error) {
@@ -283,9 +331,8 @@ export default function PetCareDashboard() {
       <div className="flex items-center justify-center h-full bg-gray-900 text-white">
         <p className="text-red-500">{error}</p>
       </div>
-    )
+    );
   }
-
 
   return (
     <div className="flex h-screen bg-gray-900 text-gray-100">
@@ -307,21 +354,26 @@ export default function PetCareDashboard() {
 
         <div className="flex flex-col items-center mt-16 space-y-2">
           {/* Avatar with onClick handler to toggle editing */}
-          <Avatar
-            className="h-20 w-20 border-2 border-gray-600 cursor-pointer"
-            onClick={toggleEditOwner}
-          >
-            <AvatarImage src={ownerInfo.avatarUrl} alt="User" />
-            <AvatarFallback>{ownerInfo.name?.[0] || "U"}</AvatarFallback>
-          </Avatar>
+          <div className="relative">
+            <Avatar
+              className="h-20 w-20 border-2 border-gray-600 cursor-pointer"
+              onClick={toggleEditOwner}
+            >
+              <AvatarImage src={ownerInfo.avatarUrl} alt="User" />
+              <AvatarFallback>{ownerInfo.name?.[0] || "U"}</AvatarFallback>
+            </Avatar>
+            {isEditingOwner && (
+              <Input
+                type="file"
+                accept="image/*"
+                className="absolute bottom-0 left-0 text-xs text-gray-100 bg-gray-700 rounded-md"
+                onChange={(e) => setNewAvatarFile(e.target.files[0])}
+              />
+            )}
+          </div>
 
           {sidebarOpen && (
             <div className="text-center space-y-2">
-              <p className="text-sm font-medium text-gray-200">
-                {ownerInfo.name || "Guest"}
-              </p>
-              <p className="text-xs text-gray-400">Pet Parent</p>
-
               {isEditingOwner ? (
                 <>
                   <Input
@@ -334,9 +386,9 @@ export default function PetCareDashboard() {
                   <Input
                     name="email"
                     value={ownerInfo.email}
-                    onChange={handleOwnerChange}
+                    readOnly
                     placeholder="Email"
-                    className="mt-2 bg-gray-700 text-gray-100"
+                    className="mt-2 bg-gray-700 text-gray-400 cursor-not-allowed"
                   />
                   <Input
                     name="phone"
@@ -355,6 +407,9 @@ export default function PetCareDashboard() {
                 </>
               ) : (
                 <>
+                  <p className="text-sm font-medium text-gray-200">
+                    {ownerInfo.name || "Guest"}
+                  </p>
                   <p className="text-xs text-gray-300">
                     <span className="font-medium">Email:</span>{" "}
                     {ownerInfo.email}
@@ -368,7 +423,6 @@ export default function PetCareDashboard() {
             </div>
           )}
         </div>
-
         {/* Navigation Items */}
         <nav className="space-y-2 border-t border-gray-700 pt-4 mt-4">
           {navItems.map(({ icon: Icon, title, id }) => (
@@ -415,13 +469,19 @@ export default function PetCareDashboard() {
 
               {/* Tighter grid layout with minimal gap */}
               <div className="flex flex-wrap md:flex-nowrap gap-2">
-          
                 {/* Pet Profiles */}
                 {pets.map((pet, index) => (
-                  <Card key={index} className="max-w-sm p-4 bg-gray-800 text-gray-100">
+                  <Card
+                    key={index}
+                    className="max-w-sm p-4 bg-gray-800 text-gray-100"
+                  >
                     <CardHeader>
-                      <CardTitle className="text-gray-100">Pet Profile</CardTitle>
-                      <CardDescription className="text-gray-400">Your pet's information</CardDescription>
+                      <CardTitle className="text-gray-100">
+                        Pet Profile
+                      </CardTitle>
+                      <CardDescription className="text-gray-400">
+                        Your pet's information
+                      </CardDescription>
                     </CardHeader>
                     <CardContent>
                       <div className="flex flex-col items-center space-y-4">
@@ -430,7 +490,7 @@ export default function PetCareDashboard() {
                             src={pet.petPhoto || "/placeholder.svg"}
                             alt={pet.name || "Pet"}
                             onError={(e) => {
-                              e.currentTarget.src = "/placeholder.svg"
+                              e.currentTarget.src = "/placeholder.svg";
                             }}
                           />
                           <AvatarFallback>
@@ -482,7 +542,10 @@ export default function PetCareDashboard() {
                               <h2 className="text-xl font-semibold text-gray-100">
                                 {pet.name || "No Name"}
                               </h2>
-                              <Badge variant="outline" className="mt-1 border-gray-600 text-gray-300">
+                              <Badge
+                                variant="outline"
+                                className="mt-1 border-gray-600 text-gray-300"
+                              >
                                 {pet.type || "No Type"}
                               </Badge>
                               <Separator className="bg-gray-700" />
@@ -493,7 +556,7 @@ export default function PetCareDashboard() {
                                 </p>
                                 <p className="text-sm text-gray-300">
                                   <span className="font-medium">
-                                  Pet Species:
+                                    Pet Species:
                                   </span>{" "}
                                   {pet.species}
                                 </p>
@@ -501,7 +564,22 @@ export default function PetCareDashboard() {
                                   <span className="font-medium">
                                     Care Plan:
                                   </span>
-                                  <Badge className="ml-1 bg-gray-700 text-gray-200">{pet.carePlan}</Badge>
+                                  <div className="flex flex-wrap gap-1 mt-1">
+                                    {Array.isArray(pet.carePlan)
+                                      ? pet.carePlan.map((service, idx) => (
+                                          <Badge
+                                            key={idx}
+                                            className="bg-gray-700 text-gray-200 border-gray-600"
+                                          >
+                                            {service}
+                                          </Badge>
+                                        ))
+                                      : pet.carePlan && (
+                                          <Badge className="bg-gray-700 text-gray-200 border-gray-600">
+                                            {pet.carePlan}
+                                          </Badge>
+                                        )}
+                                  </div>
                                 </p>
                               </div>
                             </>
@@ -509,45 +587,44 @@ export default function PetCareDashboard() {
                         </div>
                       </div>
                     </CardContent>
-                                          <CardFooter className="justify-center border-t-2 border-gray-700 space-x-2">
-                        {isEditingPet === index ? (
-                          <>
-                            {/* Save Button when editing */}
-                            <Button
-                              onClick={() => handleSavePet(index)}
-                              className="bg-green-600 hover:bg-green-700 text-white"
-                            >
-                              <Edit className="mr-2 h-4 w-4" />
-                              Save Pet
-                            </Button>
-                            <Button
-                              onClick={() => setIsEditingPet(null)} // Cancel editing
-                              className="bg-red-600 hover:bg-red-700 text-white"
-                            >
-                              Cancel
-                            </Button>
-                          </>
-                        ) : (
-                          <>
-                            {/* Edit Button when not editing */}
-                            <Button
-                              onClick={() => handleEditPet(index)}
-                              className="bg-blue-600 hover:bg-blue-700 text-white"
-                            >
-                              <Edit className="mr-2 h-4 w-4" />
-                              Edit Pet
-                            </Button>
-                            <Button
-                              onClick={() => openNewAppointmentModal(pet)}
-                              className="bg-green-600 hover:bg-green-700 text-white"
-                            >
-                              <PlusCircle className="mr-2 h-4 w-4" />
-                              New Appointment
-                            </Button>
-                              </>
-                              )}
-                                </CardFooter>
-
+                    <CardFooter className="justify-center border-t-2 border-gray-700 space-x-2">
+                      {isEditingPet === index ? (
+                        <>
+                          {/* Save Button when editing */}
+                          <Button
+                            onClick={() => handleSavePet(index)}
+                            className="bg-green-600 hover:bg-green-700 text-white"
+                          >
+                            <Edit className="mr-2 h-4 w-4" />
+                            Save Pet
+                          </Button>
+                          <Button
+                            onClick={() => setIsEditingPet(null)} // Cancel editing
+                            className="bg-red-600 hover:bg-red-700 text-white"
+                          >
+                            Cancel
+                          </Button>
+                        </>
+                      ) : (
+                        <>
+                          {/* Edit Button when not editing */}
+                          <Button
+                            onClick={() => handleEditPet(index)}
+                            className="bg-blue-600 hover:bg-blue-700 text-white"
+                          >
+                            <Edit className="mr-2 h-4 w-4" />
+                            Edit Pet
+                          </Button>
+                          <Button
+                            onClick={() => openNewAppointmentModal(pet)}
+                            className="bg-green-600 hover:bg-green-700 text-white"
+                          >
+                            <PlusCircle className="mr-2 h-4 w-4" />
+                            New Appointment
+                          </Button>
+                        </>
+                      )}
+                    </CardFooter>
                   </Card>
                 ))}
               </div>
@@ -571,5 +648,5 @@ export default function PetCareDashboard() {
       </main>
       <ToastContainer position="top-right" autoClose={3000} />
     </div>
-  )
+  );
 }

@@ -112,7 +112,7 @@ export default function NewAppointmentModal({ isOpen, onClose, pet }) {
     setPayment(
       {
         "Pet Grooming": "500",
-        "Veterinary Care": "1500",
+        "Pet Veterinary": "1500",
         "Pet Training": "1000",
         "Pet Boarding": "1000 ",
       }[selectedService] || "0"
@@ -197,7 +197,7 @@ export default function NewAppointmentModal({ isOpen, onClose, pet }) {
                 </SelectTrigger>
                 <SelectContent>
                   <SelectItem value="Pet Grooming">Pet Grooming</SelectItem>
-                  <SelectItem value="Veterinary Care">
+                  <SelectItem value="Pet Veterinary">
                     Veterinary Care
                   </SelectItem>
                   <SelectItem value="Pet Training">Pet Training</SelectItem>

@@ -2,6 +2,9 @@
 import React, { useState, useEffect } from "react";
 import { Calendar, momentLocalizer, Views } from "react-big-calendar";
 import moment from "moment-timezone";
+import { styled } from "@mui/system";
+import { createTheme, ThemeProvider } from "@mui/material/styles";
+
 import "react-big-calendar/lib/css/react-big-calendar.css";
 import {
   Dialog,
@@ -13,43 +16,138 @@ import {
   Box,
   Avatar,
   TextField,
+  Snackbar,
+  Alert,
+  CssBaseline,
+  Paper,
+  List,
+  ListItem,
+  ListItemAvatar,
+  ListItemText,
 } from "@mui/material";
-import { databases } from "../../../lib/appwrite";
-import { appwriteConfig } from "../../../lib/appwrite";
-import { Query } from "appwrite";
+import { Query, Account, Client } from "appwrite";
+import { appwriteConfig, databases } from "../../../lib/appwrite";
 
 const localizer = momentLocalizer(moment);
+
+// Initialize Appwrite Client
+const client = new Client();
+client
+  .setEndpoint("https://cloud.appwrite.io/v1")
+  .setProject("67094c000023e950be96");
+
+// Set the client to the appwriteConfig object
+appwriteConfig.client = client;
+
+// Initialize the Appwrite Account object using the configured client
+const account = new Account(client);
+// Styled components for enhanced design
+const StyledCalendarWrapper = styled("div")(({ theme }) => ({
+  "& .rbc-calendar": {
+    backgroundColor: theme.palette.background.paper,
+    border: `1px solid ${theme.palette.divider}`,
+    borderRadius: theme.shape.borderRadius,
+    boxShadow: theme.shadows[3],
+  },
+  "& .rbc-header": {
+    backgroundColor: theme.palette.primary.main,
+    color: theme.palette.primary.contrastText,
+    padding: theme.spacing(1),
+  },
+  "& .rbc-today": {
+    backgroundColor: theme.palette.action.selected,
+  },
+  "& .rbc-event": {
+    borderRadius: theme.shape.borderRadius,
+    boxShadow: theme.shadows[2],
+  },
+}));
+
+const StyledDialog = styled(Dialog)(({ theme }) => ({
+  "& .MuiDialogTitle-root": {
+    backgroundColor: theme.palette.primary.main,
+    color: theme.palette.primary.contrastText,
+  },
+  "& .MuiDialogContent-root": {
+    padding: theme.spacing(3),
+  },
+}));
 
 export default function AppointmentCalendar({ databaseId, collectionId }) {
   const [events, setEvents] = useState([]);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState("");
   const [openViewDialog, setOpenViewDialog] = useState(false);
-  const [openDeclineDialog, setOpenDeclineDialog] = useState(false); // State for decline dialog
-  const [declineReason, setDeclineReason] = useState(""); // State for decline reason
+  const [openDeclineDialog, setOpenDeclineDialog] = useState(false);
+  const [declineReason, setDeclineReason] = useState("");
   const [selectedEvent, setSelectedEvent] = useState(null);
   const [appointmentDetails, setAppointmentDetails] = useState({
     petOwner: "",
     service: "",
-    status: "Scheduled",
+    status: [],
     petAvatar: "",
     userAvatar: "",
   });
+
   const [currentDate, setCurrentDate] = useState(new Date());
   const [view, setView] = useState(Views.WEEK);
+  const [notification, setNotification] = useState({
+    open: false,
+    message: "",
+    severity: "info",
+  });
+
+  const [showHistory, setShowHistory] = useState(false); // Toggle between calendar and history views
+  const historyEvents = events.filter((event) =>
+    event.status.includes("Accepted")
+  );
+  // Create a theme instance
+  const theme = createTheme({
+    palette: {
+      mode: "dark", // Set to 'light' for light theme
+      primary: {
+        main: "#90caf9", // Light blue
+      },
+      secondary: {
+        main: "#f48fb1", // Light pink
+      },
+      background: {
+        default: "#303030",
+        paper: "#424242",
+      },
+    },
+  });
+
+  // Custom event styles
+  const eventStyleGetter = (event) => {
+    let style = {
+      backgroundColor: event.status.includes("Accepted")
+        ? theme.palette.success.main
+        : event.status.includes("Declined")
+        ? theme.palette.error.main
+        : theme.palette.primary.main,
+      color: theme.palette.getContrastText(theme.palette.primary.main),
+      border: "none",
+      borderRadius: "4px",
+      opacity: 0.8,
+      display: "block",
+      overflow: "hidden",
+      textOverflow: "ellipsis",
+      whiteSpace: "nowrap",
+    };
+    return { style };
+  };
 
   const dbId = appwriteConfig.databaseId;
   const petCollId = appwriteConfig.petCollectionId;
   const usersCollId = appwriteConfig.userCollectionId;
 
-  // Helper function to construct avatar URL
   const constructAvatarUrl = (avatarId) => {
     return avatarId.startsWith("http")
       ? avatarId
       : `https://cloud.appwrite.io/v1/storage/buckets/${appwriteConfig.bucketId}/files/${avatarId}/view?project=${appwriteConfig.projectId}`;
   };
 
-  // Helper function to get owner details
   const getOwnerDetails = async (ownerId) => {
     if (!ownerId)
       return { ownerName: "Unknown Owner", ownerAvatar: "/placeholder.svg" };
@@ -72,37 +170,43 @@ export default function AppointmentCalendar({ databaseId, collectionId }) {
     }
   };
 
-  // Helper function to parse date and time
   const parseDateTime = (date, time = "00:00") => {
     const combined = `${date} ${time}`;
     const parsedDate = moment.tz(combined, "YYYY-MM-DD HH:mm", "Asia/Manila");
     return parsedDate.isValid() ? parsedDate.toDate() : new Date();
   };
 
-  // Fetch appointments and filter for "Pet Boarding" services
   const fetchAppointments = async () => {
     setLoading(true);
     setError("");
 
     try {
+      // Query to fetch only Pet Boarding services
       const response = await databases.listDocuments(
         databaseId || dbId,
-        collectionId || petCollId
+        collectionId || petCollId,
+        [Query.equal("petServices", "Pet Boarding")] // Filter for Pet Boarding services
       );
 
-      const filteredAppointments = response.documents.filter(
-        (appointment) => appointment.petServices === "Pet Boarding"
-      );
+      if (!response.documents || response.documents.length === 0) {
+        setError("No Pet Boarding appointments found.");
+        setEvents([]);
+        setLoading(false);
+        return;
+      }
 
       const fetchedEvents = await Promise.all(
-        filteredAppointments.map(async (appointment) => {
+        response.documents.map(async (appointment) => {
           const { ownerName, ownerAvatar } = appointment.ownerId
             ? await getOwnerDetails(appointment.ownerId)
-            : { ownerName: "Unknown Owner", ownerAvatar: "/placeholder.svg" };
+            : {
+                ownerName: "Unknown Owner",
+                ownerAvatar: "/images/avatar-placeholder.png",
+              };
 
           const petAvatar = appointment.petPhotoId
             ? constructAvatarUrl(appointment.petPhotoId)
-            : "/placeholder.svg";
+            : "/images/avatar-placeholder.png";
 
           return {
             id: appointment.$id,
@@ -114,6 +218,7 @@ export default function AppointmentCalendar({ databaseId, collectionId }) {
             userAvatar: ownerAvatar,
             start: parseDateTime(appointment.petDate, appointment.petTime),
             end: parseDateTime(appointment.petDate, appointment.petTime),
+            status: appointment.status || "Pending",
           };
         })
       );
@@ -131,6 +236,17 @@ export default function AppointmentCalendar({ databaseId, collectionId }) {
     fetchAppointments();
   }, [databaseId, collectionId]);
 
+  const filteredEvents = events.filter((event) => {
+    if (view === "agenda") {
+      // Show only "Accepted" appointments in agenda view
+      return event.status.includes("Accepted");
+    }
+    // Exclude "Accepted" and "Declined" appointments from all other views
+    return (
+      !event.status.includes("Accepted") && !event.status.includes("Declined")
+    );
+  });
+
   const handleSelectEvent = (event) => {
     setSelectedEvent(event);
     setAppointmentDetails({
@@ -147,80 +263,152 @@ export default function AppointmentCalendar({ databaseId, collectionId }) {
     setSelectedEvent(null);
   };
 
-  // Handle accept action
+  const showNotification = (message, severity = "info") => {
+    setNotification({ open: true, message, severity });
+  };
+
+  //Accepted Appointment
   const handleAccept = async () => {
     try {
+      const currentUser = await account.get();
+      if (!currentUser || !currentUser.$id) {
+        throw new Error("User is not authenticated");
+      }
+
       await databases.updateDocument(dbId, petCollId, selectedEvent.id, {
-        status: "Accepted",
+        status: ["Accepted"],
       });
-      alert("Appointment Accepted");
-      fetchAppointments(); // Refresh appointments
+      showNotification("Appointment Accepted", "success");
+      fetchAppointments();
       handleCloseViewDialog();
     } catch (error) {
       console.error("Error accepting appointment:", error);
-      alert("Failed to accept appointment.");
+      showNotification(
+        error.message.includes("not authorized")
+          ? "You are not authorized to perform this action."
+          : "Failed to accept appointment.",
+        "error"
+      );
     }
   };
-
-  // Open the decline reason dialog
-  const handleOpenDeclineDialog = () => {
-    setOpenDeclineDialog(true);
-  };
-
-  // Handle decline action
+  // Decline Appointment
   const handleDecline = async () => {
     try {
-      // Update the appointment status and decline reason in the database
       await databases.updateDocument(dbId, petCollId, selectedEvent.id, {
-        status: "Declined",
-        declineReason: declineReason, // Save the decline reason
+        status: ["Declined"],
+        declineReason: [declineReason],
       });
-      alert("Appointment Declined");
-      fetchAppointments(); // Refresh appointments
+      showNotification("Appointment Declined", "warning");
+      fetchAppointments();
       setOpenDeclineDialog(false);
       handleCloseViewDialog();
     } catch (error) {
       console.error("Error declining appointment:", error);
-      alert("Failed to decline appointment.");
+      showNotification(
+        error.message.includes("not authorized")
+          ? "You are not authorized to perform this action."
+          : "Failed to decline appointment.",
+        "error"
+      );
     }
   };
-
+  const handleOpenDeclineDialog = () => {
+    setOpenDeclineDialog(true);
+  };
   return (
-    <div>
-      {loading ? (
-        <Typography>Loading appointments...</Typography>
-      ) : error ? (
-        <Typography color="error">{error}</Typography>
+    <ThemeProvider theme={theme}>
+      <CssBaseline />
+      <Box display="flex" justifyContent="space-between" mb={2}>
+        {/* Toggle buttons for Calendar and History views */}
+        <Button
+          variant={showHistory ? "outlined" : "contained"}
+          color="primary"
+          onClick={() => setShowHistory(false)}
+        >
+          Calendar View
+        </Button>
+        <Button
+          variant={showHistory ? "contained" : "outlined"}
+          color="secondary"
+          onClick={() => setShowHistory(true)}
+        >
+          History
+        </Button>
+      </Box>
+
+      {/* Conditional rendering based on showHistory state */}
+      {showHistory ? (
+        <Box>
+          <Typography variant="h5" align="center" gutterBottom>
+            Accepted Appointments History
+          </Typography>
+          <Paper>
+            <List>
+              {historyEvents.length > 0 ? (
+                historyEvents.map((event) => (
+                  <ListItem key={event.id}>
+                    <ListItemAvatar>
+                      <Avatar>{event.petName[0]}</Avatar>
+                    </ListItemAvatar>
+                    <ListItemText
+                      primary={event.title}
+                      secondary={`${moment(event.start).format(
+                        "MMMM D, YYYY"
+                      )} - ${event.petName} (${event.petSpecies})`}
+                    />
+                  </ListItem>
+                ))
+              ) : (
+                <Typography align="center" color="textSecondary" mt={2}>
+                  No accepted appointments found.
+                </Typography>
+              )}
+            </List>
+          </Paper>
+        </Box>
       ) : (
-        <Calendar
-          localizer={localizer}
-          events={events}
-          startAccessor="start"
-          endAccessor="end"
-          style={{ height: 500 }}
-          selectable
-          onSelectSlot={() => {}}
-          onSelectEvent={handleSelectEvent}
-          views={["month", "week", "day", "agenda"]}
-          view={view}
-          onView={setView}
-          date={currentDate}
-          onNavigate={setCurrentDate}
-          eventPropGetter={(event) => ({
-            style: {
-              backgroundColor:
-                event.status === "Accepted"
-                  ? "#4caf50"
-                  : event.status === "Declined"
-                  ? "#f44336"
-                  : "#3174ad",
-            },
-          })}
-        />
+        <StyledCalendarWrapper>
+          {loading ? (
+            <Typography>Loading appointments...</Typography>
+          ) : error ? (
+            <Typography color="error">{error}</Typography>
+          ) : (
+            <Calendar
+              localizer={localizer}
+              events={filteredEvents}
+              startAccessor="start"
+              endAccessor="end"
+              style={{ height: 600 }} // Increased height for better visibility
+              selectable
+              onSelectEvent={handleSelectEvent}
+              views={["month", "week", "day", "agenda"]}
+              view={view}
+              onView={setView}
+              date={currentDate}
+              onNavigate={setCurrentDate}
+              eventPropGetter={eventStyleGetter}
+              dayPropGetter={(date) => {
+                const today = new Date();
+                if (
+                  date.getDate() === today.getDate() &&
+                  date.getMonth() === today.getMonth() &&
+                  date.getFullYear() === today.getFullYear()
+                ) {
+                  return {
+                    style: {
+                      backgroundColor: theme.palette.action.hover,
+                    },
+                  };
+                }
+                return {};
+              }}
+            />
+          )}
+        </StyledCalendarWrapper>
       )}
 
-      {/* Dialog for viewing appointment details */}
-      <Dialog open={openViewDialog} onClose={handleCloseViewDialog}>
+      {/* Dialog and Snackbar components */}
+      <StyledDialog open={openViewDialog} onClose={handleCloseViewDialog}>
         <DialogTitle>Appointment Details</DialogTitle>
         <DialogContent>
           {selectedEvent && (
@@ -240,7 +428,7 @@ export default function AppointmentCalendar({ databaseId, collectionId }) {
                   <Avatar
                     alt="User Avatar"
                     src={appointmentDetails.userAvatar}
-                    sx={{ width: 56, height: 56, marginBottom: 1 }}
+                    sx={{ width: 80, height: 80, marginBottom: 1 }}
                     onError={(e) => (e.target.src = "/placeholder.svg")}
                   />
                   <Typography variant="caption" sx={{ fontWeight: "bold" }}>
@@ -256,7 +444,7 @@ export default function AppointmentCalendar({ databaseId, collectionId }) {
                   <Avatar
                     alt="Pet Avatar"
                     src={appointmentDetails.petAvatar}
-                    sx={{ width: 56, height: 56, marginBottom: 1 }}
+                    sx={{ width: 80, height: 80, marginBottom: 1 }}
                     onError={(e) => (e.target.src = "/placeholder.svg")}
                   />
                   <Typography variant="caption" sx={{ fontWeight: "bold" }}>
@@ -266,18 +454,15 @@ export default function AppointmentCalendar({ databaseId, collectionId }) {
               </Box>
 
               <Box mt={2}>
-                <Typography variant="body1">
-                  <strong>Services:</strong> {selectedEvent.title}
+                <Typography variant="h6" gutterBottom>
+                  {selectedEvent.title}
                 </Typography>
                 <Typography variant="body1">
-                  <strong>Owner Name:</strong> {selectedEvent.petOwner}
-                </Typography>
-                <br />
-                <Typography variant="body1">
-                  <strong>Pet Name:</strong> {selectedEvent.petName}
+                  <strong>Owner:</strong> {selectedEvent.petOwner}
                 </Typography>
                 <Typography variant="body1">
-                  <strong>Pet Species:</strong> {selectedEvent.petSpecies}
+                  <strong>Pet:</strong> {selectedEvent.petName} (
+                  {selectedEvent.petSpecies})
                 </Typography>
                 <Typography variant="body1">
                   <strong>Date:</strong>{" "}
@@ -291,22 +476,36 @@ export default function AppointmentCalendar({ databaseId, collectionId }) {
                     .tz(selectedEvent.start, "Asia/Manila")
                     .format("h:mm A")}
                 </Typography>
+                <Typography variant="body1" color="primary" mt={2}>
+                  <strong>Status:</strong> {selectedEvent.status}
+                </Typography>
               </Box>
             </Box>
           )}
         </DialogContent>
         <DialogActions>
-          <Button onClick={handleAccept} color="primary">
+          <Button
+            onClick={handleAccept}
+            color="primary"
+            variant="contained"
+            disabled={selectedEvent?.status === "Accepted"}
+          >
             Accept
           </Button>
-          <Button onClick={handleOpenDeclineDialog} color="secondary">
+          <Button
+            onClick={handleOpenDeclineDialog}
+            color="secondary"
+            variant="contained"
+            disabled={selectedEvent?.status === "Accepted"}
+          >
             Decline
           </Button>
-          <Button onClick={handleCloseViewDialog}>Close</Button>
+          <Button onClick={handleCloseViewDialog} variant="outlined">
+            Close
+          </Button>
         </DialogActions>
-      </Dialog>
+      </StyledDialog>
 
-      {/* Decline Reason Dialog */}
       <Dialog
         open={openDeclineDialog}
         onClose={() => setOpenDeclineDialog(false)}
@@ -327,12 +526,31 @@ export default function AppointmentCalendar({ databaseId, collectionId }) {
           />
         </DialogContent>
         <DialogActions>
-          <Button onClick={handleDecline} color="secondary">
+          <Button onClick={handleDecline} color="secondary" variant="contained">
             Confirm Decline
           </Button>
-          <Button onClick={() => setOpenDeclineDialog(false)}>Cancel</Button>
+          <Button
+            onClick={() => setOpenDeclineDialog(false)}
+            variant="outlined"
+          >
+            Cancel
+          </Button>
         </DialogActions>
       </Dialog>
-    </div>
+
+      <Snackbar
+        open={notification.open}
+        autoHideDuration={6000}
+        onClose={() => setNotification({ ...notification, open: false })}
+      >
+        <Alert
+          onClose={() => setNotification({ ...notification, open: false })}
+          severity={notification.severity}
+          sx={{ width: "100%" }}
+        >
+          {notification.message}
+        </Alert>
+      </Snackbar>
+    </ThemeProvider>
   );
 }

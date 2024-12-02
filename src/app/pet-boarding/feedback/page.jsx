@@ -45,7 +45,7 @@ export default function Feedback() {
       try {
         const response = await databases.listDocuments(
           "670a040f000893eb8e06", // Database ID
-          "671bd05400135c37afc1"  // Collection ID
+          "671bd05400135c37afc1" // Collection ID
         );
 
         // Filter feedback to include only entries with the "pet trainee" tag
@@ -60,10 +60,11 @@ export default function Feedback() {
             tags: doc.tags || [], // Include tags and default to an empty array if not provided
             date: new Date(doc.$createdAt), // Convert to Date object
           }))
-        .filter((feedback) =>
-  feedback.tags.some((tag) => tag.toLowerCase().trim() === "pet trainee")
-);
-
+          .filter((feedback) =>
+            feedback.tags.some(
+              (tag) => tag.toLowerCase().trim() === "pet boarding"
+            )
+          );
 
         setFeedbackList(feedbackData);
       } catch (error) {

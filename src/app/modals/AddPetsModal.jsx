@@ -82,7 +82,8 @@ export default function AddPetModal({
   const [timeError, setTimeError] = useState("");
 
   const currentDate = new Date().toISOString().split("T")[0];
-  const getCurrentTime = () => new Date().toISOString().split("T")[1].slice(0, 5);
+  const getCurrentTime = () =>
+    new Date().toISOString().split("T")[1].slice(0, 5);
   const [currentTime, setCurrentTime] = useState(getCurrentTime());
 
   const getSpeciesOptions = () => {
@@ -166,16 +167,25 @@ export default function AddPetModal({
       const currentUser = await getCurrentUser();
       const ownerId = currentUser.$id;
 
+      if (petPayment < 500 || petPayment > 10000) {
+        toast.error("Total payment must be between 500 and 10,000 PHP.");
+        setLoading(false);
+        return;
+      }
+
       let petPhotoId = "/placeholder.svg";
       if (petPhoto) {
         petPhotoId = await uploadFileAndGetUrl(petPhoto);
       }
 
-      const newPet = {
+      // Combine age and unit into a single value
+      const ageWithUnit = `${petAge} ${petAgeUnit || ""}`.trim();
+
+      // Prepare pet data for submission
+      const petData = {
         ownerId,
         petName,
-        petAge,
-        petAgeUnit,
+        petAge: ageWithUnit,
         petType,
         petSpecies,
         petServices,
@@ -187,8 +197,8 @@ export default function AddPetModal({
         petPhotoId,
       };
 
-      await savePetToDatabase(newPet);
-      handleAddPet(newPet);
+      await savePetToDatabase(petData);
+      handleAddPet(petData);
       toast.success(`Pet ${petName} added successfully!`);
       setShowAddPetModal(false);
     } catch (error) {
@@ -201,207 +211,214 @@ export default function AddPetModal({
 
   return (
     <Dialog open={showAddPetModal} onOpenChange={setShowAddPetModal}>
-<DialogContent className="sm:max-w-[500px] bg-gradient-to-b from-blue-100 to-green-100 grid grid-cols-2 gap-3 p-4">  <DialogHeader className="col-span-2">
-    <DialogTitle className="text-2xl font-bold flex items-center justify-center gap-2">
-      <PawPrint className="w-6 h-6" />
-      <span>Add New Pet</span>
-    </DialogTitle>
-  </DialogHeader>
-
-  <form onSubmit={handleSubmit} className="col-span-2 grid grid-cols-2 gap-6">
-    {/* Left Side */}
-    <div className="space-y-4">
-      <div>
-        <Label htmlFor="petName">Pet Name</Label>
-        <Input
-          id="petName"
-          className="h-10"
-          value={petName}
-          onChange={(e) => setPetName(e.target.value)}
-          required
-          placeholder="Enter your pet's name"
-        />
-      </div>
-      <div>
-        <Label htmlFor="age">Pet Age</Label>
-        <div className="flex items-center gap-2">
-          <Input
-            id="age"
-            className="h-10"
-            name="age"
-            type="number"
-            value={petAge || ""}
-            onChange={(e) => setPetAge(e.target.value)}
-            placeholder="Enter age"
-          />
-          <Select onValueChange={(value) => setPetAgeUnit(value)} className="h-10 min-w-[100px]">
-            <SelectTrigger>
-              <SelectValue placeholder="Unit" />
-            </SelectTrigger>
-            <SelectContent>
-              {["Day(s)", "Week(s)", "Month(s)", "Year(s)"].map((unit) => (
-                <SelectItem key={unit} value={unit}>
-                  {unit}
-                </SelectItem>
-              ))}
-            </SelectContent>
-          </Select>
-        </div>
-      </div>
-      <div>
-        <Label htmlFor="petType">Pet Type</Label>
-        <Select onValueChange={(value) => setPetType(value)} className="h-10">
-          <SelectTrigger>
-            <SelectValue placeholder="Select type of pet" />
-          </SelectTrigger>
-          <SelectContent>
-            <SelectItem value="Dog">Dog</SelectItem>
-            <SelectItem value="Cat">Cat</SelectItem>
-          </SelectContent>
-        </Select>
-      </div>
-      <div>
-            <Label htmlFor="petClinic">Pet Clinic</Label>
-            <Select
-              onValueChange={handleClinicChange}
-              className="h-10"
-              placeholder="Select clinic"
-            >
-              <SelectTrigger>
-                <SelectValue placeholder="Select clinic" />
-              </SelectTrigger>
-              <SelectContent>
-                <SelectItem value="Clinic 1">Clinic 1</SelectItem>
-                <SelectItem value="Clinic 2">Clinic 2</SelectItem>
-              </SelectContent>
-            </Select>
-          </div>
-      <div>
-        <Label htmlFor="petServices">Pet Services</Label>
-        <Select
-          multiple
-          className="h-10"
-          onValueChange={(value) => handleArrayChange(setPetServices, value)}
+      <DialogContent className="sm:max-w-[500px] bg-gradient-to-b from-blue-100 to-green-100 grid grid-cols-2 gap-3 p-4">
+        <DialogHeader className="col-span-2">
+          <DialogTitle className="text-2xl font-bold flex items-center justify-center gap-2">
+            <PawPrint className="w-6 h-6" />
+            <span>Add New Pet</span>
+          </DialogTitle>
+        </DialogHeader>
+        <form
+          onSubmit={handleSubmit}
+          className="col-span-2 grid grid-cols-2 gap-6"
         >
-          <SelectTrigger>
-            <SelectValue placeholder="Select services for your pet" />
-          </SelectTrigger>
-          <SelectContent>
-            {Object.keys(servicePayments).map((service) => (
-              <SelectItem key={service} value={service}>
-                {service}
-              </SelectItem>
-            ))}
-          </SelectContent>
-        </Select>
-      </div>
-      {petServices.length > 0 && (
-        <div className="mt-2">
-          <Label>Payment Amount:</Label>
-          <div className="font-semibold text-gray-700">
-            {petServices
-              .map((service) => `${servicePayments[service]} PHP`)
-              .join(", ")}
+          {/* Left Side */}
+          <div className="space-y-4">
+            <div>
+              <Label htmlFor="petName">Pet Name</Label>
+              <Input
+                id="petName"
+                className="h-10"
+                value={petName}
+                onChange={(e) => setPetName(e.target.value)}
+                required
+                placeholder="Enter your pet's name"
+              />
+            </div>
+            <div>
+              <Label htmlFor="age">Pet Age</Label>
+              <div className="flex items-center gap-2">
+                <Input
+                  id="age"
+                  className="h-10"
+                  name="age"
+                  type="number"
+                  value={petAge || ""}
+                  onChange={(e) => setPetAge(e.target.value)}
+                  placeholder="Enter age"
+                />
+                <Select
+                  onValueChange={(value) => setPetAgeUnit(value)}
+                  className="h-10 min-w-[100px]"
+                >
+                  <SelectTrigger>
+                    <SelectValue placeholder="Unit" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    {["Day(s)", "Week(s)", "Month(s)", "Year(s)"].map(
+                      (unit) => (
+                        <SelectItem key={unit} value={unit}>
+                          {unit}
+                        </SelectItem>
+                      )
+                    )}
+                  </SelectContent>
+                </Select>
+              </div>
+            </div>
+            <div>
+              <Label htmlFor="petType">Pet Type</Label>
+              <Select
+                onValueChange={(value) => setPetType(value)}
+                className="h-10"
+              >
+                <SelectTrigger>
+                  <SelectValue placeholder="Select type of pet" />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="Dog">Dog</SelectItem>
+                  <SelectItem value="Cat">Cat</SelectItem>
+                </SelectContent>
+              </Select>
+            </div>
+            <div>
+              <Label htmlFor="petClinic">Pet Clinic</Label>
+              <Select
+                onValueChange={handleClinicChange}
+                className="h-10"
+                placeholder="Select clinic"
+              >
+                <SelectTrigger>
+                  <SelectValue placeholder="Select clinic" />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="Clinic 1">Clinic 1</SelectItem>
+                  <SelectItem value="Clinic 2">Clinic 2</SelectItem>
+                </SelectContent>
+              </Select>
+            </div>
+            <div>
+              <Label htmlFor="petServices">Pet Services</Label>
+              <Select
+                multiple
+                className="h-10"
+                onValueChange={(value) =>
+                  handleArrayChange(setPetServices, value)
+                }
+              >
+                <SelectTrigger>
+                  <SelectValue placeholder="Select services for your pet" />
+                </SelectTrigger>
+                <SelectContent>
+                  {Object.keys(servicePayments).map((service) => (
+                    <SelectItem key={service} value={service}>
+                      {service}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            </div>
+            {petServices.length > 0 && (
+              <div className="mt-2">
+                <Label>Payment Amount:</Label>
+                <div className="font-semibold text-gray-700">
+                  {petServices
+                    .map((service) => `${servicePayments[service]} PHP`)
+                    .join(", ")}
+                </div>
+                <div>Total: {petPayment} PHP</div>
+              </div>
+            )}
           </div>
-          <div>Total: {petPayment} PHP</div>
-        </div>
-      )}
-    </div>
 
-    {/* Right Side */}
-    <div className="space-y-4">
-      <div>
-        <Label htmlFor="petDate">Pet Date</Label>
-        <Input
-          id="petDate"
-          className="h-10"
-          type="date"
-          onChange={handleDateChange}
-          min={currentDate}
-        />
-      </div>
-      <div>
-        <Label htmlFor="petTime">Pet Time</Label>
-        <Input
-          id="petTime"
-          className="h-10"
-          type="time"
-          onChange={handleTimeChange}
-          min={petDate[0] === currentDate ? currentTime : "00:00"}
-        />
-      </div>
-      <div>
-        <Label htmlFor="petSpecies">Pet Species</Label>
-        <Select
-          onValueChange={(value) => setPetSpecies(value)}
-          disabled={!petType}
-          className="h-10"
-        >
-          <SelectTrigger>
-            <SelectValue
-              placeholder={
-                !petType ? "Select pet type first" : "Select species"
-              }
-            />
-          </SelectTrigger>
-          <SelectContent>
-            {getSpeciesOptions().map((species) => (
-              <SelectItem key={species} value={species}>
-                {species}
-              </SelectItem>
-            ))}
-          </SelectContent>
-        </Select>
-      </div>
-      <div>
-        <Label htmlFor="petPhoto">Pet Photo</Label>
-        <Input
-          id="petPhoto"
-          className="h-10"
-          type="file"
-          accept="image/*"
-          onChange={(e) => setPetPhoto(e.target.files[0])}
-        />
-      </div>
-      <div>
-            <Label htmlFor="petRoom">Pet Room</Label>
-            <Select
-              onValueChange={handleRoomChange}
-              disabled={!petClinic.length}
-              className="h-10"
-              placeholder={
-                !petClinic.length ? "Select clinic first" : "Select room"
-              }
-            >
-              <SelectTrigger>
-                <SelectValue placeholder="Select room" />
-              </SelectTrigger>
-              <SelectContent>
-                {getRoomOptions().map((room) => (
-                  <SelectItem key={room} value={room}>
-                    {room}
-                  </SelectItem>
-                ))}
-              </SelectContent>
-            </Select>
+          {/* Right Side */}
+          <div className="space-y-4">
+            <div>
+              <Label htmlFor="petDate">Pet Date</Label>
+              <Input
+                id="petDate"
+                className="h-10"
+                type="date"
+                onChange={handleDateChange}
+                min={currentDate}
+              />
+            </div>
+            <div>
+              <Label htmlFor="petTime">Pet Time</Label>
+              <Input
+                id="petTime"
+                className="h-10"
+                type="time"
+                onChange={handleTimeChange}
+                min={petDate[0] === currentDate ? currentTime : "00:00"}
+              />
+            </div>
+            <div>
+              <Label htmlFor="petSpecies">Pet Species</Label>
+              <Select
+                onValueChange={(value) => setPetSpecies(value)}
+                disabled={!petType}
+                className="h-10"
+              >
+                <SelectTrigger>
+                  <SelectValue
+                    placeholder={
+                      !petType ? "Select pet type first" : "Select species"
+                    }
+                  />
+                </SelectTrigger>
+                <SelectContent>
+                  {getSpeciesOptions().map((species) => (
+                    <SelectItem key={species} value={species}>
+                      {species}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            </div>
+            <div>
+              <Label htmlFor="petPhoto">Pet Photo</Label>
+              <Input
+                id="petPhoto"
+                className="h-10"
+                type="file"
+                accept="image/*"
+                onChange={(e) => setPetPhoto(e.target.files[0])}
+              />
+            </div>
+            <div>
+              <Label htmlFor="petRoom">Pet Room</Label>
+              <Select
+                onValueChange={handleRoomChange}
+                disabled={!petClinic.length}
+                className="h-10"
+                placeholder={
+                  !petClinic.length ? "Select clinic first" : "Select room"
+                }
+              >
+                <SelectTrigger>
+                  <SelectValue placeholder="Select room" />
+                </SelectTrigger>
+                <SelectContent>
+                  {getRoomOptions().map((room) => (
+                    <SelectItem key={room} value={room}>
+                      {room}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            </div>
           </div>
-      
 
-      {/* Clinic and Room Selection - Conditional Rendering */}
-      {["Pet Boarding", "Pet Grooming", "Pet Veterinary"].includes(
-        petServices[0]
-      ) && (
-        <>
-        </>
-      )}
-    </div>
-
-    <Button type="submit" className="col-span-2 mt-4 w-full" disabled={loading}>
-      {loading ? "Saving..." : "Add Pet"}
-    </Button>
-  </form>
-</DialogContent>
-
+          <Button
+            type="submit"
+            className="col-span-2 mt-4 w-full"
+            disabled={loading}
+          >
+            {loading ? "Saving..." : "Add Pet"}
+          </Button>
+        </form>
+      </DialogContent>
     </Dialog>
   );
 }

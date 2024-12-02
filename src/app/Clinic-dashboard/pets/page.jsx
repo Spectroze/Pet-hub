@@ -2,7 +2,7 @@
 
 import { useEffect, useState } from "react";
 import { Input } from "@/components/ui/input";
-import { Search, PlusCircle } from "lucide-react";
+import { Search, PlusCircle, XCircle } from "lucide-react";
 import { toast } from "react-hot-toast";
 import { databases, appwriteConfig } from "../../../lib/appwrite";
 import { Card, CardContent } from "@/components/ui/card";
@@ -12,8 +12,11 @@ export default function Pets() {
   const [petRecords, setPetRecords] = useState([]);
   const [searchTerm, setSearchTerm] = useState("");
   const [isLoading, setIsLoading] = useState(false);
+  const [isModalOpen, setIsModalOpen] = useState(false);
+  const [selectedPet, setSelectedPet] = useState(null);
+  const [petAppointments, setPetAppointments] = useState([]);
 
-  // Fetch pet records from the database
+  // Fetch and group pet records
   const fetchPetRecords = async () => {
     setIsLoading(true);
     try {
@@ -21,21 +24,78 @@ export default function Pets() {
         appwriteConfig.databaseId,
         appwriteConfig.petCollectionId
       );
-      const pets = response.documents.map((pet) => ({
-        id: pet.$id,
-        name: pet.petName,
-        species: pet.petSpecies,
-        age: pet.petAge || "Unknown Age",
-        photo: pet.petPhotoId || "https://placekitten.com/200/300",
-        services: pet.petServices || ["No Services Available"],
-      }));
-      setPetRecords(pets);
+
+      // Group pets by petPhotoId and merge their services
+      const groupedPets = response.documents.reduce((acc, pet) => {
+        // Ensure the pet service is valid
+        const service = pet.petServices
+          ? String(pet.petServices).trim().toLowerCase()
+          : "";
+
+        if (service === "pet grooming" || service === "pet veterinary") {
+          const petId = pet.$id;
+          const petPhotoId = pet.petPhotoId || "default-photo-id"; // Default in case of no photo
+
+          // Initialize pet entry if it doesn't exist
+          if (!acc[petPhotoId]) {
+            acc[petPhotoId] = {
+              id: petId,
+              name: pet.petName,
+              species: pet.petSpecies,
+              age: pet.petAge || "Unknown Age",
+              photo: pet.petPhotoId || "https://placekitten.com/200/300", // Default image if missing
+              appointments: [],
+            };
+          }
+
+          // Add the valid service if it's a new one for this pet
+          acc[petPhotoId].appointments.push({
+            date: pet.petDate || "No Date",
+            service: pet.petServices || "No Service",
+          });
+        }
+
+        return acc;
+      }, {});
+
+      // Convert grouped pets into an array and set state
+      setPetRecords(Object.values(groupedPets));
     } catch (error) {
       console.error("Error fetching pet records:", error.message);
       toast.error("Failed to fetch pet records.");
     } finally {
       setIsLoading(false);
     }
+  };
+
+  const formatDate = (isoDateString) => {
+    try {
+      const date = new Date(isoDateString);
+      return new Intl.DateTimeFormat("en-US", {
+        month: "long",
+        day: "numeric",
+        year: "numeric",
+      }).format(date);
+    } catch {
+      return isoDateString;
+    }
+  };
+
+  const openPetModal = (pet) => {
+    setSelectedPet(pet);
+    setPetAppointments(
+      pet.appointments.map((appointment) => ({
+        ...appointment,
+        formattedDate: formatDate(appointment.date),
+      }))
+    );
+    setIsModalOpen(true);
+  };
+
+  const closeModal = () => {
+    setIsModalOpen(false);
+    setSelectedPet(null);
+    setPetAppointments([]);
   };
 
   useEffect(() => {
@@ -72,7 +132,8 @@ export default function Pets() {
           {filteredRecords.map((record) => (
             <Card
               key={record.id}
-              className="bg-gray-800 border-gray-700 overflow-hidden shadow-lg hover:shadow-2xl transition-shadow duration-300"
+              className="bg-gray-800 border-gray-700 overflow-hidden shadow-lg hover:shadow-2xl transition-shadow duration-300 cursor-pointer"
+              onClick={() => openPetModal(record)}
             >
               <CardContent className="p-0">
                 <div className="relative">
@@ -103,13 +164,13 @@ export default function Pets() {
                   <div className="flex justify-between items-center mt-2">
                     <span className="text-gray-400 text-lg">Services:</span>
                     <div className="flex flex-wrap gap-2 justify-end">
-                      {record.services.map((service, index) => (
+                      {record.appointments.map((appointment, index) => (
                         <Badge
                           key={index}
                           variant="secondary"
                           className="bg-[#FF6B6B] text-white hover:bg-[#FF8C8C]"
                         >
-                          {service}
+                          {appointment.service}
                         </Badge>
                       ))}
                     </div>
@@ -127,6 +188,49 @@ export default function Pets() {
           <p className="text-lg text-gray-400">
             Try adjusting your search or add a new pet record.
           </p>
+        </div>
+      )}
+
+      {isModalOpen && selectedPet && (
+        <div className="fixed inset-0 bg-black bg-opacity-70 flex items-center justify-center z-50">
+          <div className="bg-gray-900 rounded-lg shadow-xl max-w-lg w-full p-6 space-y-4">
+            <div className="flex justify-between items-center">
+              <h2 className="text-3xl font-bold text-[#FF6B6B]">
+                {selectedPet.name}'s Details
+              </h2>
+              <XCircle
+                className="h-8 w-8 text-gray-400 cursor-pointer hover:text-gray-300"
+                onClick={closeModal}
+              />
+            </div>
+            <div className="space-y-4">
+              <img
+                src={selectedPet.photo}
+                alt={selectedPet.name}
+                className="w-full h-64 object-cover rounded-md"
+              />
+              <div>
+                <h3 className="text-xl font-semibold text-gray-400">
+                  Appointments:
+                </h3>
+                <div className="space-y-2 mt-2">
+                  {petAppointments.map((appointment, index) => (
+                    <div
+                      key={index}
+                      className="flex justify-between items-center text-white"
+                    >
+                      <span className="font-semibold">
+                        {appointment.formattedDate}
+                      </span>
+                      <Badge variant="outline" className="text-[#FF6B6B]">
+                        {appointment.service}
+                      </Badge>
+                    </div>
+                  ))}
+                </div>
+              </div>
+            </div>
+          </div>
         </div>
       )}
     </div>

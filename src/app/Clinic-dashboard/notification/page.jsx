@@ -60,7 +60,7 @@ export default function Notifications() {
         appwriteConfig.databaseId,
         "670ab2db00351bc09a92", // Replace with your collection ID
         [
-          Query.equal("petServices", "Pet Boarding"),
+          Query.equal("petServices", ["Veterinary Care", "Pet Grooming"]),
           Query.orderDesc("$updatedAt"),
         ] // Fetch only pet training services
       );
