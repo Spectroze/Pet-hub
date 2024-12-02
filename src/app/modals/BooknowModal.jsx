@@ -73,7 +73,7 @@ export function BooknowModal({ showBooknowModal, setShowBooknowModal }) {
   const servicesOptions = [
     "Pet Boarding",
     "Pet Grooming",
-    "Veterinary Care",
+    "Pet Veterinary",
     "Pet Training",
   ];
   const servicePrices = {

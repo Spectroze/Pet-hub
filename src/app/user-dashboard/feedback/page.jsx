@@ -16,6 +16,7 @@ import { Separator } from "@/components/ui/separator";
 import { Star } from "lucide-react";
 import { getCurrentUser } from "@/lib/appwrite";
 import { Client, Databases } from "appwrite";
+import { toast } from "react-toastify";
 
 // Initialize Appwrite Client
 const client = new Client();
@@ -25,15 +26,13 @@ client
 
 const databases = new Databases(client);
 
-const aspects = [
-  "Overall Experience",
-  "Pet Handling",
-  "Staff Friendliness",
-  "Ease of Booking",
-  "Cleanliness",
+const tags = [
+  "Pet Trainee",
+  "Pet Grooming",
+  "Pet Clinic",
+  "Pet Boarding",
+  "Pet Boarding 2",
 ];
-
-const tags = ["Pet Trainee", "Pet Grooming", "Pet Veterinary", "Pet Boarding"];
 
 function RatingStars({ rating, onRatingChange }) {
   return (
@@ -55,7 +54,7 @@ function RatingStars({ rating, onRatingChange }) {
 
 export default function FeedbackForm() {
   const [user, setUser] = useState(null);
-  const [ratings, setRatings] = useState({});
+  const [rating, setRating] = useState(0);
   const [review, setReview] = useState("");
   const [selectedTags, setSelectedTags] = useState([]);
   const [loading, setLoading] = useState(false);
@@ -69,33 +68,23 @@ export default function FeedbackForm() {
     fetchUser();
   }, []);
 
-  const handleRatingChange = (aspect, rating) => {
-    setRatings((prev) => ({ ...prev, [aspect]: rating }));
-  };
-
-  const handleTagToggle = (tag) => {
-    setSelectedTags((prev) =>
-      prev.includes(tag) ? prev.filter((t) => t !== tag) : [...prev, tag]
-    );
-  };
-
   const handleSubmit = async (event) => {
     event.preventDefault();
     setLoading(true);
 
     try {
       if (!user) {
-        alert("User information not available. Please log in again.");
+        toast.error("User information not available. Please log in again.");
         return;
       }
 
-      // Ensure all ratings are within the valid range (1 to 5)
+      // Prepare data with placeholders for missing fields
       const data = {
-        overallExperience: ratings["Overall Experience"] || 1,
-        petHandling: ratings["Pet Handling"] || 1,
-        staffFriendliness: ratings["Staff Friendliness"] || 1,
-        easeOfBooking: ratings["Ease of Booking"] || 1,
-        cleanliness: ratings["Cleanliness"] || 1,
+        overallExperience: rating || 1,
+        petHandling: 1, // Placeholder value to satisfy schema
+        staffFriendliness: 1, // Placeholder value
+        easeOfBooking: 1, // Placeholder value
+        cleanliness: 1, // Placeholder value
         experienceFeedback: review,
         tags: selectedTags,
         users: [user.$id],
@@ -109,15 +98,15 @@ export default function FeedbackForm() {
         data
       );
 
-      alert("Review submitted successfully!");
+      toast.success("Review submitted successfully!");
 
       // Reset form after submission
-      setRatings({});
+      setRating(0);
       setReview("");
       setSelectedTags([]);
     } catch (error) {
       console.error("Error submitting review:", error);
-      alert("Failed to submit review.");
+      toast.error("Failed to submit review.");
     } finally {
       setLoading(false);
     }
@@ -139,22 +128,15 @@ export default function FeedbackForm() {
             <h3 className="text-lg font-semibold text-blue-200">
               Rate your experience
             </h3>
-            {aspects.map((aspect) => (
-              <div
-                key={aspect}
-                className="flex items-center justify-between bg-gray-700 p-3 rounded-lg"
-              >
-                <span className="text-sm font-medium text-gray-300">
-                  {aspect}
-                </span>
-                <RatingStars
-                  rating={ratings[aspect] || 0}
-                  onRatingChange={(rating) =>
-                    handleRatingChange(aspect, rating)
-                  }
-                />
-              </div>
-            ))}
+            <div className="flex items-center justify-between bg-gray-700 p-3 rounded-lg">
+              <span className="text-sm font-medium text-gray-300">
+                Overall Experience
+              </span>
+              <RatingStars
+                rating={rating}
+                onRatingChange={(newRating) => setRating(newRating)}
+              />
+            </div>
           </div>
 
           <Separator className="bg-gray-600" />
@@ -180,7 +162,13 @@ export default function FeedbackForm() {
                   key={tag}
                   type="button"
                   variant={selectedTags.includes(tag) ? "default" : "outline"}
-                  onClick={() => handleTagToggle(tag)}
+                  onClick={() =>
+                    setSelectedTags((prev) =>
+                      prev.includes(tag)
+                        ? prev.filter((t) => t !== tag)
+                        : [...prev, tag]
+                    )
+                  }
                   className={`text-sm rounded-full ${
                     selectedTags.includes(tag)
                       ? "bg-blue-600 text-white hover:bg-blue-700"

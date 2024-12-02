@@ -27,7 +27,7 @@ export default function Pets() {
         [
           // Query to fetch records with "Pet Boarding" service and "Clinic 2" clinic
           Query.equal("petServices", "Pet Boarding"),
-          Query.equal("petClinic", "Clinic 1"),
+          Query.equal("petClinic", "Clinic 2"),
         ]
       );
 
@@ -42,7 +42,7 @@ export default function Pets() {
           : "";
 
         // Only include records where service is "pet boarding" and clinic is "clinic 2"
-        if (service === "pet boarding" && clinic === "clinic 1") {
+        if (service === "pet boarding" && clinic === "clinic 2") {
           const petId = pet.$id;
           const petPhotoId = pet.petPhotoId || "default-photo-id"; // Default in case of no photo
 

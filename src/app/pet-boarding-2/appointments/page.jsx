@@ -181,18 +181,15 @@ export default function AppointmentCalendar({ databaseId, collectionId }) {
     setError("");
 
     try {
-      // Query to fetch both Pet Boarding and Pet Clinic services, specifically for Clinic 1
+      // Query to fetch only Pet Boarding services
       const response = await databases.listDocuments(
         databaseId || dbId,
         collectionId || petCollId,
-        [
-          Query.equal("petServices", "Pet Boarding"), // Fetch both Pet Boarding and Pet Clinic
-          Query.equal("petClinic", "Clinic 1"), // Filter for Pet Clinic Clinic 1
-        ]
+        [Query.equal("petClinic", "Clinic 2")]
       );
 
       if (!response.documents || response.documents.length === 0) {
-        setError("No matching appointments found.");
+        setError("No Pet Boarding appointments found.");
         setEvents([]);
         setLoading(false);
         return;
@@ -200,7 +197,6 @@ export default function AppointmentCalendar({ databaseId, collectionId }) {
 
       const fetchedEvents = await Promise.all(
         response.documents.map(async (appointment) => {
-          // Fetch owner details only if ownerId exists, otherwise fallback to defaults
           const { ownerName, ownerAvatar } = appointment.ownerId
             ? await getOwnerDetails(appointment.ownerId)
             : {
@@ -208,7 +204,6 @@ export default function AppointmentCalendar({ databaseId, collectionId }) {
                 ownerAvatar: "/images/avatar-placeholder.png",
               };
 
-          // Fetch pet avatar, fallback to default if not available
           const petAvatar = appointment.petPhotoId
             ? constructAvatarUrl(appointment.petPhotoId)
             : "/images/avatar-placeholder.png";
@@ -517,41 +512,52 @@ export default function AppointmentCalendar({ databaseId, collectionId }) {
       >
         <DialogTitle>Decline Appointment</DialogTitle>
         <DialogContent>
-          <Typography variant="body1" gutterBottom>
-            Please provide a reason for declining this appointment:
+          <Typography variant="body1">
+            Are you sure you want to decline this appointment?
           </Typography>
           <TextField
-            autoFocus
-            margin="dense"
-            label="Decline Reason"
-            type="text"
+            label="Reason for Decline"
+            multiline
+            rows={4}
             fullWidth
+            variant="outlined"
             value={declineReason}
             onChange={(e) => setDeclineReason(e.target.value)}
+            sx={{ mt: 2 }}
           />
         </DialogContent>
         <DialogActions>
-          <Button onClick={handleDecline} color="secondary" variant="contained">
-            Confirm Decline
+          <Button
+            onClick={handleDecline}
+            color="secondary"
+            variant="contained"
+            disabled={!declineReason.trim()}
+          >
+            Decline
           </Button>
           <Button
             onClick={() => setOpenDeclineDialog(false)}
             variant="outlined"
+            color="primary"
           >
             Cancel
           </Button>
         </DialogActions>
       </Dialog>
 
+      {/* Snackbar for notifications */}
       <Snackbar
         open={notification.open}
-        autoHideDuration={6000}
-        onClose={() => setNotification({ ...notification, open: false })}
+        autoHideDuration={4000}
+        onClose={() =>
+          setNotification({ open: false, message: "", severity: "info" })
+        }
       >
         <Alert
-          onClose={() => setNotification({ ...notification, open: false })}
+          onClose={() =>
+            setNotification({ open: false, message: "", severity: "info" })
+          }
           severity={notification.severity}
-          sx={{ width: "100%" }}
         >
           {notification.message}
         </Alert>

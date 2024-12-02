@@ -54,6 +54,9 @@ export default function LoginModal({ showLoginModal, setShowLoginModal }) {
         } else if (role === "pet-boarding") {
           router.push("/pet-boarding");
           toast.success(`Welcome back, ${account.name}!`);
+        } else if (role === "Pet Boarding 2") {
+          router.push("/pet-boarding-2");
+          toast.success(`Welcome back, ${account.name}!`);
         } else if (role === "clinic") {
           router.push("/Clinic-dashboard");
           toast.success(`Welcome back, ${account.name}!`);

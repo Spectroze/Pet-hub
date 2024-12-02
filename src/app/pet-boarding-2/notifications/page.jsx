@@ -61,7 +61,7 @@ export default function Notifications() {
         "670ab2db00351bc09a92", // Replace with your collection ID
         [
           Query.equal("petServices", "Pet Boarding"),
-          Query.equal("petClinic", "Clinic 1"),
+          Query.equal("petClinic", "Clinic 2"),
           Query.orderDesc("$updatedAt"),
         ] // Fetch only pet training services
       );

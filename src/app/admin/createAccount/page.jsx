@@ -288,6 +288,18 @@ export default function CreateAccountForm() {
                       </Label>
                     </div>
                     <div className="flex items-center space-x-2">
+                      <RadioGroupItem
+                        value="Pet Boarding 2"
+                        id="pet-boarding-2"
+                      />
+                      <Label
+                        htmlFor="pet-boarding-2"
+                        className="dark:text-gray-300"
+                      >
+                        Pet Boarding 2
+                      </Label>
+                    </div>
+                    <div className="flex items-center space-x-2">
                       <RadioGroupItem value="Clinic" id="clinic" />
                       <Label htmlFor="clinic" className="dark:text-gray-300">
                         Clinic
@@ -459,6 +471,18 @@ export default function CreateAccountForm() {
                     className="dark:text-gray-300"
                   >
                     Pet Boarding
+                  </Label>
+                </div>
+                <div className="flex items-center space-x-2">
+                  <RadioGroupItem
+                    value="Pet Boarding 2"
+                    id="edit-pet-boarding-2"
+                  />
+                  <Label
+                    htmlFor="edit-pet-boarding-2"
+                    className="dark:text-gray-300"
+                  >
+                    Pet Boarding 2
                   </Label>
                 </div>
                 <div className="flex items-center space-x-2">
