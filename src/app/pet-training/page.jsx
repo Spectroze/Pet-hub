@@ -2,7 +2,7 @@
 
 import { useState, useEffect } from "react";
 import { Button } from "@/components/ui/button";
-
+import Analytics from "./analytics";
 import AppointmentCalendar from "../pet-training/appointments/page";
 import TrainingNotifications from "../pet-training/notifications/page";
 import Feedback from "../pet-training/feedback/page";
@@ -27,12 +27,14 @@ import {
   Archive,
   MenuIcon,
   Edit,
+  User,
 } from "lucide-react";
 import { Avatar, AvatarImage, AvatarFallback } from "@/components/ui/avatar";
 import { ToastContainer, toast } from "react-toastify";
 import "react-toastify/dist/ReactToastify.css";
 import { useRouter } from "next/navigation";
 import { Input } from "@/components/ui/input";
+import Owners from "./owner/page";
 
 // Mock user data for the avatar
 const ownerInfo = {
@@ -46,36 +48,12 @@ const navigationItems = [
   { id: "appointments", name: "Appointments", icon: CalendarIcon },
   { id: "feedback", name: "Feedback", icon: MessageCircle },
   { id: "pets", name: "Pets", icon: PawPrint },
+  { id: "owner", name: "Owner", icon: User },
   { id: "notifications", name: "Notifications", icon: Bell },
   { id: "archived", name: "Archived", icon: Archive },
 ];
 
-function Overview() {
-  return (
-    <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-4">
-      <div className="bg-gray-800 p-4 rounded-lg shadow">
-        <h2 className="text-lg font-bold text-gray-100">Total Appointments</h2>
-        <p className="text-2xl text-gray-100">24</p>
-        <p className="text-sm text-gray-400">+10% from last month</p>
-      </div>
-      <div className="bg-gray-800 p-4 rounded-lg shadow">
-        <h2 className="text-lg font-bold text-gray-100">Total Pets</h2>
-        <p className="text-2xl text-gray-100">145</p>
-        <p className="text-sm text-gray-400">+5% from last month</p>
-      </div>
-      <div className="bg-gray-800 p-4 rounded-lg shadow">
-        <h2 className="text-lg font-bold text-gray-100">Total Owners</h2>
-        <p className="text-2xl text-gray-100">98</p>
-        <p className="text-sm text-gray-400">+2% from last month</p>
-      </div>
-      <div className="bg-gray-800 p-4 rounded-lg shadow">
-        <h2 className="text-lg font-bold text-gray-100">Revenue</h2>
-        <p className="text-2xl text-gray-100">$12,345</p>
-        <p className="text-sm text-gray-400">+15% from last month</p>
-      </div>
-    </div>
-  );
-}
+function Overview() {}
 
 export default function PetTrainingDashboard() {
   const [activeTab, setActiveTab] = useState("overview");
@@ -342,9 +320,10 @@ export default function PetTrainingDashboard() {
       {/* Main Content */}
       <main className="flex-1 p-4 overflow-auto bg-gray-900">
         {/* Dynamic Content */}
-        {activeTab === "overview" && <Overview />}
+        {activeTab === "overview" && <Overview /> && <Analytics />}
         {activeTab === "appointments" && <AppointmentCalendar />}
         {activeTab === "feedback" && <Feedback />}
+        {activeTab === "owner" && <Owners />}
         {activeTab === "notifications" && <TrainingNotifications />}
         {activeTab === "archived" && <Archived />}
         {activeTab === "pets" && <Pets />}

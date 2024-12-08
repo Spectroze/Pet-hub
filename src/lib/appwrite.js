@@ -17,6 +17,7 @@ export const appwriteConfig = {
   bucketId: "670ab439002597c2ae84",
   roomCollectionId: "6738afcd000d644b6853",
   room2CollectionId: "674dace4000dcbb1badf",
+  ratingaCollectionId: "671bd05400135c37afc1",
 };
 
 const client = new Client();
@@ -69,7 +70,7 @@ export async function uploadFileAndGetUrl(file) {
 export async function createUser(
   personalInfo,
   petInfo,
-  role = "admin",
+  role = "user",
   petPayment
 ) {
   try {

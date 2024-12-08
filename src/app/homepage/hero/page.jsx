@@ -45,7 +45,7 @@ export default function Landing() {
             Tail-Wagging Care for Your Furry Family
           </h1>
           <p className="max-w-2xl text-lg lg:text-xl text-[#6B6B6B]">
-            At Paw Pals, we treat your pets like family. From cuddles to care,
+            At Pet-Care, we treat your pets like family. From cuddles to care,
             we're here to make tails wag and whiskers twitch with joy!
           </p>
           <div className="flex flex-col gap-3 sm:flex-row">

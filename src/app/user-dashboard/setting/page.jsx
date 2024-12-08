@@ -1,7 +1,7 @@
-"use client"
+"use client";
 
-import React, { useState } from "react"
-import { Button } from "@/components/ui/button"
+import React, { useState } from "react";
+import { Button } from "@/components/ui/button";
 import {
   Card,
   CardHeader,
@@ -9,35 +9,35 @@ import {
   CardDescription,
   CardContent,
   CardFooter,
-} from "@/components/ui/card"
+} from "@/components/ui/card";
 import {
   UserIcon,
   BellIcon,
   ShieldIcon,
   LogOutIcon,
   SettingsIcon,
-} from "lucide-react"
-import { useRouter } from "next/navigation"
-import { signOut } from "@/lib/appwrite"
-import { useAuthUserStore } from "@/store/user"
+} from "lucide-react";
+import { useRouter } from "next/navigation";
+import { signOut } from "@/lib/appwrite";
+import { useAuthUserStore } from "@/store/user";
 
 export default function Setting() {
-  const router = useRouter()
-  const [isLoggingOut, setIsLoggingOut] = useState(false)
-  const clearAuthUser = useAuthUserStore((state) => state.clearAuthUser)
+  const router = useRouter();
+  const [isLoggingOut, setIsLoggingOut] = useState(false);
+  const clearAuthUser = useAuthUserStore((state) => state.clearAuthUser);
 
   const handleLogout = async () => {
-    setIsLoggingOut(true)
+    setIsLoggingOut(true);
     try {
-      await signOut()
-      clearAuthUser()
-      router.push("/")
+      await signOut();
+      clearAuthUser();
+      router.push("/");
     } catch (error) {
-      console.error("Failed to log out:", error)
+      console.error("Failed to log out:", error);
     } finally {
-      setIsLoggingOut(false)
+      setIsLoggingOut(false);
     }
-  }
+  };
 
   return (
     <Card className="w-full max-w-6xl mx-auto bg-gradient-to-br from-gray-900 to-gray-800 shadow-[0_0_20px_rgba(66,153,225,0.5)] text-gray-100 mt-36">
@@ -85,14 +85,16 @@ export default function Setting() {
         </Button>
       </CardFooter>
     </Card>
-  )
+  );
 }
 
 function SettingItem({ icon, title, description, buttonText }) {
   return (
     <div className="p-8 bg-gray-800 rounded-xl shadow-md transition-all duration-300 hover:shadow-lg hover:shadow-blue-500/20 hover:scale-105">
       <div className="flex items-center mb-6">
-        <div className="bg-blue-500/20 p-3 rounded-full mr-4 text-blue-300">{icon}</div>
+        <div className="bg-blue-500/20 p-3 rounded-full mr-4 text-blue-300">
+          {icon}
+        </div>
         <h3 className="font-semibold text-2xl text-blue-200">{title}</h3>
       </div>
       <p className="text-lg text-gray-400 mb-6">{description}</p>
@@ -104,5 +106,5 @@ function SettingItem({ icon, title, description, buttonText }) {
         {buttonText}
       </Button>
     </div>
-  )
+  );
 }

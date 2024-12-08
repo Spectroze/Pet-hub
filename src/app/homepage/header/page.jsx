@@ -30,7 +30,7 @@ export default function Header() {
           />
         </motion.div>
         <span className="text-2xl font-bold text-[#4A4A4A] tracking-wide">
-          Paw Pals
+          Pet-Care
         </span>
       </Link>
       <nav className="ml-auto flex gap-6 sm:gap-8">

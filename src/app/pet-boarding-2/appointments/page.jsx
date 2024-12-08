@@ -181,11 +181,14 @@ export default function AppointmentCalendar({ databaseId, collectionId }) {
     setError("");
 
     try {
-      // Query to fetch only Pet Boarding services
+      // Query to fetch both Pet Boarding and Pet Clinic services, specifically for Clinic 1
       const response = await databases.listDocuments(
         databaseId || dbId,
         collectionId || petCollId,
-        [Query.equal("petClinic", "Clinic 2")]
+        [
+          Query.equal("petServices", "Pet Boarding"), // Fetch both Pet Boarding and Pet Clinic
+          Query.equal("petClinic", "Clinic 2"), // Filter for Pet Clinic Clinic 1
+        ]
       );
 
       if (!response.documents || response.documents.length === 0) {

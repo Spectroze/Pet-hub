@@ -17,6 +17,7 @@ export default function Pets() {
   const [petAppointments, setPetAppointments] = useState([]);
 
   // Fetch and group pet records
+  // Fetch and group pet records
   const fetchPetRecords = async () => {
     setIsLoading(true);
     try {
@@ -25,8 +26,13 @@ export default function Pets() {
         appwriteConfig.petCollectionId
       );
 
+      // Filter records to include only those with status array containing 'Accepted'
+      const filteredPets = response.documents.filter(
+        (pet) => Array.isArray(pet.status) && pet.status.includes("Accepted")
+      );
+
       // Group pets by petPhotoId and merge their services
-      const groupedPets = response.documents.reduce((acc, pet) => {
+      const groupedPets = filteredPets.reduce((acc, pet) => {
         // Ensure the pet service is valid
         const service = pet.petServices
           ? String(pet.petServices).trim().toLowerCase()

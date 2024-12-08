@@ -20,40 +20,59 @@ export default function Owners() {
   const [owners, setOwners] = useState([]);
   const [isLoading, setIsLoading] = useState(false);
 
-  // Fetch owners from the collection
-  const fetchOwners = async () => {
-    setIsLoading(true);
-    try {
-      const response = await databases.listDocuments(
-        appwriteConfig.databaseId,
-        appwriteConfig.userCollectionId // Replace with your collection ID
-      );
-
-      // Filter users with role "user" only
-      const fetchedOwners = response.documents
-        .filter((owner) => owner.role === "user") // Only include role: "user"
-        .map((owner) => ({
-          id: owner.$id,
-          name: owner.name || "Unknown Name",
-          email: owner.email || "Unknown Email",
-          phone: owner.phone || "Unknown Phone",
-          avatar: owner.avatar || "https://i.pravatar.cc/150", // Default avatar
-          ownerPhotoId: owner.ownerPhotoId || null, // Owner photo ID
-          role: owner.role || "Unknown Role",
-          status: owner.status || ["No Status"], // Status as an array
-        }));
-
-      setOwners(fetchedOwners);
-    } catch (error) {
-      console.error("Error fetching owners:", error.message);
-      toast.error("Failed to fetch owner records.");
-    } finally {
-      setIsLoading(false);
-    }
-  };
-
   // Fetch owners on component mount
   useEffect(() => {
+    // Fetch owners with specific pet services and Accepted status
+    const fetchOwners = async () => {
+      setIsLoading(true);
+      try {
+        // Fetch all documents from the pet collection
+        const petResponse = await databases.listDocuments(
+          appwriteConfig.databaseId,
+          appwriteConfig.petCollectionId
+        );
+
+        // Filter pets with the required services and Accepted status
+        const filteredPets = petResponse.documents.filter(
+          (pet) =>
+            pet.petServices?.some((service) =>
+              ["Pet Boarding"].includes(service)
+            ) &&
+            pet.status?.includes("Accepted") &&
+            pet.petClinic?.includes("Clinic 1")
+        );
+
+        // Get unique ownerIds from filtered pets
+        const ownerIds = [...new Set(filteredPets.map((pet) => pet.ownerId))];
+
+        // Fetch all documents from the user collection
+        const userResponse = await databases.listDocuments(
+          appwriteConfig.databaseId,
+          appwriteConfig.userCollectionId
+        );
+
+        // Filter users based on the ownerIds
+        const fetchedOwners = userResponse.documents
+          .filter((user) => ownerIds.includes(user.accountId))
+          .map((owner) => ({
+            id: owner.$id,
+            name: owner.name || "Unknown Name",
+            email: owner.email || "Unknown Email",
+            phone: owner.phone || "Unknown Phone",
+            avatar: owner.avatar || "https://i.pravatar.cc/150", // Default avatar
+            role: owner.role || "Unknown Role",
+            status: owner.status || ["No Status"], // Status as an array
+          }));
+
+        setOwners(fetchedOwners);
+      } catch (error) {
+        console.error("Error fetching owners:", error.message);
+        toast.error("Failed to fetch owner records.");
+      } finally {
+        setIsLoading(false);
+      }
+    };
+
     fetchOwners();
   }, []);
 

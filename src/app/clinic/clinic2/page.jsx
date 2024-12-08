@@ -1,4 +1,5 @@
 "use client";
+
 import React, { useEffect, useState } from "react";
 import {
   Dialog,
@@ -9,22 +10,14 @@ import {
 } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
 import { MapPinIcon } from "lucide-react";
-import { databases, appwriteConfig } from "@/lib/appwrite";
+import { databases, appwriteConfig, storage } from "@/lib/appwrite"; // Ensure storage is imported
 
 export default function Clinic2() {
   const [rooms, setRooms] = useState([]); // Room data state
   const [selectedRoom, setSelectedRoom] = useState(null);
   const [isDialogOpen, setIsDialogOpen] = useState(false); // Modal open state
 
-  // Room Previews with Static Images
-  const roomPreviews = [
-    { id: "A", name: "Room A", imgSrc: "/images/roomA.jpeg" },
-    { id: "B", name: "Room B", imgSrc: "/images/roomB.jpeg" },
-    { id: "C", name: "Room C", imgSrc: "/images/roomC.jpeg" },
-    { id: "D", name: "Room D", imgSrc: "/images/roomD.jpeg" },
-  ];
-
-  // Fetch room data from the database and merge with static images
+  // Fetch room data from the database
   useEffect(() => {
     const fetchRoomData = async () => {
       try {
@@ -33,44 +26,82 @@ export default function Clinic2() {
           appwriteConfig.room2CollectionId
         );
 
-        // Merge fetched data with static image previews
-        const mergedRooms = roomPreviews.map((room) => {
-          const fetchedRoom = response.documents.find(
-            (doc) => doc.letter[0] === room.id // Match by room letter
-          );
-          return {
-            ...room,
-            status: fetchedRoom ? fetchedRoom.status[0] : "No Status", // Set status if available, else default to "No Status"
-          };
-        });
+        console.log("Fetched room data:", response.documents);
 
-        setRooms(mergedRooms); // Update the rooms state with merged data
+        const updatedRooms = await Promise.all(
+          response.documents.map(async (room) => {
+            let imageUrl = room.newImage;
+
+            // Debug log to verify the value of newImage
+            console.log(`Room ID: ${room.id}, Image URL: ${room.newImage}`);
+
+            // If newImage is missing or empty, use a fallback image
+            if (!imageUrl) {
+              console.log(
+                `Room ${room.id} is missing newImage. Using fallback image.`
+              );
+              imageUrl = "/images/placeholder.jpg"; // Fallback image URL
+            } else if (imageUrl.startsWith("file://")) {
+              // If newImage is a file ID, fetch its URL from Appwrite Storage API
+              try {
+                const fileResponse = await storage.getFilePreview(
+                  appwriteConfig.bucketId,
+                  imageUrl.replace("file://", "") // Remove 'file://' prefix to get file ID
+                );
+                imageUrl = fileResponse.href; // Get the public URL of the file
+              } catch (error) {
+                console.error(
+                  "Error fetching file URL for room:",
+                  room.id,
+                  error
+                );
+                imageUrl = "/images/placeholder.jpg"; // Fallback image in case of error
+              }
+            }
+
+            // Return the updated room data with the valid image URL
+            return {
+              ...room,
+              newImage: imageUrl, // Ensure newImage is a valid URL or fallback
+            };
+          })
+        );
+
+        setRooms(updatedRooms);
       } catch (error) {
         console.error("Error fetching room data:", error.message);
       }
     };
 
     fetchRoomData();
-  }, []); // Empty array to run this effect once on mount
+  }, []);
 
   const getStatusColor = (status) => {
+    console.log("Status:", status); // Debugging log to check the value of status
+
     switch (status) {
       case "Available":
-        return "bg-green-500 text-white";
+        return "bg-green-500 text-white"; // Green for available
       case "Occupied":
-        return "bg-red-500 text-white";
+        return "bg-red-500 text-white"; // Red for occupied
       case "Reserved":
-        return "bg-yellow-500 text-black";
+        return "bg-yellow-500 text-black"; // Yellow for reserved
       case "Cleaning":
-        return "bg-blue-500 text-white";
+        return "bg-blue-500 text-white"; // Blue for cleaning
       default:
-        return "bg-gray-500 text-white";
+        return "bg-gray-500 text-white"; // Gray for no status
     }
   };
 
+  // Function to handle room clicks and open modal
   const handleRoomClick = (room) => {
     setSelectedRoom(room);
     setIsDialogOpen(true);
+  };
+
+  // Function to convert index to alphabet (A, B, C, ...)
+  const getRoomLetter = (index) => {
+    return String.fromCharCode(65 + index); // Convert index to alphabet (A=65, B=66, etc.)
   };
 
   return (
@@ -113,29 +144,34 @@ export default function Clinic2() {
       <div className="p-4 sm:p-6">
         <h4 className="text-lg font-medium mb-2">Room Previews</h4>
         <div className="grid grid-cols-2 gap-4">
-          {rooms.map((room) => (
-            <div
-              key={room.id}
-              className="p-4 border rounded-lg shadow-md bg-white flex flex-col items-center cursor-pointer"
-              onClick={() => handleRoomClick(room)}
-            >
-              <img
-                src={room.imgSrc}
-                alt={room.name}
-                className="rounded-lg shadow-md w-full h-[100px] object-cover mb-2"
-              />
-              <h5 className="text-lg font-semibold">{room.name}</h5>
-
-              {/* Styled Status Badge */}
-              <span
-                className={`px-3 py-1 rounded-full text-sm font-bold ${getStatusColor(
-                  room.status
-                )}`}
+          {rooms.map((room, index) => {
+            const roomLetter = getRoomLetter(index); // Convert index to letter
+            return (
+              <div
+                key={room.id}
+                className="p-4 border rounded-lg shadow-md bg-white flex flex-col items-center cursor-pointer"
+                onClick={() => handleRoomClick(room)}
               >
-                {room.status || "No Status"}
-              </span>
-            </div>
-          ))}
+                <img
+                  src={room.newImage} // Use the fetched or fallback image URL
+                  alt={room.name}
+                  className="rounded-lg shadow-md w-full h-[100px] object-cover mb-2"
+                />
+                <h5 className="text-lg font-semibold">
+                  Room {roomLetter} {room.name}
+                </h5>
+
+                {/* Styled Status Badge */}
+                <span
+                  className={`px-3 py-1 rounded-full text-sm font-bold ${getStatusColor(
+                    room.status
+                  )}`}
+                >
+                  {room.status || "No Status"}
+                </span>
+              </div>
+            );
+          })}
         </div>
       </div>
 
@@ -147,8 +183,10 @@ export default function Clinic2() {
               <DialogHeader>
                 <DialogTitle>{selectedRoom.name}</DialogTitle>
               </DialogHeader>
+            
+              {/* Display room details */}
               <img
-                src={selectedRoom.imgSrc}
+                src={selectedRoom.newImage || "/images/placeholder.jpg"} // Fallback image if newImage is invalid
                 alt={selectedRoom.name}
                 className="rounded-lg shadow-md w-full h-auto mb-4"
               />

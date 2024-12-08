@@ -10,19 +10,7 @@ import {
   appwriteConfig,
 } from "@/lib/appwrite";
 import { Client, Databases, Storage } from "appwrite";
-import {
-  BarChart,
-  Bar,
-  XAxis,
-  YAxis,
-  CartesianGrid,
-  Tooltip,
-  Legend,
-  ResponsiveContainer,
-  PieChart,
-  Pie,
-  Cell,
-} from "recharts";
+
 import {
   Bell,
   Calendar,
@@ -35,55 +23,18 @@ import {
   MessageCircle,
   MenuIcon,
   Edit,
+  User,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
-import {
-  Card,
-  CardContent,
-  CardDescription,
-  CardHeader,
-  CardTitle,
-} from "@/components/ui/card";
+import Analytics from "./analytiics";
 import { Avatar, AvatarImage, AvatarFallback } from "@/components/ui/avatar";
 import AppointmentCalendar from "./appointments/page";
 import PetRecords from "./pets/page";
-import RoomManagements from "./room/page";
+import RoomManagement from "./room/page";
 import Notifications from "./notifications/page";
 import Feedback from "./feedback/page";
 import { Input } from "@/components/ui/input";
-
-// Mock data for quick stats
-const quickStats = {
-  totalPetsBoarding: 42,
-  totalPets: 150,
-  monthlyRevenue: 15000,
-};
-
-// Mock user data for the avatar
-const ownerInfo = {
-  name: "John Doe",
-  avatarUrl: "/images/avatar-placeholder.png",
-};
-
-// Mock data for charts
-const boardingTrends = [
-  { name: "Mon", dogs: 10, cats: 5, other: 2 },
-  { name: "Tue", dogs: 12, cats: 6, other: 1 },
-  { name: "Wed", dogs: 15, cats: 8, other: 3 },
-  { name: "Thu", dogs: 11, cats: 7, other: 2 },
-  { name: "Fri", dogs: 13, cats: 9, other: 4 },
-  { name: "Sat", dogs: 18, cats: 11, other: 5 },
-  { name: "Sun", dogs: 16, cats: 10, other: 3 },
-];
-
-const roomOccupancy = [
-  { name: "Room 1", value: 8 },
-  { name: "Room 2", value: 10 },
-  { name: "Room 3", value: 12 },
-  { name: "Room 4", value: 7 },
-];
-
-const COLORS = ["#6366f1", "#22c55e", "#eab308", "#ef4444"];
+import Owners from "./owner/page";
 
 export default function Dashboard() {
   const [activeSection, setActiveSection] = useState("overview");
@@ -233,120 +184,29 @@ export default function Dashboard() {
   const renderSection = () => {
     switch (activeSection) {
       case "overview":
-        return renderOverview();
+        return <Analytics />;
       case "appointments":
         return <AppointmentCalendar />;
       case "petRecords":
         return <PetRecords />;
+      case "owner":
+        return <Owners />;
       case "rooms":
-        return <RoomManagements />;
+        return <RoomManagement />;
       case "notifications":
         return <Notifications />;
       case "feedback":
         return <Feedback />;
       default:
-        return renderOverview();
+        return <Analytics />;
     }
   };
-
-  const renderOverview = () => (
-    <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
-      <Card className="bg-gray-800 text-white">
-        <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-          <CardTitle className="text-sm font-medium">
-            Total Pets Boarding
-          </CardTitle>
-          <BedDouble className="h-4 w-4 text-gray-400" />
-        </CardHeader>
-        <CardContent>
-          <div className="text-2xl font-bold">
-            {quickStats.totalPetsBoarding}
-          </div>
-          <p className="text-xs text-gray-400">Currently in our care</p>
-        </CardContent>
-      </Card>
-      <Card className="bg-gray-800 text-white">
-        <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-          <CardTitle className="text-sm font-medium">Total Pets</CardTitle>
-          <PawPrint className="h-4 w-4 text-gray-400" />
-        </CardHeader>
-        <CardContent>
-          <div className="text-2xl font-bold">{quickStats.totalPets}</div>
-          <p className="text-xs text-gray-400">Registered in our system</p>
-        </CardContent>
-      </Card>
-      <Card className="bg-gray-800 text-white">
-        <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-          <CardTitle className="text-sm font-medium">Monthly Revenue</CardTitle>
-          <DollarSign className="h-4 w-4 text-gray-400" />
-        </CardHeader>
-        <CardContent>
-          <div className="text-2xl font-bold">${quickStats.monthlyRevenue}</div>
-          <p className="text-xs text-gray-400">This month's earnings</p>
-        </CardContent>
-      </Card>
-      <Card className="col-span-full bg-gray-800 text-white">
-        <CardHeader>
-          <CardTitle>Weekly Boarding Trends</CardTitle>
-        </CardHeader>
-        <CardContent className="w-full h-[300px]">
-          <ResponsiveContainer width="100%" height="100%">
-            <BarChart data={boardingTrends}>
-              <CartesianGrid strokeDasharray="3 3" stroke="#374151" />
-              <XAxis dataKey="name" stroke="#9ca3af" />
-              <YAxis stroke="#9ca3af" />
-              <Tooltip
-                contentStyle={{ backgroundColor: "#1f2937", border: "none" }}
-                labelStyle={{ color: "#9ca3af" }}
-              />
-
-              <Legend />
-              <Bar dataKey="dogs" fill="#6366f1" />
-              <Bar dataKey="cats" fill="#22c55e" />
-            </BarChart>
-          </ResponsiveContainer>
-        </CardContent>
-      </Card>
-      <Card className="col-span-full md:col-span-2 bg-gray-800 text-white">
-        <CardHeader>
-          <CardTitle>Room Occupancy</CardTitle>
-        </CardHeader>
-        <CardContent className="w-full h-[300px]">
-          <ResponsiveContainer width="100%" height="100%">
-            <PieChart>
-              <Pie
-                data={roomOccupancy}
-                cx="50%"
-                cy="50%"
-                labelLine={false}
-                outerRadius={80}
-                fill="#8884d8"
-                dataKey="value"
-                label={({ name, percent }) =>
-                  `${name} ${(percent * 100).toFixed(0)}%`
-                }
-              >
-                {roomOccupancy.map((entry, index) => (
-                  <Cell
-                    key={`cell-${index}`}
-                    fill={COLORS[index % COLORS.length]}
-                  />
-                ))}
-              </Pie>
-              <Tooltip
-                contentStyle={{ backgroundColor: "#1f2937", border: "none" }}
-              />
-            </PieChart>
-          </ResponsiveContainer>
-        </CardContent>
-      </Card>
-    </div>
-  );
 
   const navItems = [
     { id: "overview", name: "Overview", icon: Home },
     { id: "appointments", name: "Appointments", icon: Calendar },
     { id: "petRecords", name: "Pet Records", icon: PawPrint },
+    { id: "owner", name: "Owner", icon: User },
     { id: "rooms", name: "Rooms", icon: BedDouble },
     { id: "notifications", name: "Notifications", icon: Bell },
     { id: "feedback", name: "Feedback", icon: MessageCircle },

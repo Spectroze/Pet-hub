@@ -11,39 +11,18 @@ import {
 } from "@/lib/appwrite";
 import { Client, Databases, Storage } from "appwrite";
 import {
-  BarChart,
-  Bar,
-  XAxis,
-  YAxis,
-  CartesianGrid,
-  Tooltip,
-  Legend,
-  ResponsiveContainer,
-  PieChart,
-  Pie,
-  Cell,
-} from "recharts";
-import {
   Bell,
   Calendar,
-  DollarSign,
   Home,
-  Menu,
   PawPrint,
   BedDouble,
   LogOut,
   MessageCircle,
   MenuIcon,
   Edit,
+  User,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
-import {
-  Card,
-  CardContent,
-  CardDescription,
-  CardHeader,
-  CardTitle,
-} from "@/components/ui/card";
 import { Avatar, AvatarImage, AvatarFallback } from "@/components/ui/avatar";
 import AppointmentCalendar from "../pet-boarding/appointments/page";
 import PetRecords from "../pet-boarding/records/page";
@@ -51,39 +30,8 @@ import RoomManagement from "../pet-boarding/room/page";
 import Notifications from "../pet-boarding/notifications/page";
 import Feedback from "./feedback/page";
 import { Input } from "@/components/ui/input";
-
-// Mock data for quick stats
-const quickStats = {
-  totalPetsBoarding: 42,
-  totalPets: 150,
-  monthlyRevenue: 15000,
-};
-
-// Mock user data for the avatar
-const ownerInfo = {
-  name: "John Doe",
-  avatarUrl: "/images/avatar-placeholder.png",
-};
-
-// Mock data for charts
-const boardingTrends = [
-  { name: "Mon", dogs: 10, cats: 5, other: 2 },
-  { name: "Tue", dogs: 12, cats: 6, other: 1 },
-  { name: "Wed", dogs: 15, cats: 8, other: 3 },
-  { name: "Thu", dogs: 11, cats: 7, other: 2 },
-  { name: "Fri", dogs: 13, cats: 9, other: 4 },
-  { name: "Sat", dogs: 18, cats: 11, other: 5 },
-  { name: "Sun", dogs: 16, cats: 10, other: 3 },
-];
-
-const roomOccupancy = [
-  { name: "Room 1", value: 8 },
-  { name: "Room 2", value: 10 },
-  { name: "Room 3", value: 12 },
-  { name: "Room 4", value: 7 },
-];
-
-const COLORS = ["#6366f1", "#22c55e", "#eab308", "#ef4444"];
+import Analytics from "./analytics";
+import Owners from "./owner/page";
 
 export default function Dashboard() {
   const [activeSection, setActiveSection] = useState("overview");
@@ -91,9 +39,9 @@ export default function Dashboard() {
   const router = useRouter();
   const [isEditingOwner, setIsEditingOwner] = useState(false);
   const toggleEditOwner = () => setIsEditingOwner((prev) => !prev);
-  const [userId, setUserId] = useState(null); // Declare userId state
-  const [loading, setLoading] = useState(true); // Add loading state
-  const [newAvatarFile, setNewAvatarFile] = useState(null); // New avatar file
+  const [userId, setUserId] = useState(null);
+  const [loading, setLoading] = useState(true);
+  const [newAvatarFile, setNewAvatarFile] = useState(null);
 
   const client = new Client();
   client
@@ -109,6 +57,7 @@ export default function Dashboard() {
     phone: "",
     avatarUrl: "/placeholder.svg",
   });
+
   const handleOwnerChange = (e) => {
     const { name, value } = e.target;
     setOwnerInfo((prev) => ({ ...prev, [name]: value }));
@@ -139,7 +88,6 @@ export default function Dashboard() {
     try {
       let avatarUrl = null;
 
-      // If a new avatar is selected, upload it and construct the full URL
       if (newAvatarFile) {
         const avatarId = await handleAvatarUpload(newAvatarFile);
         avatarUrl = `https://cloud.appwrite.io/v1/storage/buckets/${appwriteConfig.bucketId}/files/${avatarId}/view?project=${appwriteConfig.projectId}`;
@@ -150,25 +98,23 @@ export default function Dashboard() {
         phone: ownerInfo.phone,
       };
 
-      // If a new avatar URL is available, include it in the update
       if (avatarUrl) {
         updatedData.avatar = avatarUrl;
       }
 
       await databases.updateDocument(
-        appwriteConfig.databaseId, // Database ID
-        appwriteConfig.userCollectionId, // User collection ID
-        userId, // Current user ID
+        appwriteConfig.databaseId,
+        appwriteConfig.userCollectionId,
+        userId,
         updatedData
       );
 
       if (avatarUrl) {
-        // Update the avatar URL locally for display
         setOwnerInfo((prev) => ({ ...prev, avatarUrl }));
       }
 
       setIsEditingOwner(false);
-      setNewAvatarFile(null); // Reset new avatar file
+      setNewAvatarFile(null);
       toast.update(toastId, {
         render: "Profile updated successfully!",
         type: "success",
@@ -185,6 +131,7 @@ export default function Dashboard() {
       });
     }
   };
+
   useEffect(() => {
     const checkSession = async () => {
       try {
@@ -207,19 +154,17 @@ export default function Dashboard() {
 
     const loadData = async () => {
       try {
-        // Fetch user and pet data associated with the authenticated user
         const { user, pet } = await fetchUserAndPetInfo(userId);
 
-        // Update owner info state with user-specific data
         setOwnerInfo({
           name: user?.name || "Guest",
-          phone: user.phone || "N/A", // Default to "N/A" if phone is missing
-          email: user.email || "N/A", // Fetch email if available
-          avatarUrl: user?.avatar || "/placeholder.svg", // Default avatar if none exists
+          phone: user.phone || "N/A",
+          email: user.email || "N/A",
+          avatarUrl: user?.avatar || "/placeholder.svg",
         });
       } catch (error) {
         console.error("Failed to load user or pet data:", error);
-        setError("Failed to load user or pet data.");
+        toast.error("Failed to load user or pet data.");
       } finally {
         setLoading(false);
       }
@@ -233,11 +178,13 @@ export default function Dashboard() {
   const renderSection = () => {
     switch (activeSection) {
       case "overview":
-        return renderOverview();
+        return <Analytics />;
       case "appointments":
         return <AppointmentCalendar />;
       case "petRecords":
         return <PetRecords />;
+      case "owner":
+        return <Owners />;
       case "rooms":
         return <RoomManagement />;
       case "notifications":
@@ -245,108 +192,15 @@ export default function Dashboard() {
       case "feedback":
         return <Feedback />;
       default:
-        return renderOverview();
+        return <Analytics />;
     }
   };
-
-  const renderOverview = () => (
-    <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
-      <Card className="bg-gray-800 text-white">
-        <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-          <CardTitle className="text-sm font-medium">
-            Total Pets Boarding
-          </CardTitle>
-          <BedDouble className="h-4 w-4 text-gray-400" />
-        </CardHeader>
-        <CardContent>
-          <div className="text-2xl font-bold">
-            {quickStats.totalPetsBoarding}
-          </div>
-          <p className="text-xs text-gray-400">Currently in our care</p>
-        </CardContent>
-      </Card>
-      <Card className="bg-gray-800 text-white">
-        <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-          <CardTitle className="text-sm font-medium">Total Pets</CardTitle>
-          <PawPrint className="h-4 w-4 text-gray-400" />
-        </CardHeader>
-        <CardContent>
-          <div className="text-2xl font-bold">{quickStats.totalPets}</div>
-          <p className="text-xs text-gray-400">Registered in our system</p>
-        </CardContent>
-      </Card>
-      <Card className="bg-gray-800 text-white">
-        <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-          <CardTitle className="text-sm font-medium">Monthly Revenue</CardTitle>
-          <DollarSign className="h-4 w-4 text-gray-400" />
-        </CardHeader>
-        <CardContent>
-          <div className="text-2xl font-bold">${quickStats.monthlyRevenue}</div>
-          <p className="text-xs text-gray-400">This month's earnings</p>
-        </CardContent>
-      </Card>
-      <Card className="col-span-full bg-gray-800 text-white">
-        <CardHeader>
-          <CardTitle>Weekly Boarding Trends</CardTitle>
-        </CardHeader>
-        <CardContent className="w-full h-[300px]">
-          <ResponsiveContainer width="100%" height="100%">
-            <BarChart data={boardingTrends}>
-              <CartesianGrid strokeDasharray="3 3" stroke="#374151" />
-              <XAxis dataKey="name" stroke="#9ca3af" />
-              <YAxis stroke="#9ca3af" />
-              <Tooltip
-                contentStyle={{ backgroundColor: "#1f2937", border: "none" }}
-                labelStyle={{ color: "#9ca3af" }}
-              />
-
-              <Legend />
-              <Bar dataKey="dogs" fill="#6366f1" />
-              <Bar dataKey="cats" fill="#22c55e" />
-            </BarChart>
-          </ResponsiveContainer>
-        </CardContent>
-      </Card>
-      <Card className="col-span-full md:col-span-2 bg-gray-800 text-white">
-        <CardHeader>
-          <CardTitle>Room Occupancy</CardTitle>
-        </CardHeader>
-        <CardContent className="w-full h-[300px]">
-          <ResponsiveContainer width="100%" height="100%">
-            <PieChart>
-              <Pie
-                data={roomOccupancy}
-                cx="50%"
-                cy="50%"
-                labelLine={false}
-                outerRadius={80}
-                fill="#8884d8"
-                dataKey="value"
-                label={({ name, percent }) =>
-                  `${name} ${(percent * 100).toFixed(0)}%`
-                }
-              >
-                {roomOccupancy.map((entry, index) => (
-                  <Cell
-                    key={`cell-${index}`}
-                    fill={COLORS[index % COLORS.length]}
-                  />
-                ))}
-              </Pie>
-              <Tooltip
-                contentStyle={{ backgroundColor: "#1f2937", border: "none" }}
-              />
-            </PieChart>
-          </ResponsiveContainer>
-        </CardContent>
-      </Card>
-    </div>
-  );
 
   const navItems = [
     { id: "overview", name: "Overview", icon: Home },
     { id: "appointments", name: "Appointments", icon: Calendar },
     { id: "petRecords", name: "Pet Records", icon: PawPrint },
+    { id: "owner", name: "Owner", icon: User },
     { id: "rooms", name: "Rooms", icon: BedDouble },
     { id: "notifications", name: "Notifications", icon: Bell },
     { id: "feedback", name: "Feedback", icon: MessageCircle },
@@ -362,7 +216,6 @@ export default function Dashboard() {
   return (
     <div className="flex h-screen bg-gray-900 text-white">
       <ToastContainer />
-      {/* Sidebar */}
       <aside
         className={`bg-gray-800 ${
           sidebarOpen ? "w-64" : "w-20"
@@ -373,13 +226,12 @@ export default function Dashboard() {
           className={`absolute top-4 right-4 transition-all ${
             sidebarOpen ? "mr-2" : "ml-0"
           } bg-gray-700 text-gray-200 hover:bg-gray-600`}
-          onClick={() => setSidebarOpen(!sidebarOpen)}
+          onClick={toggleSidebar}
         >
           <MenuIcon className="h-5 w-5" />
         </Button>
 
         <div className="flex flex-col items-center mt-16 space-y-2">
-          {/* Avatar with onClick handler to toggle editing */}
           <div className="relative">
             <Avatar
               className="h-20 w-20 border-2 border-gray-600 cursor-pointer"
@@ -443,7 +295,6 @@ export default function Dashboard() {
           )}
         </div>
 
-        {/* Navigation Items */}
         <nav className="space-y-2 border-t border-gray-700 pt-4 mt-4">
           {navItems.map(({ id, name, icon: Icon }) => (
             <Button
@@ -470,7 +321,6 @@ export default function Dashboard() {
           {sidebarOpen && <span>Logout</span>}
         </Button>
       </aside>
-      {/* Main content */}
       <div
         className={`flex-1 transition-all duration-300 ${
           sidebarOpen ? "ml-0" : "ml-0"

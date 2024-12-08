@@ -264,6 +264,7 @@ export function BooknowModal({ showBooknowModal, setShowBooknowModal }) {
       const petData = {
         ...petInfo,
         age: ageWithUnit, // Use concatenated age with unit
+        status: petInfo.status || ["Pending"], // Ensure status is set to "Pending" by default
       };
 
       // Create user and pet entry

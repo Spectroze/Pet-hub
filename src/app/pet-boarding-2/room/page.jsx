@@ -1,10 +1,11 @@
 "use client";
 
-import { useState, useEffect } from "react";
+import { useState, useEffect, useRef } from "react";
 import {
   Card,
   CardContent,
   CardDescription,
+  CardFooter,
   CardHeader,
   CardTitle,
 } from "@/components/ui/card";
@@ -25,26 +26,28 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
-import { databases, appwriteConfig } from "@/lib/appwrite"; // Ensure ID is imported
+import { databases, appwriteConfig, storage } from "@/lib/appwrite"; // Add storage import for file upload
 import { ToastContainer, toast } from "react-toastify";
 import "react-toastify/dist/ReactToastify.css";
-
 import { ID } from "appwrite";
 
-// Initial Room Data
+// Initial room structure (example)
 const initialRooms = [
-  { $id: null, letter: "A", status: null },
-  { $id: null, letter: "B", status: null },
-  { $id: null, letter: "C", status: null },
-  { $id: null, letter: "D", status: null },
+  { $id: null, letter: ["1"], status: [], newImage: "" },
+  { $id: null, letter: ["2"], status: [], newImage: "" },
+  { $id: null, letter: ["3"], status: [], newImage: "" },
+  { $id: null, letter: ["4"], status: [], newImage: "" },
 ];
 
 export default function RoomManagement() {
   const [rooms, setRooms] = useState(initialRooms);
   const [selectedRoom, setSelectedRoom] = useState(null);
   const [isDialogOpen, setIsDialogOpen] = useState(false);
-  const [isLoading, setIsLoading] = useState(false);
+  const [newStatus, setNewStatus] = useState(null); // Track new status before saving
+  const [imageUrl, setImageUrl] = useState(null); // Track the URL of the uploaded image
+  const fileInputRef = useRef(null);
 
+  // Fetch room data from Appwrite database
   useEffect(() => {
     const fetchRooms = async () => {
       try {
@@ -53,83 +56,115 @@ export default function RoomManagement() {
           appwriteConfig.room2CollectionId
         );
         if (response.documents.length > 0) {
-          setRooms(response.documents);
+          const updatedRooms = response.documents.map((room) => {
+            // If an image exists, fetch the public URL
+            const imageUrl = room.newImage || "/images/placeholder.jpg";
+            return {
+              ...room,
+              newImage: imageUrl, // Store the image URL in room data
+            };
+          });
+          setRooms(updatedRooms);
         } else {
-          console.log("No rooms found in database. Using initial data.");
-          setRooms(initialRooms); // Set the rooms to initial data if the database is empty
+          console.log("No rooms found in the database. Using initial data.");
         }
       } catch (error) {
-        console.error("Error fetching rooms from database:", error.message);
-        setRooms(initialRooms); // Fallback to initial data if there is an error fetching rooms
+        console.error("Error fetching rooms from the database:", error.message);
       }
     };
 
     fetchRooms();
   }, []);
 
-  // Handle when a room is clicked
+  // Handle room click (edit or view room details)
   const handleRoomClick = (room) => {
     setSelectedRoom(room);
+    setNewStatus(room.status[0]);
+    setImageUrl(room.newImage);
     setIsDialogOpen(true);
   };
 
-  // Handle room status change
-  const handleStatusChange = async (status) => {
-    if (!selectedRoom) {
-      console.error("No room selected.");
+  // Handle status change
+  const handleStatusChange = (status) => {
+    setNewStatus(status);
+  };
+
+  // Handle image upload
+  const handleImageUpload = async (e) => {
+    const file = e.target.files[0];
+    if (!file) return;
+
+    try {
+      // Upload the image to Appwrite storage
+      const uploadResponse = await storage.createFile(
+        appwriteConfig.bucketId,
+        ID.unique(),
+        file
+      );
+
+      // Generate the public URL in the desired format
+      const uploadedImageUrl = `https://cloud.appwrite.io/v1/storage/buckets/${appwriteConfig.bucketId}/files/${uploadResponse.$id}/view?project=${appwriteConfig.projectId}`;
+      setImageUrl(uploadedImageUrl); // Set the generated image URL
+      console.log("Image uploaded successfully:", uploadedImageUrl);
+    } catch (error) {
+      console.error("Error uploading image:", error.message);
+      toast.error("Failed to upload image. Please try again.");
+    }
+  };
+
+  // Save room changes (including image URL)
+  const saveRoomChanges = async () => {
+    if (!selectedRoom || !newStatus) {
+      toast.error("Please select a room and status before saving.");
       return;
     }
 
     try {
-      let updatedRoom = { ...selectedRoom, status };
+      const imageToSave = imageUrl || "/images/placeholder.jpg"; // Default to placeholder if no image uploaded
+
+      const updatedRoom = {
+        ...selectedRoom,
+        status: [newStatus],
+        newImage: imageToSave, // Save the generated public URL
+      };
 
       if (!selectedRoom.$id) {
-        // Creating a new room if no $id exists
         const response = await databases.createDocument(
           appwriteConfig.databaseId,
           appwriteConfig.room2CollectionId,
-          ID.unique(), // Ensure ID is used here
+          ID.unique(),
           {
-            letter: [selectedRoom.letter], // Ensure letter is an array
-            status: [status],
+            letter: selectedRoom.letter,
+            status: [newStatus],
+            newImage: imageToSave, // Save public URL of image
           }
         );
-        updatedRoom = { ...selectedRoom, status, $id: response.$id }; // Ensure $id is set
-        console.log(`Room ${selectedRoom.letter} created in the database.`);
+        updatedRoom.$id = response.$id;
       } else {
-        // Updating an existing room
         await databases.updateDocument(
           appwriteConfig.databaseId,
           appwriteConfig.room2CollectionId,
           selectedRoom.$id,
           {
-            status: [status], // Only update the status
+            status: [newStatus],
+            newImage: imageToSave, // Update public URL of image
           }
         );
-        console.log(`Room ${selectedRoom.letter} updated in the database.`);
       }
 
-      // Update the local state with the modified room
       const updatedRooms = rooms.map((room) =>
-        room.letter === selectedRoom.letter ? updatedRoom : room
+        room.letter[0] === selectedRoom.letter[0] ? updatedRoom : room
       );
       setRooms(updatedRooms);
       setSelectedRoom(updatedRoom);
-
-      // Show toast notification
-      toast.success(
-        `Status of Room ${selectedRoom.letter} changed to ${status}`
-      );
+      toast.success(`Room ${selectedRoom.letter[0]} updated successfully.`);
     } catch (error) {
-      console.error(
-        `Failed to update room ${selectedRoom.letter}:`,
-        error.message
-      );
-      toast.error("Failed to update the status. Please try again.");
+      console.error("Failed to update room:", error.message);
+      toast.error("Failed to save room changes.");
     }
   };
 
-  // Get the card color based on room status
+  // Get room card color based on status
   const getCardColor = (status) => {
     switch (status) {
       case "Occupied":
@@ -145,6 +180,64 @@ export default function RoomManagement() {
     }
   };
 
+  // Add new room
+  const handleAddNewRoom = async () => {
+    try {
+      // Get the highest letter used in rooms (from A to Z)
+      const highestRoomLetter = rooms.reduce((max, room) => {
+        const currentLetter = room.letter[0];
+        return currentLetter > max ? currentLetter : max;
+      }, "A");
+
+      // Increment the letter for the new room
+      const newRoomLetter = String.fromCharCode(
+        highestRoomLetter.charCodeAt(0) + 1
+      );
+
+      const newRoom = {
+        letter: [newRoomLetter],
+        status: ["Available"],
+        newImage: "", // New image initially empty
+      };
+
+      const response = await databases.createDocument(
+        appwriteConfig.databaseId,
+        appwriteConfig.room2CollectionId,
+        ID.unique(),
+        newRoom
+      );
+
+      const updatedRooms = [...rooms, { ...newRoom, $id: response.$id }];
+      setRooms(updatedRooms);
+      toast.success(`Room ${newRoomLetter} added successfully.`);
+    } catch (error) {
+      console.error("Failed to add new room:", error.message);
+      toast.error("Failed to add new room.");
+    }
+  };
+
+  // Delete room
+  const handleDeleteRoom = async () => {
+    if (!selectedRoom) return;
+
+    try {
+      await databases.deleteDocument(
+        appwriteConfig.databaseId,
+        appwriteConfig.room2CollectionId,
+        selectedRoom.$id
+      );
+      const updatedRooms = rooms.filter(
+        (room) => room.$id !== selectedRoom.$id
+      );
+      setRooms(updatedRooms);
+      toast.success(`Room ${selectedRoom.letter[0]} deleted successfully.`);
+      setIsDialogOpen(false);
+    } catch (error) {
+      console.error("Failed to delete room:", error.message);
+      toast.error("Failed to delete the room.");
+    }
+  };
+
   return (
     <div className="container mx-auto p-4">
       <ToastContainer />
@@ -157,68 +250,82 @@ export default function RoomManagement() {
         </CardHeader>
         <CardContent>
           <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4">
-            {isLoading ? (
-              <div className="col-span-4 text-center">Loading rooms...</div>
-            ) : (
-              rooms.map((room) => (
-                <div
-                  key={room.letter}
-                  className={`h-24 flex flex-col items-center justify-center p-4 rounded-lg shadow-md cursor-pointer transition-colors ${getCardColor(
-                    room.status
-                  )}`}
-                  onClick={() => handleRoomClick(room)}
-                >
-                  <div className="text-lg font-semibold">
-                    Room {room.letter}
-                  </div>
-                  <div className="flex items-center gap-1">
-                    {room.status || "No Status"}
-                  </div>
+            {rooms.map((room) => (
+              <div
+                key={room.letter[0]}
+                className={`h-24 flex flex-col items-center justify-center p-4 rounded-lg shadow-md cursor-pointer transition-colors ${getCardColor(
+                  room.status[0]
+                )}`}
+                onClick={() => handleRoomClick(room)}
+              >
+                <div className="text-lg font-semibold">
+                  Room {room.letter[0]}
                 </div>
-              ))
-            )}
+                <div>{room.status[0]}</div>
+                <img
+                  src={room.newImage || "/images/placeholder.jpg"}
+                  alt="Room"
+                  className="mt-2 w-full h-16 object-cover rounded"
+                />
+              </div>
+            ))}
           </div>
         </CardContent>
+        <CardFooter>
+          <Button variant="outline" onClick={handleAddNewRoom}>
+            Add New Room
+          </Button>
+        </CardFooter>
       </Card>
 
-      <Dialog open={isDialogOpen} onOpenChange={setIsDialogOpen}>
-        <DialogContent className="sm:max-w-[425px]">
-          <DialogHeader>
-            <DialogTitle className="text-2xl font-bold">
-              Room {selectedRoom?.letter}
-            </DialogTitle>
-            <DialogDescription>
-              Manage room details and occupancy
-            </DialogDescription>
-          </DialogHeader>
-          <div className="grid gap-4 py-4">
-            <div className="grid grid-cols-4 items-center gap-4">
-              <Label htmlFor="status" className="text-right">
-                Status
-              </Label>
+      {selectedRoom && (
+        <Dialog open={isDialogOpen} onOpenChange={setIsDialogOpen}>
+          <DialogContent>
+            <DialogHeader>
+              <DialogTitle>Room {selectedRoom.letter[0]} Details</DialogTitle>
+              <DialogDescription>Manage room details</DialogDescription>
+            </DialogHeader>
+            <div className="mb-4">
+              <Label htmlFor="status">Status</Label>
               <Select
-                onValueChange={(value) => handleStatusChange(value)}
-                defaultValue={selectedRoom?.status || undefined}
+                value={newStatus || selectedRoom.status[0]}
+                onValueChange={handleStatusChange}
               >
-                <SelectTrigger className="col-span-3">
+                <SelectTrigger>
                   <SelectValue placeholder="Select a status" />
                 </SelectTrigger>
                 <SelectContent>
-                  <SelectItem value="Occupied">Occupied</SelectItem>
                   <SelectItem value="Available">Available</SelectItem>
+                  <SelectItem value="Occupied">Occupied</SelectItem>
                   <SelectItem value="Reserved">Reserved</SelectItem>
                   <SelectItem value="Cleaning">Cleaning</SelectItem>
                 </SelectContent>
               </Select>
             </div>
-          </div>
-          <DialogFooter>
-            <Button type="submit" onClick={() => setIsDialogOpen(false)}>
-              Save changes
-            </Button>
-          </DialogFooter>
-        </DialogContent>
-      </Dialog>
+
+            <div className="mb-4">
+              <Label htmlFor="image">Upload Room Image</Label>
+              <input
+                ref={fileInputRef}
+                type="file"
+                accept="image/*"
+                onChange={handleImageUpload}
+                className="file-input"
+              />
+              {imageUrl && (
+                <img src={imageUrl} alt="Room Image" className="mt-2" />
+              )}
+            </div>
+
+            <DialogFooter>
+              <Button onClick={saveRoomChanges}>Save Changes</Button>
+              <Button variant="destructive" onClick={handleDeleteRoom}>
+                Delete Room
+              </Button>
+            </DialogFooter>
+          </DialogContent>
+        </Dialog>
+      )}
     </div>
   );
 }

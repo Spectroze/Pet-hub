@@ -56,7 +56,7 @@ export default function Services() {
           variants={itemVariants}
           className="text-3xl sm:text-4xl font-extrabold text-[#4A4A4A] mb-12 text-center"
         >
-          Pawsome Services for Your Furry Friends
+          Pet-Care Services for Your Furry Friends
         </motion.h2>
         <div className="grid gap-12 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4">
           <ServiceCard

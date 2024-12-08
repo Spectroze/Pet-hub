@@ -7,13 +7,14 @@ import Pets from "./pets/page";
 import Feedback from "./feedback/page";
 import Owners from "./owner/page";
 import Notifications from "./notification/page";
+
 import {
   getCurrentUser,
   fetchUserAndPetInfo,
   signOut,
   appwriteConfig,
 } from "@/lib/appwrite";
-import { logout } from "@/lib/appwrite"; // Ensure correct path
+
 import { Client, Databases, Storage } from "appwrite";
 
 import {
@@ -22,11 +23,7 @@ import {
   Calendar as CalendarIcon,
   PawPrint,
   Users,
-  BarChart2,
   LogOut,
-  DollarSign,
-  Scissors,
-  Stethoscope,
   MessageCircle,
   Edit,
   MenuIcon,
@@ -36,28 +33,7 @@ import { Avatar, AvatarImage, AvatarFallback } from "@/components/ui/avatar";
 import { ToastContainer, toast } from "react-toastify";
 import "react-toastify/dist/ReactToastify.css";
 import { useRouter } from "next/navigation";
-import {
-  Bar,
-  BarChart,
-  Line,
-  LineChart,
-  ResponsiveContainer,
-  Tooltip,
-  XAxis,
-  YAxis,
-} from "recharts";
-import {
-  Card,
-  CardContent,
-  CardDescription,
-  CardHeader,
-  CardTitle,
-} from "@/components/ui/card";
-import {
-  ChartContainer,
-  ChartTooltip,
-  ChartTooltipContent,
-} from "@/components/ui/chart";
+import Analytics from "./analytics";
 import { Input } from "@/components/ui/input";
 
 const navigationItems = [
@@ -68,273 +44,6 @@ const navigationItems = [
   { id: "owners", name: "Owners", icon: Users },
   { id: "feedback", name: "Feedback", icon: MessageCircle },
 ];
-
-// Mock data for the analytics
-const analyticsData = {
-  totalAppointments: 1250,
-  totalPets: 450,
-  totalOwners: 890,
-  totalRevenue: 78500,
-};
-
-// Updated mock data for the monthly analytics chart (removed petsBoarding)
-const monthlyData = [
-  {
-    month: "Jan",
-    appointments: 95,
-    petGrooming: 50,
-    veterinary: 80,
-    revenue: 5200,
-  },
-  {
-    month: "Feb",
-    appointments: 100,
-    petGrooming: 55,
-    veterinary: 85,
-    revenue: 5800,
-  },
-  {
-    month: "Mar",
-    appointments: 120,
-    petGrooming: 60,
-    veterinary: 90,
-    revenue: 6500,
-  },
-  {
-    month: "Apr",
-    appointments: 110,
-    petGrooming: 58,
-    veterinary: 88,
-    revenue: 6200,
-  },
-  {
-    month: "May",
-    appointments: 130,
-    petGrooming: 65,
-    veterinary: 95,
-    revenue: 7000,
-  },
-  {
-    month: "Jun",
-    appointments: 140,
-    petGrooming: 70,
-    veterinary: 100,
-    revenue: 7500,
-  },
-];
-
-// Mock data for revenue analytics (removed boarding)
-const revenueData = [
-  { month: "Jan", checkups: 2000, surgeries: 1500, grooming: 700 },
-  { month: "Feb", checkups: 2200, surgeries: 1700, grooming: 800 },
-  { month: "Mar", checkups: 2500, surgeries: 2000, grooming: 800 },
-  { month: "Apr", checkups: 2300, surgeries: 1800, grooming: 800 },
-  { month: "May", checkups: 2700, surgeries: 2200, grooming: 700 },
-  { month: "Jun", checkups: 2900, surgeries: 2400, grooming: 700 },
-];
-
-function AnalyticsCard({ title, value, icon: Icon }) {
-  return (
-    <Card className="bg-gray-800 shadow-lg">
-      <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-        <CardTitle className="text-sm font-medium text-gray-200">
-          {title}
-        </CardTitle>
-        <Icon className="h-4 w-4 text-[#FF6B6B]" />
-      </CardHeader>
-      <CardContent>
-        <div className="text-2xl font-bold text-white">{value}</div>
-      </CardContent>
-    </Card>
-  );
-}
-
-function Analytics() {
-  return (
-    <div className="space-y-4">
-      <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-4 ">
-        <AnalyticsCard
-          title="Total Appointments"
-          value={analyticsData.totalAppointments}
-          icon={CalendarIcon}
-        />
-        <AnalyticsCard
-          title="Total Pets"
-          value={analyticsData.totalPets}
-          icon={PawPrint}
-        />
-        <AnalyticsCard
-          title="Total Owners"
-          value={analyticsData.totalOwners}
-          icon={Users}
-        />
-        <AnalyticsCard
-          title="Total Revenue"
-          value={`$${analyticsData.totalRevenue.toLocaleString()}`}
-          icon={DollarSign}
-        />
-      </div>
-      <Card className="bg-gray-800 text-gray-100 shadow-lg">
-        <CardHeader>
-          <CardTitle className="text-gray-200">Monthly Analytics</CardTitle>
-          <CardDescription className="text-gray-400">
-            Appointments, Pet Grooming, Veterinary Services, and Revenue
-          </CardDescription>
-        </CardHeader>
-        <CardContent>
-          <ChartContainer
-            config={{
-              appointments: {
-                label: "Appointments",
-                color: "hsl(var(--chart-1))",
-              },
-              petGrooming: {
-                label: "Pet Grooming",
-                color: "hsl(var(--chart-2))",
-              },
-              veterinary: {
-                label: "Veterinary",
-                color: "hsl(var(--chart-3))",
-              },
-              revenue: {
-                label: "Revenue",
-                color: "hsl(var(--chart-4))",
-              },
-            }}
-            className="h-[300px]"
-          >
-            <ResponsiveContainer width="100%" height="100%">
-              <BarChart data={monthlyData}>
-                <XAxis
-                  dataKey="month"
-                  stroke="#888888"
-                  fontSize={12}
-                  tickLine={false}
-                  axisLine={false}
-                />
-                <YAxis
-                  yAxisId="left"
-                  stroke="#888888"
-                  fontSize={12}
-                  tickLine={false}
-                  axisLine={false}
-                  tickFormatter={(value) => `${value}`}
-                />
-                <YAxis
-                  yAxisId="right"
-                  orientation="right"
-                  stroke="#888888"
-                  fontSize={12}
-                  tickLine={false}
-                  axisLine={false}
-                  tickFormatter={(value) => `$${value}`}
-                />
-                <ChartTooltip content={<ChartTooltipContent />} />
-                <Bar
-                  dataKey="appointments"
-                  yAxisId="left"
-                  fill="var(--color-appointments)"
-                  radius={[4, 4, 0, 0]}
-                  stackId="a"
-                />
-                <Bar
-                  dataKey="petGrooming"
-                  yAxisId="left"
-                  fill="var(--color-petGrooming)"
-                  radius={[4, 4, 0, 0]}
-                  stackId="a"
-                />
-                <Bar
-                  dataKey="veterinary"
-                  yAxisId="left"
-                  fill="var(--color-veterinary)"
-                  radius={[4, 4, 0, 0]}
-                  stackId="a"
-                />
-                <Line
-                  type="monotone"
-                  dataKey="revenue"
-                  yAxisId="right"
-                  stroke="var(--color-revenue)"
-                  strokeWidth={2}
-                  dot={{ fill: "var(--color-revenue)", strokeWidth: 2 }}
-                />
-              </BarChart>
-            </ResponsiveContainer>
-          </ChartContainer>
-        </CardContent>
-      </Card>
-      <Card className="bg-gray-800 text-gray-100 shadow-lg">
-        <CardHeader>
-          <CardTitle className="text-gray-200">Revenue Analytics</CardTitle>
-          <CardDescription className="text-gray-400">
-            Breakdown of revenue sources
-          </CardDescription>
-        </CardHeader>
-        <CardContent>
-          <ChartContainer
-            config={{
-              checkups: {
-                label: "Checkups",
-                color: "hsl(var(--chart-1))",
-              },
-              surgeries: {
-                label: "Surgeries",
-                color: "hsl(var(--chart-2))",
-              },
-              grooming: {
-                label: "Grooming",
-                color: "hsl(var(--chart-3))",
-              },
-            }}
-            className="h-[300px]"
-          >
-            <ResponsiveContainer width="100%" height="100%">
-              <LineChart data={revenueData}>
-                <XAxis
-                  dataKey="month"
-                  stroke="#888888"
-                  fontSize={12}
-                  tickLine={false}
-                  axisLine={false}
-                />
-                <YAxis
-                  stroke="#888888"
-                  fontSize={12}
-                  tickLine={false}
-                  axisLine={false}
-                  tickFormatter={(value) => `$${value}`}
-                />
-                <ChartTooltip content={<ChartTooltipContent />} />
-                <Line
-                  type="monotone"
-                  dataKey="checkups"
-                  stroke="var(--color-checkups)"
-                  strokeWidth={2}
-                  dot={{ fill: "var(--color-checkups)", strokeWidth: 2 }}
-                />
-                <Line
-                  type="monotone"
-                  dataKey="surgeries"
-                  stroke="var(--color-surgeries)"
-                  strokeWidth={2}
-                  dot={{ fill: "var(--color-surgeries)", strokeWidth: 2 }}
-                />
-                <Line
-                  type="monotone"
-                  dataKey="grooming"
-                  stroke="var(--color-grooming)"
-                  strokeWidth={2}
-                  dot={{ fill: "var(--color-grooming)", strokeWidth: 2 }}
-                />
-              </LineChart>
-            </ResponsiveContainer>
-          </ChartContainer>
-        </CardContent>
-      </Card>
-    </div>
-  );
-}
 
 export default function ClinicDashboard() {
   const [activeSection, setActiveSection] = useState("overview");

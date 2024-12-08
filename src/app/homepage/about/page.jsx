@@ -52,19 +52,38 @@ export default function About() {
           variants={itemVariants}
           className="text-3xl sm:text-4xl font-extrabold text-[#4A4A4A] mb-8"
         >
-          The Paw Pals Story
+          The Pet-Care Story
         </motion.h2>
         <div className="flex flex-col md:flex-row items-center gap-8">
           <motion.div variants={itemVariants} className="flex-1">
+            <h2 className="text-3xl sm:text-4xl font-extrabold text-[#4A4A4A] mb-8">
+              Mission
+            </h2>
             <p className="text-lg text-[#6B6B6B] mb-4">
-              At Paw Pals, we're not just pet care providers – we're pet lovers
-              on a mission! Our journey began with a simple idea: to create a
-              place where pets feel as loved and cared for as they do at home.
+              At Pet-Care, our mission is to provide comprehensive and
+              compassionate services that meet every aspect of your pet’s needs.
+              From expert grooming that keeps them looking and feeling their
+              best, to professional veterinary care that ensures their health
+              and vitality, to specialized training that nurtures their
+              behavior, and secure boarding that feels like a second home—we are
+              dedicated to creating a sanctuary where pets feel cherished, safe,
+              and loved. Guided by our passion for animals, we strive to enrich
+              the lives of pets and their owners, one wagging tail, gentle purr,
+              or playful bark at a time.
             </p>
+            <h2 className="text-3xl sm:text-4xl font-extrabold text-[#4A4A4A] mb-8">
+              Vision
+            </h2>
             <p className="text-lg text-[#6B6B6B]">
-              Every wag, purr, and happy bark fuels our passion. We've built a
-              team of dedicated animal enthusiasts who treat each pet as if it
-              were their own. Because at Paw Pals, every pet is family!
+              At Pet-Care, we aspire to be the trusted leader in holistic pet
+              care, setting the gold standard for quality, compassion, and
+              innovation. We envision a future where every pet thrives in an
+              environment of love, health, and happiness, supported by expert
+              grooming, advanced veterinary care, transformative training, and
+              safe, welcoming boarding. Our goal is to build lasting
+              relationships with pets and their owners, fostering a world where
+              every pet is valued as family and every wag, purr, and joyful bark
+              reflects a life well cared for.
             </p>
           </motion.div>
           <motion.div
