@@ -23,6 +23,8 @@ import {
   uploadFileAndGetUrl,
   savePetToDatabase,
   getCurrentUser,
+  databases,
+  appwriteConfig,
 } from "../../lib/appwrite";
 
 const servicePayments = {
@@ -80,7 +82,6 @@ export default function AddPetModal({
   const [loading, setLoading] = useState(false);
   const [dateError, setDateError] = useState("");
   const [timeError, setTimeError] = useState("");
-
   const currentDate = new Date().toISOString().split("T")[0];
   const getCurrentTime = () =>
     new Date().toISOString().split("T")[1].slice(0, 5);
@@ -158,30 +159,40 @@ export default function AddPetModal({
     setLoading(true);
 
     try {
+      // Validate errors before proceeding
       if (dateError || timeError) {
         toast.error("Please fix the date and time errors before proceeding.");
         setLoading(false);
         return;
       }
 
+      // Step 1: Fetch current user
       const currentUser = await getCurrentUser();
       const ownerId = currentUser.$id;
 
+      // Validate payment range
       if (petPayment < 500 || petPayment > 10000) {
         toast.error("Total payment must be between 500 and 10,000 PHP.");
         setLoading(false);
         return;
       }
 
-      let petPhotoId = "/placeholder.svg";
+      // Step 2: Handle pet photo upload
+      let petPhotoId = "/placeholder.svg"; // Default photo
       if (petPhoto) {
-        petPhotoId = await uploadFileAndGetUrl(petPhoto);
+        try {
+          const uploadedFileUrl = await uploadFileAndGetUrl(petPhoto);
+          petPhotoId = uploadedFileUrl.href; // Use the href property of the URL object
+        } catch (uploadError) {
+          console.error("Error uploading pet photo:", uploadError);
+          toast.error("Failed to upload pet photo. Using default image.");
+        }
       }
 
-      // Combine age and unit into a single value
+      // Step 3: Combine age and unit into a single value
       const ageWithUnit = `${petAge} ${petAgeUnit || ""}`.trim();
 
-      // Prepare pet data for submission
+      // Step 4: Prepare pet data for submission
       const petData = {
         ownerId,
         petName,
@@ -194,16 +205,22 @@ export default function AddPetModal({
         petClinic,
         petRoom,
         petPayment,
-        petPhotoId,
+        petPhotoId, // This is now always set, either to a URL or the placeholder
+        status: ["Pending"], // Default status
       };
 
-      await savePetToDatabase(petData);
-      handleAddPet(petData);
+      // Step 5: Save the pet to the database
+      const savedPet = await savePetToDatabase(petData);
+
+      // Step 6: Update the UI
+      handleAddPet(savedPet);
+
+      // Show success notification
       toast.success(`Pet ${petName} added successfully!`);
       setShowAddPetModal(false);
     } catch (error) {
       console.error("Add pet error:", error);
-      toast.error("An error occurred while saving the pet.");
+      toast.error("An error occurred while saving the pet: " + error.message);
     } finally {
       setLoading(false);
     }

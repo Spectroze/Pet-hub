@@ -27,14 +27,13 @@ import {
   EyeOff,
   Phone,
   Camera,
-  Calendar as CalendarIcon,
+  CalendarIcon,
   Clock,
   Loader2,
 } from "lucide-react";
 import { createUser, uploadPhoto, savePetToDatabase } from "../../lib/appwrite";
 import { ToastContainer, toast } from "react-toastify";
-import "react-toastify/dist/ReactToastify.css"; // Import the CSS for react-toastify
-import { saveAppointmentToDatabase } from "../../lib/appwrite";
+import "react-toastify/dist/ReactToastify.css";
 
 export function BooknowModal({ showBooknowModal, setShowBooknowModal }) {
   const [step, setStep] = useState(1);
@@ -44,8 +43,8 @@ export function BooknowModal({ showBooknowModal, setShowBooknowModal }) {
   const [timeError, setTimeError] = useState("");
   const [payment, setPayment] = useState(0);
   const [isLoading, setIsLoading] = useState(false);
-  const [missingFields, setMissingFields] = useState([]); // Track missing fields
-  const [dropdownOpen, setDropdownOpen] = useState(false); // Control dropdown visibility
+  const [missingFields, setMissingFields] = useState([]);
+  const [dropdownOpen, setDropdownOpen] = useState(false);
 
   const router = useRouter();
 
@@ -64,7 +63,7 @@ export function BooknowModal({ showBooknowModal, setShowBooknowModal }) {
     photo: null,
     date: [],
     time: [],
-    services: [], // Initialize as an empty array
+    services: [],
     clinic: [],
     room: [],
     status: ["Pending"],
@@ -82,11 +81,9 @@ export function BooknowModal({ showBooknowModal, setShowBooknowModal }) {
     "Pet Veterinary": 700,
     "Pet Training": 1200,
   };
-  // Check if room and clinic selection is required
   const requiresClinicAndRoom = petInfo.services.some(
     (service) => service !== "Pet Training"
   );
-  // currentDate
   const currentDate = new Date().toISOString().split("T")[0];
 
   const getCurrentTime = () => {
@@ -112,27 +109,21 @@ export function BooknowModal({ showBooknowModal, setShowBooknowModal }) {
       );
       setPayment(totalPrice);
     } else {
-      setPayment(0); // Reset payment if no services are selected
+      setPayment(0);
     }
   }, [petInfo.services]);
 
-  // Validation for Phone Number Format
   const validatePhoneNumber = (phone) => {
-    const isValid =
-      /^09\d{9}$/.test(phone) || // Format: 09XXXXXXXXX
-      /^\+63\d{10}$/.test(phone); // Format: +63XXXXXXXXX
+    const isValid = /^09\d{9}$/.test(phone) || /^\+63\d{10}$/.test(phone);
     return isValid;
   };
 
-  // Handle input change with phone validation
   const handleInputChange = (setState) => (e) => {
     const { name, value, type, files } = e.target;
 
     if (type === "file" && files && files.length > 0) {
-      // If it's a file input, update the state with the file object
       setState((prev) => ({ ...prev, [name]: files[0] }));
     } else if (name === "phone") {
-      // Handle phone input validation
       if (!/^\d*$/.test(value) || value.length > 11) return;
 
       if (value.startsWith("0")) {
@@ -174,19 +165,16 @@ export function BooknowModal({ showBooknowModal, setShowBooknowModal }) {
     }));
 
     if (selectedDate < currentDate) {
-      toast.error("You can't select a past date."); // Display toast notification only
+      toast.error("You can't select a past date.");
     } else {
       setDateError("");
     }
   };
-  // Assuming this is in your InputField component or similar
+
   const handlePhotoChange = (e) => {
     const file = e.target.files ? e.target.files[0] : null;
     setPetInfo((prev) => ({ ...prev, photo: file }));
   };
-
-  // Then in the InputField component
-  <Input type="file" onChange={handlePhotoChange} />;
 
   const handleTimeChange = (e) => {
     const selectedTime = e.target.value;
@@ -206,8 +194,8 @@ export function BooknowModal({ showBooknowModal, setShowBooknowModal }) {
     const { checked, value } = e.target;
     setPetInfo((prev) => {
       const updatedServices = checked
-        ? [...prev.services, value] // Add service if checked
-        : prev.services.filter((service) => service !== value); // Remove service if unchecked
+        ? [...prev.services, value]
+        : prev.services.filter((service) => service !== value);
       return { ...prev, services: updatedServices };
     });
   };
@@ -215,12 +203,11 @@ export function BooknowModal({ showBooknowModal, setShowBooknowModal }) {
   const handleClinicChange = (value) => {
     setPetInfo((prev) => ({
       ...prev,
-      clinic: [value], // Store selected clinic
-      room: [], // Reset room selection when clinic changes
+      clinic: [value],
+      room: [],
     }));
   };
 
-  // Dynamically determine room options based on the selected clinic
   const getRoomOptions = () => {
     if (petInfo.clinic[0] === "Clinic 1") {
       return ["Room 1", "Room 2", "Room 3", "Room 4"];
@@ -229,7 +216,7 @@ export function BooknowModal({ showBooknowModal, setShowBooknowModal }) {
     }
     return [];
   };
-  //file change
+
   const handleFileChange = (e) => {
     const file = e.target.files && e.target.files[0];
     if (file) {
@@ -241,7 +228,6 @@ export function BooknowModal({ showBooknowModal, setShowBooknowModal }) {
   };
 
   const handlePreviousStep = () => {
-    // Ensure that the step does not go below 1
     setStep((prevStep) => (prevStep > 1 ? prevStep - 1 : prevStep));
   };
 
@@ -257,17 +243,13 @@ export function BooknowModal({ showBooknowModal, setShowBooknowModal }) {
     setIsLoading(true);
 
     try {
-      // Combine age and unit into a single value
       const ageWithUnit = `${petInfo.age} ${petInfo.ageUnit || ""}`.trim();
 
-      // Prepare pet data for submission
       const petData = {
         ...petInfo,
-        age: ageWithUnit, // Use concatenated age with unit
-        status: petInfo.status || ["Pending"], // Ensure status is set to "Pending" by default
+        age: ageWithUnit,
       };
 
-      // Create user and pet entry
       const result = await createUser(personalInfo, petData, "user", payment);
       console.log("User and Pet created:", result);
 
@@ -283,7 +265,6 @@ export function BooknowModal({ showBooknowModal, setShowBooknowModal }) {
     }
   };
 
-  // Breed options for Dog and Cat types
   const dogBreeds = [
     "Labrador Retriever",
     "German Shepherd",
@@ -408,7 +389,6 @@ export function BooknowModal({ showBooknowModal, setShowBooknowModal }) {
                       onChange={handleInputChange(setPetInfo)}
                       placeholder="Enter pet's name"
                     />
-                    {/* Pet Type Selection */}
                     <SelectField
                       label="Pet Type"
                       options={["Dog", "Cat"]}
@@ -416,11 +396,10 @@ export function BooknowModal({ showBooknowModal, setShowBooknowModal }) {
                         handleInputChange(setPetInfo)({
                           target: { name: "type", value },
                         });
-                        setPetInfo((prev) => ({ ...prev, species: "" })); // Reset species on type change
+                        setPetInfo((prev) => ({ ...prev, species: "" }));
                       }}
                     />
 
-                    {/* Pet Species Dropdown - Disabled until Pet Type is selected */}
                     <SelectField
                       label="Pet Species"
                       options={getSpeciesOptions()}
@@ -439,7 +418,6 @@ export function BooknowModal({ showBooknowModal, setShowBooknowModal }) {
                   </div>
 
                   <div className="space-y-4">
-                    {/* Combined Age with Unit */}
                     <Label htmlFor="age">Pet Age</Label>
                     <div className="flex items-center gap-2">
                       <Input
@@ -510,7 +488,7 @@ export function BooknowModal({ showBooknowModal, setShowBooknowModal }) {
                     id="time"
                     name="time"
                     label="Appointment Time"
-                    value={petInfo.time[0] || ""} // Display selected time or default
+                    value={petInfo.time[0] || ""}
                     onChange={handleTimeChange}
                     type="time"
                     min={
@@ -518,7 +496,6 @@ export function BooknowModal({ showBooknowModal, setShowBooknowModal }) {
                     }
                   />
 
-                  {/* Pet Services Section */}
                   <div className="space-y-2">
                     <label className="block text-sm font-medium text-gray-700">
                       Pet Services
@@ -555,7 +532,6 @@ export function BooknowModal({ showBooknowModal, setShowBooknowModal }) {
                     )}
                   </div>
 
-                  {/* Show Room and Clinic fields only if required */}
                   {requiresClinicAndRoom && (
                     <>
                       <SelectField
@@ -567,7 +543,7 @@ export function BooknowModal({ showBooknowModal, setShowBooknowModal }) {
                         label="Select Room"
                         options={getRoomOptions()}
                         onChange={handleRoomChange}
-                        disabled={!petInfo.clinic.length} // Disable if no clinic selected
+                        disabled={!petInfo.clinic.length}
                         placeholder={
                           !petInfo.clinic.length
                             ? "Select clinic first"

@@ -28,6 +28,7 @@ export default function Pets() {
           // Query to fetch records with "Pet Boarding" service and "Clinic 2" clinic
           Query.equal("petServices", "Pet Boarding"),
           Query.equal("petClinic", "Clinic 2"),
+          Query.equal("status", "Accepted"),
         ]
       );
 

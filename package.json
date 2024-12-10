@@ -14,6 +14,7 @@
     "@hookform/resolvers": "^3.9.0",
     "@mui/material": "^6.1.9",
     "@mui/system": "^6.1.9",
+    "@next/font": "^14.2.15",
     "@photo-sphere-viewer/core": "^5.10.1",
     "@radix-ui/react-alert-dialog": "^1.1.2",
     "@radix-ui/react-avatar": "^1.1.1",
@@ -48,11 +49,12 @@
     "react-dom": "^18",
     "react-hook-form": "^7.53.0",
     "react-hot-toast": "^2.4.1",
-    "react-icons": "^5.3.0",
+    "react-icons": "^5.4.0",
     "react-intersection-observer": "^9.13.1",
     "react-toastify": "^10.0.6",
     "recharts": "^2.13.3",
     "tailwind-merge": "^2.5.3",
+    "tailwindcss": "^3.4.16",
     "tailwindcss-animate": "^1.0.7",
     "three": "^0.169.0",
     "zod": "^3.23.8",
@@ -61,7 +63,6 @@
   "devDependencies": {
     "eslint": "^8",
     "eslint-config-next": "14.2.15",
-    "postcss": "^8",
-    "tailwindcss": "^3.4.1"
+    "postcss": "^8"
   }
 }

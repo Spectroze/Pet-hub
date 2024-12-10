@@ -227,7 +227,7 @@ export default function Analytics() {
         {/* Analytics Cards Section */}
         <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
           <AnalyticsCard
-            title="Total Appointments"
+            title="Total Pet Boarding Appointments"
             value={analytics.totalAppointments.toLocaleString()}
             icon={CalendarIcon}
           />

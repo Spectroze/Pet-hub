@@ -6,7 +6,6 @@ import Analytics from "./analytics";
 import AppointmentCalendar from "../pet-training/appointments/page";
 import TrainingNotifications from "../pet-training/notifications/page";
 import Feedback from "../pet-training/feedback/page";
-import Archived from "../pet-training/archived/page";
 import Pets from "../pet-training/pets/page";
 import {
   getCurrentUser,
@@ -15,16 +14,13 @@ import {
 } from "@/lib/appwrite";
 import { Client, Databases, Storage } from "appwrite";
 import {
-  Menu,
   Home,
   Calendar as CalendarIcon,
   PawPrint,
-  Users,
   BarChart2,
   LogOut,
   MessageCircle,
   Bell,
-  Archive,
   MenuIcon,
   Edit,
   User,
@@ -50,7 +46,6 @@ const navigationItems = [
   { id: "pets", name: "Pets", icon: PawPrint },
   { id: "owner", name: "Owner", icon: User },
   { id: "notifications", name: "Notifications", icon: Bell },
-  { id: "archived", name: "Archived", icon: Archive },
 ];
 
 function Overview() {}
@@ -325,7 +320,7 @@ export default function PetTrainingDashboard() {
         {activeTab === "feedback" && <Feedback />}
         {activeTab === "owner" && <Owners />}
         {activeTab === "notifications" && <TrainingNotifications />}
-        {activeTab === "archived" && <Archived />}
+
         {activeTab === "pets" && <Pets />}
       </main>
     </div>

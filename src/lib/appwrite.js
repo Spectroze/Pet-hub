@@ -7,7 +7,7 @@ import {
   Query,
   Storage,
 } from "appwrite";
-
+import { Permission, Role } from "appwrite";
 export const appwriteConfig = {
   endpoint: "https://cloud.appwrite.io/v1",
   projectId: "67094c000023e950be96",
@@ -18,6 +18,7 @@ export const appwriteConfig = {
   roomCollectionId: "6738afcd000d644b6853",
   room2CollectionId: "674dace4000dcbb1badf",
   ratingaCollectionId: "671bd05400135c37afc1",
+  servicesCollectionId: "67570911000a102d0bb8",
 };
 
 const client = new Client();
@@ -536,3 +537,72 @@ export const disableAccount = async (accountId) => {
     throw new Error("Failed to disable account");
   }
 };
+//services signup
+export async function signUp(name, email, password, phone, services, avatar) {
+  try {
+    console.log("Attempting to create user with email:", email);
+
+    // Check if a user session already exists
+    try {
+      const currentUser = await account.get();
+      console.log("User is already logged in:", currentUser);
+      throw new Error("User is already logged in.");
+    } catch (error) {
+      if (error.code !== 401) throw error; // Re-throw non-session-related errors
+    }
+
+    // Generate a valid userId
+    const newUserId = ID.unique();
+    const newUser = await account.create(newUserId, email, password, name);
+    console.log("User created successfully:", newUser);
+
+    // Authenticate the user session
+    const session = await account.createEmailPasswordSession(email, password);
+    console.log("User session created successfully.");
+
+    // Upload avatar if it exists
+    let avatarUrl = "";
+    if (avatar) {
+      console.log("Uploading avatar...");
+      avatarUrl = await uploadPhoto(avatar); // Assume this returns the file URL
+      console.log("Avatar uploaded successfully:", avatarUrl);
+    } else {
+      throw new Error("Avatar is required but was not provided.");
+    }
+
+    // Prepare the document data
+    const documentData = {
+      name,
+      email,
+      services: services || [], // Ensure services is an array
+      phone,
+      status: ["Pending"], // Default empty array
+      accountId: newUser.$id, // Save the user ID
+      avatar: avatarUrl, // Use the uploaded avatar URL
+    };
+
+    console.log("Creating document with data:", documentData);
+
+    // Create the document
+    const document = await databases.createDocument(
+      appwriteConfig.databaseId,
+      appwriteConfig.servicesCollectionId,
+      ID.unique(), // Unique ID for the document
+      documentData,
+      [
+        Permission.read(Role.user(newUser.$id)),
+        Permission.write(Role.user(newUser.$id)),
+      ]
+    );
+
+    console.log("Document created successfully:", document);
+
+    return { user: newUser, document };
+  } catch (error) {
+    console.error("Detailed error in signUp:", error.message);
+    if (error.response) {
+      console.error("Error details:", error.response);
+    }
+    throw error;
+  }
+}

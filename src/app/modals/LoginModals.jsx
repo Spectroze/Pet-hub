@@ -12,21 +12,21 @@ import { Button } from "@/components/ui/button";
 import { Label } from "@/components/ui/label";
 import { AtSign, Lock, Eye, EyeOff } from "lucide-react";
 import Link from "next/link";
-import { ToastContainer, toast } from "react-toastify"; // Import Toast
+import { ToastContainer, toast } from "react-toastify";
 import { useRouter } from "next/navigation";
 import { signIn, getCurrentUser } from "@/lib/appwrite"; // Adjust import as needed
 import { useAuthUserStore } from "@/store/user";
+import SignupModal from "./SignupModal"; // Import the SignupModal component
 
 export default function LoginModal({ showLoginModal, setShowLoginModal }) {
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [showPassword, setShowPassword] = useState(false);
   const [loading, setLoading] = useState(false);
-  const [hasRedirected, setHasRedirected] = useState(false);
+  const [showSignupModal, setShowSignupModal] = useState(false);
 
   const router = useRouter();
 
-  // Zustand auth store
   const { authUser, setAuthUser } = useAuthUserStore();
 
   const togglePasswordVisibility = () => setShowPassword(!showPassword);
@@ -74,6 +74,16 @@ export default function LoginModal({ showLoginModal, setShowLoginModal }) {
     } finally {
       setLoading(false);
     }
+  };
+
+  const switchToSignup = () => {
+    setShowLoginModal(false);
+    setShowSignupModal(true);
+  };
+
+  const switchToLogin = () => {
+    setShowSignupModal(false);
+    setShowLoginModal(true);
   };
 
   return (
@@ -146,11 +156,26 @@ export default function LoginModal({ showLoginModal, setShowLoginModal }) {
             >
               {loading ? "Logging in..." : "Login"}
             </Button>
+
+            <div className="text-center">
+              <button
+                type="button"
+                onClick={switchToSignup}
+                className="text-sm text-primary hover:underline"
+              >
+                Don't have an account? Sign up
+              </button>
+            </div>
           </form>
         </DialogContent>
       </Dialog>
 
-      {/* Toast container to display notifications */}
+      <SignupModal
+        showSignupModal={showSignupModal}
+        setShowSignupModal={setShowSignupModal}
+        switchToLogin={switchToLogin}
+      />
+
       <ToastContainer position="top-right" autoClose={3000} />
     </>
   );
