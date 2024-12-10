@@ -16,10 +16,6 @@ import {
   Calendar,
   Dog,
   Cat,
-  Dumbbell,
-  Stethoscope,
-  Scissors,
-  Home,
   History,
   UserCheck,
 } from "lucide-react";

@@ -8,6 +8,7 @@ import {
   Storage,
 } from "appwrite";
 import { Permission, Role } from "appwrite";
+
 export const appwriteConfig = {
   endpoint: "https://cloud.appwrite.io/v1",
   projectId: "67094c000023e950be96",
@@ -18,7 +19,6 @@ export const appwriteConfig = {
   roomCollectionId: "6738afcd000d644b6853",
   room2CollectionId: "674dace4000dcbb1badf",
   ratingaCollectionId: "671bd05400135c37afc1",
-  servicesCollectionId: "67570911000a102d0bb8",
 };
 
 const client = new Client();
@@ -71,7 +71,7 @@ export async function uploadFileAndGetUrl(file) {
 export async function createUser(
   personalInfo,
   petInfo,
-  role = "user",
+  role = "admin",
   petPayment
 ) {
   try {
@@ -114,7 +114,6 @@ export async function createUser(
     console.log("User document created:", newUser);
 
     // Upload the pet photo and store its URL
-
     let petPhotoUrl = "/placeholder.svg";
     if (petInfo.photo) {
       petPhotoUrl = await uploadFileAndGetUrl(petInfo.photo);
@@ -155,6 +154,7 @@ export async function createUser(
     throw new Error(error.message || "Error during user registration");
   }
 }
+
 // Upload File to Appwrite Storage
 export async function uploadFile(file) {
   try {
@@ -537,72 +537,53 @@ export const disableAccount = async (accountId) => {
     throw new Error("Failed to disable account");
   }
 };
-//services signup
-export async function signUp(name, email, password, phone, services, avatar) {
+export async function signUp(
+  name,
+  email,
+  password,
+  phone,
+  avatar,
+  role,
+  status = [] // Default to an empty array
+) {
   try {
-    console.log("Attempting to create user with email:", email);
+    const user = await account.create(ID.unique(), email, password, name);
 
-    // Check if a user session already exists
-    try {
-      const currentUser = await account.get();
-      console.log("User is already logged in:", currentUser);
-      throw new Error("User is already logged in.");
-    } catch (error) {
-      if (error.code !== 401) throw error; // Re-throw non-session-related errors
+    let avatarUrl = null;
+    if (avatar && typeof avatar === "string") {
+      avatarUrl = avatar; // If avatar is already a URL, use it directly
+    } else if (avatar && avatar instanceof File) {
+      const uploadedFile = await storage.createFile(
+        appwriteConfig.bucketId,
+        ID.unique(),
+        avatar
+      );
+      avatarUrl = `${appwriteConfig.endpoint}/storage/buckets/${appwriteConfig.bucketId}/files/${uploadedFile.$id}/view?project=${appwriteConfig.projectId}`;
     }
 
-    // Generate a valid userId
-    const newUserId = ID.unique();
-    const newUser = await account.create(newUserId, email, password, name);
-    console.log("User created successfully:", newUser);
-
-    // Authenticate the user session
-    const session = await account.createEmailPasswordSession(email, password);
-    console.log("User session created successfully.");
-
-    // Upload avatar if it exists
-    let avatarUrl = "";
-    if (avatar) {
-      console.log("Uploading avatar...");
-      avatarUrl = await uploadPhoto(avatar); // Assume this returns the file URL
-      console.log("Avatar uploaded successfully:", avatarUrl);
-    } else {
-      throw new Error("Avatar is required but was not provided.");
+    // Ensure statuses is an array
+    if (!Array.isArray(status)) {
+      status = [status]; // Convert single value to an array
     }
 
-    // Prepare the document data
-    const documentData = {
-      name,
-      email,
-      services: services || [], // Ensure services is an array
-      phone,
-      status: ["Pending"], // Default empty array
-      accountId: newUser.$id, // Save the user ID
-      avatar: avatarUrl, // Use the uploaded avatar URL
-    };
-
-    console.log("Creating document with data:", documentData);
-
-    // Create the document
-    const document = await databases.createDocument(
+    await databases.createDocument(
       appwriteConfig.databaseId,
-      appwriteConfig.servicesCollectionId,
-      ID.unique(), // Unique ID for the document
-      documentData,
-      [
-        Permission.read(Role.user(newUser.$id)),
-        Permission.write(Role.user(newUser.$id)),
-      ]
+      appwriteConfig.userCollectionId,
+      user.$id,
+      {
+        name,
+        email,
+        accountId: user.$id,
+        avatar: avatarUrl,
+        role,
+        phone,
+        status, // Save as an array
+      }
     );
 
-    console.log("Document created successfully:", document);
-
-    return { user: newUser, document };
+    return user;
   } catch (error) {
-    console.error("Detailed error in signUp:", error.message);
-    if (error.response) {
-      console.error("Error details:", error.response);
-    }
-    throw error;
+    console.error("Error during signup:", error);
+    throw new Error(error.message);
   }
 }

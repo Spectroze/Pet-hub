@@ -1,3 +1,4 @@
+"use client";
 import { useState } from "react";
 import { useRouter } from "next/navigation";
 import { toast } from "react-toastify";
@@ -30,20 +31,24 @@ export default function SignupModal({
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [phone, setPhone] = useState("");
-  const [photo, setPhoto] = useState(null);
   const [showPassword, setShowPassword] = useState(false);
   const [loading, setLoading] = useState(false);
   const [avatar, setAvatar] = useState(null);
+  const [role, setRole] = useState("");
   const router = useRouter();
-  const [services, setServices] = useState([]);
-  const [status, setStatus] = useState([]);
   const { setAuthUser } = useAuthUserStore();
 
   const togglePasswordVisibility = () => setShowPassword(!showPassword);
 
   const handleAvatarChange = (e) => {
     if (e.target.files && e.target.files[0]) {
-      setAvatar(e.target.files[0]);
+      const file = e.target.files[0];
+      if (file.size > 5 * 1024 * 1024) {
+        // 5MB limit
+        toast.error("File size should not exceed 5MB");
+        return;
+      }
+      setAvatar(file);
     }
   };
 
@@ -69,8 +74,8 @@ export default function SignupModal({
       return false;
     }
 
-    if (services.length === 0) {
-      toast.error("Please select at least one service.");
+    if (role === "") {
+      toast.error("Please select a role.");
       return false;
     }
 
@@ -89,9 +94,9 @@ export default function SignupModal({
         email,
         password,
         phone,
-        [services],
         avatar,
-        ["Pending"]
+        role,
+        ["Pending"] // Default status
       );
 
       setAuthUser(user);
@@ -113,7 +118,7 @@ export default function SignupModal({
       <DialogContent className="sm:max-w-[425px] bg-gradient-to-b from-blue-100 to-green-100">
         <DialogHeader>
           <DialogTitle className="text-2xl font-bold flex items-center justify-center gap-2">
-            <span>Services Signup</span>
+            <span>Role Signup</span>
           </DialogTitle>
         </DialogHeader>
 
@@ -201,15 +206,12 @@ export default function SignupModal({
           </div>
 
           <div className="space-y-2">
-            <Label htmlFor="service" className="text-primary">
-              Services
+            <Label htmlFor="role" className="text-primary">
+              Role
             </Label>
             <Select
-              multiple
-              value={services}
-              onValueChange={(selectedServices) =>
-                setServices(selectedServices)
-              }
+              value={role}
+              onValueChange={(selectedRole) => setRole(selectedRole)}
               required
             >
               <SelectTrigger className="w-full border-primary focus:ring-primary">
@@ -217,11 +219,8 @@ export default function SignupModal({
               </SelectTrigger>
               <SelectContent>
                 <SelectItem value="Pet Training">Pet Training</SelectItem>
-                <SelectItem value="Pet Boarding">Pet Boarding</SelectItem>
-                <SelectItem value="Pet Grooming">Pet Grooming</SelectItem>
-                <SelectItem value="Pet Veterinary">
-                  Veterinary Services
-                </SelectItem>
+                <SelectItem value="Pet-Boarding">Pet Boarding</SelectItem>
+                <SelectItem value="clinic">Pet Veterinary </SelectItem>
               </SelectContent>
             </Select>
           </div>
