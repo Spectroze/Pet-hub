@@ -2,7 +2,7 @@
 
 import React, { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
-import { appwriteConfig } from "@/lib/appwrite";
+import { appwriteConfig, getAccount } from "@/lib/appwrite";
 import { fetchUserAndPetInfo, getCurrentUser } from "@/lib/appwrite";
 import { Avatar, AvatarImage, AvatarFallback } from "@/components/ui/avatar";
 import { Badge } from "@/components/ui/badge";
@@ -33,8 +33,7 @@ import {
   Settings as SettingsIcon,
   PlusCircle,
 } from "lucide-react";
-
-import { Client, Databases, Storage } from "appwrite";
+import { Client, Databases, Storage, Query } from "appwrite";
 
 import Appointment from "./appointment/page";
 import Notification from "./notification/page";
@@ -74,6 +73,9 @@ export default function PetCareDashboard() {
 
   const handleAddPet = async (newPet) => {
     try {
+      const currentAccount = await getAccount();
+      const ownerId = currentAccount.$id; // Use the accountId as ownerId
+
       const petPhotoUrl = newPet?.petPhotoId
         ? `https://cloud.appwrite.io/v1/storage/buckets/${appwriteConfig.bucketId}/files/${newPet.petPhotoId}/view?project=${appwriteConfig.projectId}`
         : "/placeholder.svg";
@@ -87,7 +89,7 @@ export default function PetCareDashboard() {
           species: newPet?.petSpecies || "None",
           carePlan: newPet?.petServices || "No Plan",
           petPhoto: petPhotoUrl,
-          ownerId: userId,
+          ownerId,
         },
       ]);
     } catch (error) {}
@@ -208,25 +210,6 @@ export default function PetCareDashboard() {
     }
   };
 
-  useEffect(() => {
-    const loadPets = async () => {
-      try {
-        const response = await databases.listDocuments(
-          appwriteConfig.databaseId,
-          appwriteConfig.petCollectionId
-        );
-        // Map over the documents to ensure each pet object includes the `id` property
-        setPets(
-          response.documents.map((doc) => ({
-            ...doc,
-            id: doc.$id, // Assign Appwrite's `$id` to `id`
-          }))
-        );
-      } catch (error) {
-        console.error("Error loading pets:", error);
-      }
-    };
-  });
   const openNewAppointmentModal = (pet) => {
     setSelectedPet(pet);
     setShowNewAppointmentModal(true);
@@ -259,29 +242,37 @@ export default function PetCareDashboard() {
 
     const loadData = async () => {
       try {
-        const { user, pet } = await fetchUserAndPetInfo(userId);
+        // Fetch user information
+        const currentAccount = await getAccount();
+        const ownerId = currentAccount.$id; // Get the accountId
 
+        // Fetch pets associated with the current account
+        const response = await databases.listDocuments(
+          appwriteConfig.databaseId,
+          appwriteConfig.petCollectionId,
+          [
+            // Query to filter pets by ownerId
+            Query.equal("ownerId", ownerId), // Assuming 'ownerId' is the field name in your pet collection
+          ]
+        );
+
+        // Map over the documents to ensure each pet object includes the `id` property
+        setPets(
+          response.documents.map((doc) => ({
+            ...doc,
+            id: doc.$id, // Assign Appwrite's `$id` to `id`
+          }))
+        );
+
+        // Fetch owner information
+        const { user } = await fetchUserAndPetInfo(userId);
         setOwnerInfo({
           ...user,
           avatarUrl: user.avatar || "/placeholder.svg",
         });
-
-        const petPhotoUrl = pet?.petPhotoId?.startsWith("http")
-          ? pet.petPhotoId
-          : `https://cloud.appwrite.io/v1/storage/buckets/${appwriteConfig.bucketId}/files/${pet.petPhotoId}/view?project=${appwriteConfig.projectId}`;
-
-        setPets([
-          {
-            name: pet?.petName || "No Name",
-            type: pet?.petType || "No Type",
-            age: pet?.petAge || "No Age",
-            species: pet?.petSpecies || "None",
-            carePlan: pet?.petServices || "No Plan",
-            petPhoto: petPhotoUrl,
-          },
-        ]);
       } catch (error) {
         setError("Failed to load user or pet data.");
+        console.error("Error loading data:", error);
       } finally {
         setLoading(false);
       }
@@ -487,8 +478,8 @@ export default function PetCareDashboard() {
                       <div className="flex flex-col items-center space-y-4">
                         <Avatar className="h-20 w-20 border-4 border-gray-700">
                           <AvatarImage
-                            src={pet.petPhoto || "/placeholder.svg"}
-                            alt={pet.name || "Pet"}
+                            src={pet.petPhotoId || "/placeholder.svg"}
+                            alt={pet.petName || "Pet"}
                             onError={(e) => {
                               e.currentTarget.src = "/placeholder.svg";
                             }}
@@ -540,33 +531,33 @@ export default function PetCareDashboard() {
                           ) : (
                             <>
                               <h2 className="text-xl font-semibold text-gray-100">
-                                {pet.name || "No Name"}
+                                {pet.petName || "No Name"}
                               </h2>
                               <Badge
                                 variant="outline"
                                 className="mt-1 border-gray-600 text-gray-300"
                               >
-                                {pet.type || "No Type"}
+                                {pet.petType || "No Type"}
                               </Badge>
                               <Separator className="bg-gray-700" />
                               <div className="w-full space-y-2">
                                 <p className="text-sm text-gray-300">
                                   <span className="font-medium">Age:</span>{" "}
-                                  {pet.age}
+                                  {pet.petAge}
                                 </p>
                                 <p className="text-sm text-gray-300">
                                   <span className="font-medium">
                                     Pet Species:
                                   </span>{" "}
-                                  {pet.species}
+                                  {pet.petSpecies}
                                 </p>
                                 <p className="text-sm text-gray-300">
                                   <span className="font-medium">
                                     Care Plan:
                                   </span>
                                   <div className="flex flex-wrap gap-1 mt-1">
-                                    {Array.isArray(pet.carePlan)
-                                      ? pet.carePlan.map((service, idx) => (
+                                    {Array.isArray(pet.petServices)
+                                      ? pet.petServices.map((service, idx) => (
                                           <Badge
                                             key={idx}
                                             className="bg-gray-700 text-gray-200 border-gray-600"

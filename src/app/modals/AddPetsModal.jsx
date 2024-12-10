@@ -23,8 +23,7 @@ import {
   uploadFileAndGetUrl,
   savePetToDatabase,
   getCurrentUser,
-  databases,
-  appwriteConfig,
+  getAccount,
 } from "../../lib/appwrite";
 
 const servicePayments = {
@@ -82,6 +81,7 @@ export default function AddPetModal({
   const [loading, setLoading] = useState(false);
   const [dateError, setDateError] = useState("");
   const [timeError, setTimeError] = useState("");
+
   const currentDate = new Date().toISOString().split("T")[0];
   const getCurrentTime = () =>
     new Date().toISOString().split("T")[1].slice(0, 5);
@@ -159,44 +159,25 @@ export default function AddPetModal({
     setLoading(true);
 
     try {
-      // Validate errors before proceeding
       if (dateError || timeError) {
         toast.error("Please fix the date and time errors before proceeding.");
         setLoading(false);
         return;
       }
 
-      // Step 1: Fetch current user
-      const currentUser = await getCurrentUser();
-      const ownerId = currentUser.$id;
+      const currentAccount = await getAccount(); // Fetch the current account
+      const ownerId = currentAccount.$id; // Use the Account ID as ownerId
 
-      // Validate payment range
-      if (petPayment < 500 || petPayment > 10000) {
-        toast.error("Total payment must be between 500 and 10,000 PHP.");
-        setLoading(false);
-        return;
-      }
-
-      // Step 2: Handle pet photo upload
-      let petPhotoId = "/placeholder.svg"; // Default photo
+      let petPhotoId = "/placeholder.svg";
       if (petPhoto) {
-        try {
-          const uploadedFileUrl = await uploadFileAndGetUrl(petPhoto);
-          petPhotoId = uploadedFileUrl.href; // Use the href property of the URL object
-        } catch (uploadError) {
-          console.error("Error uploading pet photo:", uploadError);
-          toast.error("Failed to upload pet photo. Using default image.");
-        }
+        petPhotoId = await uploadFileAndGetUrl(petPhoto);
       }
 
-      // Step 3: Combine age and unit into a single value
-      const ageWithUnit = `${petAge} ${petAgeUnit || ""}`.trim();
-
-      // Step 4: Prepare pet data for submission
-      const petData = {
+      const newPet = {
         ownerId,
         petName,
-        petAge: ageWithUnit,
+        petAge,
+        petAgeUnit,
         petType,
         petSpecies,
         petServices,
@@ -205,22 +186,16 @@ export default function AddPetModal({
         petClinic,
         petRoom,
         petPayment,
-        petPhotoId, // This is now always set, either to a URL or the placeholder
-        status: ["Pending"], // Default status
+        petPhotoId,
       };
 
-      // Step 5: Save the pet to the database
-      const savedPet = await savePetToDatabase(petData);
-
-      // Step 6: Update the UI
-      handleAddPet(savedPet);
-
-      // Show success notification
+      await savePetToDatabase(newPet);
+      handleAddPet(newPet);
       toast.success(`Pet ${petName} added successfully!`);
       setShowAddPetModal(false);
     } catch (error) {
       console.error("Add pet error:", error);
-      toast.error("An error occurred while saving the pet: " + error.message);
+      toast.error("An error occurred while saving the pet.");
     } finally {
       setLoading(false);
     }
@@ -229,6 +204,7 @@ export default function AddPetModal({
   return (
     <Dialog open={showAddPetModal} onOpenChange={setShowAddPetModal}>
       <DialogContent className="sm:max-w-[500px] bg-gradient-to-b from-blue-100 to-green-100 grid grid-cols-2 gap-3 p-4">
+        {" "}
         <DialogHeader className="col-span-2">
           <DialogTitle className="text-2xl font-bold flex items-center justify-center gap-2">
             <PawPrint className="w-6 h-6" />
@@ -425,6 +401,11 @@ export default function AddPetModal({
                 </SelectContent>
               </Select>
             </div>
+
+            {/* Clinic and Room Selection - Conditional Rendering */}
+            {["Pet Boarding", "Pet Grooming", "Pet Veterinary"].includes(
+              petServices[0]
+            ) && <></>}
           </div>
 
           <Button

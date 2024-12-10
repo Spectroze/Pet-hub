@@ -8,19 +8,6 @@ import { Card, CardHeader, CardTitle, CardContent } from "@/components/ui/card";
 import { FaEye } from "react-icons/fa"; // Import the eye icon
 import { Dialog, DialogContent, DialogTrigger } from "@/components/ui/dialog";
 import { Eye, PawPrint, Printer } from "lucide-react";
-const appwriteConfig = {
-  endpoint: "https://cloud.appwrite.io/v1",
-  projectId: "67094c000023e950be96",
-  databaseId: "670a040f000893eb8e06",
-  petCollectionId: "670ab2db00351bc09a92",
-};
-
-const client = new Client()
-  .setEndpoint(appwriteConfig.endpoint)
-  .setProject(appwriteConfig.projectId);
-
-const databases = new Databases(client);
-const account = new Account(client);
 
 export default function Appointment() {
   const [appointments, setAppointments] = useState([]);
@@ -423,20 +410,23 @@ export default function Appointment() {
       day: "numeric",
     });
   };
-  // time
+
   const formatTime = (time) => {
     if (!time) return "N/A";
 
     try {
-      // Create a new Date object from the provided time
+      // Option 1: Explicitly parse and adjust the time
       const dateTime = new Date(time);
 
-      // Adjust to local time explicitly using toLocaleTimeString
-      return dateTime.toLocaleTimeString("en-PH", {
+      // Adjust for timezone offset
+      const localTime = new Date(
+        dateTime.getTime() + dateTime.getTimezoneOffset() * 60000
+      );
+
+      return localTime.toLocaleTimeString("en-PH", {
         hour: "numeric",
         minute: "numeric",
         hour12: true,
-        timeZone: "Asia/Manila", // Explicitly specify the timezone
       });
     } catch (error) {
       console.error("Error formatting time:", error);

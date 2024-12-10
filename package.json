@@ -14,7 +14,6 @@
     "@hookform/resolvers": "^3.9.0",
     "@mui/material": "^6.1.9",
     "@mui/system": "^6.1.9",
-    "@next/font": "^14.2.15",
     "@photo-sphere-viewer/core": "^5.10.1",
     "@radix-ui/react-alert-dialog": "^1.1.2",
     "@radix-ui/react-avatar": "^1.1.1",
