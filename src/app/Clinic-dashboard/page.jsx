@@ -7,7 +7,7 @@ import Pets from "./pets/page";
 import Feedback from "./feedback/page";
 import Owners from "./owner/page";
 import Notifications from "./notification/page";
-
+import { useAuthUserStore } from "@/store/user";
 import {
   getCurrentUser,
   fetchUserAndPetInfo,
@@ -53,6 +53,8 @@ export default function ClinicDashboard() {
   const toggleEditOwner = () => setIsEditingOwner((prev) => !prev);
   const [userId, setUserId] = useState(null); // Declare userId state
   const [loading, setLoading] = useState(true); // Add loading state
+  const [isLoggingOut, setIsLoggingOut] = useState(false);
+  const clearAuthUser = useAuthUserStore((state) => state.clearAuthUser);
   const [newAvatarFile, setNewAvatarFile] = useState(null); // New avatar file
 
   const client = new Client();
@@ -76,15 +78,18 @@ export default function ClinicDashboard() {
   };
 
   const handleLogout = async () => {
+    setIsLoggingOut(true);
     try {
-      await signOut(); // Ensure this is the imported function
-      toast.success("Successfully logged out!");
-      router.push("/"); // Redirect to login page
+      await signOut();
+      clearAuthUser();
+      router.push("/");
     } catch (error) {
-      console.error("Error during logout:", error);
-      toast.error("Logout failed. Please try again.");
+      console.error("Failed to log out:", error);
+    } finally {
+      setIsLoggingOut(false);
     }
   };
+
   useEffect(() => {
     const checkSession = async () => {
       try {

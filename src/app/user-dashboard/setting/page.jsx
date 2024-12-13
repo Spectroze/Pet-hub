@@ -18,26 +18,13 @@ import {
   SettingsIcon,
 } from "lucide-react";
 import { useRouter } from "next/navigation";
-import { signOut } from "@/lib/appwrite";
+
 import { useAuthUserStore } from "@/store/user";
 
 export default function Setting() {
   const router = useRouter();
   const [isLoggingOut, setIsLoggingOut] = useState(false);
   const clearAuthUser = useAuthUserStore((state) => state.clearAuthUser);
-
-  const handleLogout = async () => {
-    setIsLoggingOut(true);
-    try {
-      await signOut();
-      clearAuthUser();
-      router.push("/");
-    } catch (error) {
-      console.error("Failed to log out:", error);
-    } finally {
-      setIsLoggingOut(false);
-    }
-  };
 
   return (
     <Card className="w-full max-w-6xl mx-auto bg-gradient-to-br from-gray-900 to-gray-800 shadow-[0_0_20px_rgba(66,153,225,0.5)] text-gray-100 mt-36">
@@ -72,18 +59,6 @@ export default function Setting() {
           />
         </div>
       </CardContent>
-      <CardFooter className="flex justify-center py-8 bg-gray-800 rounded-b-xl">
-        <Button
-          variant="destructive"
-          size="lg"
-          className="w-full max-w-md text-lg bg-red-600 hover:bg-red-700 text-white"
-          onClick={handleLogout}
-          disabled={isLoggingOut}
-        >
-          <LogOutIcon className="w-6 h-6 mr-3" />
-          {isLoggingOut ? "Logging out..." : "Log Out"}
-        </Button>
-      </CardFooter>
     </Card>
   );
 }

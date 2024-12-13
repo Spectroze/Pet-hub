@@ -1,5 +1,4 @@
 "use client";
-
 import { useState, useEffect } from "react";
 import { motion } from "framer-motion";
 import { useRouter } from "next/navigation";
@@ -30,6 +29,7 @@ import {
   CalendarIcon,
   Clock,
   Loader2,
+  User,
 } from "lucide-react";
 import { createUser, uploadPhoto, savePetToDatabase } from "../../lib/appwrite";
 import { ToastContainer, toast } from "react-toastify";
@@ -67,8 +67,8 @@ export function BooknowModal({ showBooknowModal, setShowBooknowModal }) {
     clinic: [],
     room: [],
     status: ["Pending"],
+    ageUnit: "",
   });
-
   const servicesOptions = [
     "Pet Boarding",
     "Pet Grooming",
@@ -153,6 +153,7 @@ export function BooknowModal({ showBooknowModal, setShowBooknowModal }) {
         `Please fill out all required fields: ${emptyFields.join(", ")}`
       );
     } else {
+      localStorage.setItem("personalInfo", JSON.stringify(personalInfo));
       setStep(2);
     }
   };
@@ -176,8 +177,24 @@ export function BooknowModal({ showBooknowModal, setShowBooknowModal }) {
     setPetInfo((prev) => ({ ...prev, photo: file }));
   };
 
+  const isTimeWithinRange = (time) => {
+    const [hours, minutes] = time.split(":").map(Number);
+    return (
+      (hours > 8 || (hours === 8 && minutes >= 0)) &&
+      (hours < 17 || (hours === 17 && minutes === 0))
+    );
+  };
+
   const handleTimeChange = (e) => {
     const selectedTime = e.target.value;
+
+    if (!isTimeWithinRange(selectedTime)) {
+      toast.error(
+        "Appointments are only available between 8:00 AM and 5:00 PM."
+      );
+      return;
+    }
+
     setPetInfo((prev) => ({
       ...prev,
       time: [selectedTime],
@@ -220,14 +237,42 @@ export function BooknowModal({ showBooknowModal, setShowBooknowModal }) {
   const handleFileChange = (e) => {
     const file = e.target.files && e.target.files[0];
     if (file) {
-      console.log("File selected for upload:", file);
-      setPetInfo((prev) => ({ ...prev, photo: file }));
+      const validImageTypes = [
+        "image/jpeg",
+        "image/png",
+        "image/gif",
+        "image/jpg",
+      ];
+      if (validImageTypes.includes(file.type)) {
+        console.log("File selected for upload:", file);
+        setPetInfo((prev) => ({ ...prev, photo: file }));
+        // Save the file name to localStorage
+        const petInfoFromStorage = JSON.parse(
+          localStorage.getItem("petInfo") || "{}"
+        );
+        localStorage.setItem(
+          "petInfo",
+          JSON.stringify({
+            ...petInfoFromStorage,
+            photoName: file.name,
+          })
+        );
+      } else {
+        toast.error("Please select a valid image file (JPEG, PNG, or GIF).");
+      }
     } else {
       console.warn("No file selected or invalid file input.");
     }
   };
 
   const handlePreviousStep = () => {
+    localStorage.setItem(
+      "petInfo",
+      JSON.stringify({
+        ...petInfo,
+        photo: null, // We can't store File objects in localStorage, so we'll need to handle this separately
+      })
+    );
     setStep((prevStep) => (prevStep > 1 ? prevStep - 1 : prevStep));
   };
 
@@ -248,10 +293,36 @@ export function BooknowModal({ showBooknowModal, setShowBooknowModal }) {
       const petData = {
         ...petInfo,
         age: ageWithUnit,
+        status: ["Pending"],
       };
 
       const result = await createUser(personalInfo, petData, "user", payment);
       console.log("User and Pet created:", result);
+
+      // Clear all saved data
+      localStorage.removeItem("personalInfo");
+      localStorage.removeItem("petInfo");
+      setPersonalInfo({
+        name: "",
+        email: "",
+        password: "",
+        phone: "",
+        ownerPhoto: null,
+      });
+      setPetInfo({
+        name: "",
+        type: "",
+        species: "",
+        age: "",
+        photo: null,
+        date: [],
+        time: [],
+        services: [],
+        clinic: [],
+        room: [],
+        status: ["Pending"],
+        ageUnit: "",
+      });
 
       toast.success("Booking successful!");
       setShowBooknowModal(false);
@@ -299,9 +370,66 @@ export function BooknowModal({ showBooknowModal, setShowBooknowModal }) {
     return [];
   };
 
+  useEffect(() => {
+    const savedPersonalInfo = localStorage.getItem("personalInfo");
+    const savedPetInfo = localStorage.getItem("petInfo");
+
+    if (savedPersonalInfo) {
+      setPersonalInfo(JSON.parse(savedPersonalInfo));
+    }
+
+    if (savedPetInfo) {
+      const parsedPetInfo = JSON.parse(savedPetInfo);
+      setPetInfo((prev) => ({
+        ...prev,
+        ...parsedPetInfo,
+        photo: prev.photo, // Keep the current photo if it exists
+      }));
+      // If there's a saved photo name, display it
+      if (parsedPetInfo.photoName) {
+        document.getElementById(
+          "pet-photo-name"
+        ).textContent = `Selected: ${parsedPetInfo.photoName}`;
+      }
+    }
+  }, []);
+
   return (
     <>
-      <Dialog open={showBooknowModal} onOpenChange={setShowBooknowModal}>
+      <Dialog
+        open={showBooknowModal}
+        onOpenChange={(open) => {
+          if (!open) {
+            // Clear all saved data when the dialog is closed
+            localStorage.removeItem("personalInfo");
+            localStorage.removeItem("petInfo");
+            setPersonalInfo({
+              name: "",
+              email: "",
+              password: "",
+              phone: "",
+              ownerPhoto: null,
+            });
+            setPetInfo({
+              name: "",
+              type: "",
+              species: "",
+              age: "",
+              photo: null,
+              date: [],
+              time: [],
+              services: [],
+              clinic: [],
+              room: [],
+              status: ["Pending"],
+              ageUnit: "",
+            });
+            setStep(1);
+          }
+          setShowBooknowModal(open);
+        }}
+        onPointerDownOutside={(e) => e.preventDefault()}
+      >
         <DialogContent className="sm:max-w-[425px] bg-gradient-to-b from-blue-100 to-green-100 p-6">
           <DialogHeader>
             <DialogTitle className="text-2xl font-bold flex items-center justify-center gap-2">
@@ -326,7 +454,7 @@ export function BooknowModal({ showBooknowModal, setShowBooknowModal }) {
                   id="name"
                   name="name"
                   label="Name"
-                  icon={<PawPrint />}
+                  icon={<User />}
                   value={personalInfo.name}
                   onChange={handleInputChange(setPersonalInfo)}
                   placeholder="Enter your Name"
@@ -367,6 +495,7 @@ export function BooknowModal({ showBooknowModal, setShowBooknowModal }) {
                   icon={<Camera />}
                   type="file"
                   onChange={handleInputChange(setPersonalInfo)}
+                  accept="image/*"
                 />
                 <Button
                   type="button"
@@ -401,7 +530,7 @@ export function BooknowModal({ showBooknowModal, setShowBooknowModal }) {
                     />
 
                     <SelectField
-                      label="Pet Species"
+                      label="Pet Breed"
                       options={getSpeciesOptions()}
                       onChange={(value) =>
                         handleInputChange(setPetInfo)({
@@ -428,9 +557,10 @@ export function BooknowModal({ showBooknowModal, setShowBooknowModal }) {
                         onChange={(e) =>
                           setPetInfo((prev) => ({
                             ...prev,
-                            age: e.target.value,
+                            age: Math.max(0, parseInt(e.target.value)) || "",
                           }))
                         }
+                        min="0"
                         placeholder="Enter age"
                         className="flex-grow"
                       />
@@ -469,7 +599,13 @@ export function BooknowModal({ showBooknowModal, setShowBooknowModal }) {
                       icon={<Camera />}
                       type="file"
                       onChange={handleFileChange}
+                      value={petInfo.photo ? "" : undefined}
+                      accept="image/*"
                     />
+                    <span
+                      id="pet-photo-name"
+                      className="text-sm text-gray-500 mt-1"
+                    ></span>
 
                     <InputField
                       id="date"
@@ -491,9 +627,9 @@ export function BooknowModal({ showBooknowModal, setShowBooknowModal }) {
                     value={petInfo.time[0] || ""}
                     onChange={handleTimeChange}
                     type="time"
-                    min={
-                      petInfo.date[0] === currentDate ? currentTime : "00:00"
-                    }
+                    min="08:00"
+                    max="17:00"
+                    step="1800"
                   />
 
                   <div className="space-y-2">
@@ -623,6 +759,7 @@ function InputField({
   value,
   onChange,
   placeholder,
+  accept,
 }) {
   return (
     <div className="space-y-2">
@@ -639,6 +776,7 @@ function InputField({
           onChange={onChange}
           placeholder={placeholder}
           className="pl-10"
+          accept={accept}
         />
       </div>
     </div>

@@ -28,6 +28,7 @@ const appwriteConfig = {
   projectId: "67094c000023e950be96",
   databaseId: "670a040f000893eb8e06",
   petCollectionId: "670ab2db00351bc09a92",
+  bucketId: "670ab439002597c2ae84",
 };
 
 // Appwrite client and database setup
@@ -97,12 +98,20 @@ export default function NewAppointmentModal({ isOpen, onClose, pet }) {
     const fetchPetDetails = async () => {
       if (pet && typeof pet === "object") {
         console.log("Using provided pet details:", pet);
+        const newPetDetails = {
+          petName: pet.petName || "N/A",
+          petType: pet.petType || "N/A",
+          petSpecies: pet.petSpecies || "N/A",
+          petAge: pet.petAge || "N/A",
+          petPhotoId: pet.petPhotoId || null,
+        };
+
+        // Set pet details with photo URL
         setPetDetails({
-          petName: pet.name || "N/A",
-          petType: pet.type || "N/A",
-          petSpecies: pet.species || "N/A",
-          petAge: pet.age || "N/A",
-          petPhotoId: pet.petPhoto || null,
+          ...newPetDetails,
+          petPhotoUrl: newPetDetails.petPhotoId
+            ? `https://cloud.appwrite.io/v1/storage/buckets/${appwriteConfig.bucketId}/files/${newPetDetails.petPhotoId}/view?project=${appwriteConfig.projectId}`
+            : "/placeholder.svg", // Default placeholder image
         });
       } else if (pet && isValidDocumentId(pet)) {
         try {
@@ -112,6 +121,7 @@ export default function NewAppointmentModal({ isOpen, onClose, pet }) {
             appwriteConfig.petCollectionId,
             pet
           );
+
           console.log("Fetched pet data:", petData);
 
           setPetDetails({
@@ -120,15 +130,20 @@ export default function NewAppointmentModal({ isOpen, onClose, pet }) {
             petSpecies: petData.petSpecies || "N/A",
             petAge: petData.petAge || "N/A",
             petPhotoId: petData.petPhotoId || null,
+            petPhotoUrl: petData.petPhotoId
+              ? `https://cloud.appwrite.io/v1/storage/buckets/${appwriteConfig.bucketId}/files/${petData.petPhotoId}/view?project=${appwriteConfig.projectId}`
+              : "/placeholder.svg", // Default fallback
           });
         } catch (error) {
           console.error("Error fetching pet details:", error);
+          toast.error("Failed to fetch pet details.");
           setPetDetails({
             petName: "N/A",
             petType: "N/A",
             petSpecies: "N/A",
             petAge: "N/A",
             petPhotoId: null,
+            petPhotoUrl: "/placeholder.svg", // Fallback if an error occurs
           });
         }
       } else {
@@ -139,13 +154,14 @@ export default function NewAppointmentModal({ isOpen, onClose, pet }) {
           petSpecies: "N/A",
           petAge: "N/A",
           petPhotoId: null,
+          petPhotoId: "/placeholder.svg", // Default placeholder image
         });
       }
     };
 
     if (isOpen) fetchPetDetails();
   }, [isOpen, pet]);
-
+  
   const handleServiceChange = (selectedService, isChecked) => {
     let updatedServices;
     if (isChecked) {
@@ -170,23 +186,23 @@ export default function NewAppointmentModal({ isOpen, onClose, pet }) {
     }, 0);
     setPayment(totalPayment.toString());
   };
-
   const handleSave = async () => {
     try {
       const ownerId = await getCurrentUserId();
       if (!ownerId) throw new Error("User ID not retrieved");
-
       const validatedPayment = Math.max(500, Math.min(1200, Number(payment)));
+
+      // Combine date and time to create a full timestamp
+      const combinedDateTime = new Date(`${date}T${time}`);
 
       const appointmentData = {
         petServices: services,
-        petDate: [date],
+        petDate: [combinedDateTime.toISOString()], // This will include both date and time
         petTime: [time],
         petClinic: [clinic],
         petRoom: [room],
         petPayment: validatedPayment,
         ownerId,
-        petId: pet?.id,
         petName: petDetails.petName,
         petType: petDetails.petType,
         petSpecies: petDetails.petSpecies,
@@ -216,7 +232,7 @@ export default function NewAppointmentModal({ isOpen, onClose, pet }) {
         </DialogHeader>
 
         <div className="flex flex-col gap-6">
-          {petDetails.petPhotoId ? (
+          {petDetails.petPhotoUrl ? (
             <div className="mt-4">
               <label>Pet Photo</label>
               <img
@@ -360,7 +376,7 @@ export default function NewAppointmentModal({ isOpen, onClose, pet }) {
         <DialogFooter className="mt-6">
           <Button onClick={onClose}>Cancel</Button>
           <Button onClick={handleSave} disabled={!isFormValid}>
-            Save
+            Submit
           </Button>
         </DialogFooter>
       </DialogContent>

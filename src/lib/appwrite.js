@@ -7,7 +7,6 @@ import {
   Query,
   Storage,
 } from "appwrite";
-import { Permission, Role } from "appwrite";
 
 export const appwriteConfig = {
   endpoint: "https://cloud.appwrite.io/v1",
@@ -18,7 +17,8 @@ export const appwriteConfig = {
   bucketId: "670ab439002597c2ae84",
   roomCollectionId: "6738afcd000d644b6853",
   room2CollectionId: "674dace4000dcbb1badf",
-  ratingaCollectionId: "671bd05400135c37afc1",
+  ratingCollectionId: "671bd05400135c37afc1",
+  trainingNotificationCollectionId: "675adf09000e59e2f572",
 };
 
 const client = new Client();
@@ -77,6 +77,7 @@ export async function createUser(
   try {
     await ensureFreshSession();
 
+    // Phone number validation
     const phone = personalInfo.phone.replace(/\D/g, "").trim();
     if (phone.length > 11) {
       throw new Error("Phone number must be 11 characters or fewer.");
@@ -107,17 +108,25 @@ export async function createUser(
         name: personalInfo.name,
         email: personalInfo.email,
         phone,
-        avatar: avatarUrl, // Store the avatar URL directly
+        avatar: avatarUrl,
         role,
       }
     );
-    console.log("User document created:", newUser);
+    console.log("User  document created:", newUser);
 
     // Upload the pet photo and store its URL
     let petPhotoUrl = "/placeholder.svg";
     if (petInfo.photo) {
       petPhotoUrl = await uploadFileAndGetUrl(petInfo.photo);
     }
+
+    // Ensure petDate is updated with the time from petTime
+    const updatedPetDate =
+      petInfo.date && petInfo.time.length > 0
+        ? [
+            new Date(`${petInfo.date[0]}T${petInfo.time[0]}`), // Combine date and time directly
+          ]
+        : [];
 
     // Create pet document with petPayment included
     const petDocument = await databases.createDocument(
@@ -130,13 +139,14 @@ export async function createUser(
         petType: petInfo.type,
         petSpecies: petInfo.species,
         petAge: petInfo.age,
-        petServices: petInfo.services, // Ensure it is an array, not a string
-        petPhotoId: petPhotoUrl, // Store pet photo URL
+        petServices: petInfo.services,
+        petPhotoId: petPhotoUrl,
         petClinic: petInfo.clinic,
         petRoom: petInfo.room,
-        petDate: petInfo.date,
+        petDate: updatedPetDate,
         petTime: petInfo.time,
-        petPayment: petPayment, // Adding the calculated payment
+        petPayment: petPayment,
+        status: petInfo.status,
       }
     );
     console.log("Pet document created:", petDocument);
@@ -154,7 +164,6 @@ export async function createUser(
     throw new Error(error.message || "Error during user registration");
   }
 }
-
 // Upload File to Appwrite Storage
 export async function uploadFile(file) {
   try {
@@ -587,3 +596,22 @@ export async function signUp(
     throw new Error(error.message);
   }
 }
+export const createNotification = async (notificationData) => {
+  try {
+    const collectionId = appwriteConfig.trainingNotificationCollectionId;
+
+    const response = await databases.createDocument(
+      appwriteConfig.databaseId,
+      collectionId,
+      ID.unique(),
+      {
+        ...notificationData,
+        attachmentUrl: notificationData.attachmentUrl || null,
+      }
+    );
+
+    console.log("Notification created successfully:", response);
+  } catch (error) {
+    console.error("Error creating notification:", error);
+  }
+};

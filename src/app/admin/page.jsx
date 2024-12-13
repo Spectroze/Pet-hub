@@ -5,6 +5,8 @@ import UserManagement from "../admin/users/page";
 import CreateAccountForm from "../admin/createAccount/page";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { ToastContainer, toast } from "react-toastify";
+import "react-toastify/dist/ReactToastify.css";
 import {
   BarChartIcon,
   Users,
@@ -37,6 +39,7 @@ import {
 } from "recharts";
 import Activity_Log from "./activity_log/page";
 import Acceptaccount from "./AcceptAccount/page";
+import { useAuthUserStore } from "@/store/user";
 
 // Mock data for charts
 const monthlyRevenueData = [
@@ -206,6 +209,8 @@ function StatCard({ title, value, icon: Icon }) {
 export default function PetcareAdminDashboard() {
   const [activeTab, setActiveTab] = useState("overview");
   const [isSidebarOpen, setIsSidebarOpen] = useState(true);
+  const [isLoggingOut, setIsLoggingOut] = useState(false);
+  const clearAuthUser = useAuthUserStore((state) => state.clearAuthUser);
   const [data, setData] = useState({
     totalPets: 0,
     totalOwners: 0,
@@ -232,7 +237,6 @@ export default function PetcareAdminDashboard() {
     { id: "overview", icon: BarChartIcon, label: "Overview" },
     { id: "users", icon: Users, label: "User Management" },
     { id: "createAccount", icon: UserPlus, label: "Create Account" },
-    { id: "AcceptAccount", icon: UserCheck, label: "Accept Account" }, // Added Accept Account item
     { id: "activity_log", icon: History, label: "Activity Log" },
     { id: "logout", icon: LogOut, label: "Logout" },
   ];
@@ -240,16 +244,23 @@ export default function PetcareAdminDashboard() {
   const toggleSidebar = () => setIsSidebarOpen(!isSidebarOpen);
 
   const handleLogout = async () => {
-    const confirmed = confirm("Are you sure you want to log out?");
-    if (confirmed) {
-      try {
-        await signOut();
-        router.push("/");
-      } catch (error) {
-        console.error("Failed to log out:", error);
-      }
+    setIsLoggingOut(true);
+    try {
+      await signOut();
+      clearAuthUser();
+      router.push("/");
+      toast.success("Logout successful!", {
+        position: "top-right",
+        autoClose: 3000,
+      });
+    } catch (error) {
+      console.error("Failed to log out:", error);
+      toast.error("Failed to log out. Please try again.");
+    } finally {
+      setIsLoggingOut(false);
     }
   };
+
   useEffect(() => {
     const fetchData = async () => {
       try {
@@ -378,6 +389,7 @@ export default function PetcareAdminDashboard() {
 
   return (
     <div className="flex h-screen bg-[#1C1C1C] text-[#FFA07A]">
+      <ToastContainer />
       {/* Sidebar */}
       <aside
         className={`bg-[#2C2C2C] text-[#FFA07A] ${

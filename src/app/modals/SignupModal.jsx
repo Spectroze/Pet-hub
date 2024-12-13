@@ -118,7 +118,7 @@ export default function SignupModal({
       <DialogContent className="sm:max-w-[425px] bg-gradient-to-b from-blue-100 to-green-100">
         <DialogHeader>
           <DialogTitle className="text-2xl font-bold flex items-center justify-center gap-2">
-            <span>Role Signup</span>
+            <span>Services Offer Signup</span>
           </DialogTitle>
         </DialogHeader>
 
@@ -219,7 +219,7 @@ export default function SignupModal({
               </SelectTrigger>
               <SelectContent>
                 <SelectItem value="Pet Training">Pet Training</SelectItem>
-                <SelectItem value="Pet-Boarding">Pet Boarding</SelectItem>
+                <SelectItem value="pet-boarding">Pet Boarding</SelectItem>
                 <SelectItem value="clinic">Pet Veterinary </SelectItem>
               </SelectContent>
             </Select>

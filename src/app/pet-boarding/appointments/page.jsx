@@ -4,7 +4,6 @@ import { Calendar, momentLocalizer, Views } from "react-big-calendar";
 import moment from "moment-timezone";
 import { styled } from "@mui/system";
 import { createTheme, ThemeProvider } from "@mui/material/styles";
-
 import "react-big-calendar/lib/css/react-big-calendar.css";
 import {
   Dialog,
@@ -170,10 +169,32 @@ export default function AppointmentCalendar({ databaseId, collectionId }) {
     }
   };
 
-  const parseDateTime = (date, time = "00:00") => {
-    const combined = `${date} ${time}`;
-    const parsedDate = moment.tz(combined, "YYYY-MM-DD HH:mm", "Asia/Manila");
-    return parsedDate.isValid() ? parsedDate.toDate() : new Date();
+  const parseDate = (date) => {
+    if (!date) return "N/A";
+    return new Date(date).toLocaleDateString("en-PH", {
+      year: "numeric",
+      month: "long",
+      day: "numeric",
+    });
+  };
+  const parseTime = (time) => {
+    if (!time) return "N/A";
+
+    try {
+      // Create a moment object from the time string
+      const momentTime = moment(time, ["h:mm A", "HH:mm"]); // Adjust formats as needed
+
+      // Check if the moment object is valid
+      if (!momentTime.isValid()) {
+        return "Invalid time";
+      }
+
+      // Convert to the desired timezone and format
+      return momentTime.tz("Asia/Manila").format("h:mm A");
+    } catch (error) {
+      console.error("Error formatting time:", error);
+      return "Invalid time";
+    }
   };
 
   const fetchAppointments = async () => {
@@ -181,18 +202,17 @@ export default function AppointmentCalendar({ databaseId, collectionId }) {
     setError("");
 
     try {
-      // Query to fetch both Pet Boarding and Pet Clinic services, specifically for Clinic 1
       const response = await databases.listDocuments(
         databaseId || dbId,
         collectionId || petCollId,
         [
-          Query.equal("petServices", "Pet Boarding"), // Fetch both Pet Boarding and Pet Clinic
-          Query.equal("petClinic", "Clinic 1"), // Filter for Pet Clinic Clinic 1
+          Query.equal("petServices", "Pet Boarding"),
+          Query.equal("petClinic", "Clinic 1"),
         ]
       );
 
       if (!response.documents || response.documents.length === 0) {
-        setError("No matching appointments found.");
+        setError("No Pet Boarding appointments found.");
         setEvents([]);
         setLoading(false);
         return;
@@ -200,7 +220,6 @@ export default function AppointmentCalendar({ databaseId, collectionId }) {
 
       const fetchedEvents = await Promise.all(
         response.documents.map(async (appointment) => {
-          // Fetch owner details only if ownerId exists, otherwise fallback to defaults
           const { ownerName, ownerAvatar } = appointment.ownerId
             ? await getOwnerDetails(appointment.ownerId)
             : {
@@ -208,10 +227,18 @@ export default function AppointmentCalendar({ databaseId, collectionId }) {
                 ownerAvatar: "/images/avatar-placeholder.png",
               };
 
-          // Fetch pet avatar, fallback to default if not available
           const petAvatar = appointment.petPhotoId
             ? constructAvatarUrl(appointment.petPhotoId)
             : "/images/avatar-placeholder.png";
+
+          // Use the first element of petDate which contains both date and time
+          const appointmentDateTime = appointment.petDate[0];
+
+          // Parse the date and time from the single datetime string
+          const parsedDateTime = new Date(appointmentDateTime);
+
+          const startTime = parsedDateTime;
+          const endTime = new Date(startTime.getTime() + 60 * 60 * 1000); // 1 hour later
 
           return {
             id: appointment.$id,
@@ -221,8 +248,10 @@ export default function AppointmentCalendar({ databaseId, collectionId }) {
             petSpecies: appointment.petSpecies || "Unknown Species",
             petAvatar: petAvatar,
             userAvatar: ownerAvatar,
-            start: parseDateTime(appointment.petDate, appointment.petTime),
-            end: parseDateTime(appointment.petDate, appointment.petTime),
+            date: parseDate(appointmentDateTime),
+            time: parseTime(moment(appointmentDateTime).format("HH:mm")),
+            start: startTime,
+            end: endTime,
             status: appointment.status || "Pending",
           };
         })
@@ -471,15 +500,15 @@ export default function AppointmentCalendar({ databaseId, collectionId }) {
                 </Typography>
                 <Typography variant="body1">
                   <strong>Date:</strong>{" "}
-                  {moment
-                    .tz(selectedEvent.start, "Asia/Manila")
-                    .format("MMMM D, YYYY")}
+                  {selectedEvent.date
+                    ? moment
+                        .tz(selectedEvent.date, "Asia/Manila")
+                        .format("MMMM D, YYYY")
+                    : "N/A"}
                 </Typography>
                 <Typography variant="body1">
                   <strong>Time:</strong>{" "}
-                  {moment
-                    .tz(selectedEvent.start, "Asia/Manila")
-                    .format("h:mm A")}
+                  {selectedEvent.time ? parseTime(selectedEvent.time) : "N/A"}
                 </Typography>
                 <Typography variant="body1" color="primary" mt={2}>
                   <strong>Status:</strong> {selectedEvent.status}
@@ -517,41 +546,52 @@ export default function AppointmentCalendar({ databaseId, collectionId }) {
       >
         <DialogTitle>Decline Appointment</DialogTitle>
         <DialogContent>
-          <Typography variant="body1" gutterBottom>
-            Please provide a reason for declining this appointment:
+          <Typography variant="body1">
+            Are you sure you want to decline this appointment?
           </Typography>
           <TextField
-            autoFocus
-            margin="dense"
-            label="Decline Reason"
-            type="text"
+            label="Reason for Decline"
+            multiline
+            rows={4}
             fullWidth
+            variant="outlined"
             value={declineReason}
             onChange={(e) => setDeclineReason(e.target.value)}
+            sx={{ mt: 2 }}
           />
         </DialogContent>
         <DialogActions>
-          <Button onClick={handleDecline} color="secondary" variant="contained">
-            Confirm Decline
+          <Button
+            onClick={handleDecline}
+            color="secondary"
+            variant="contained"
+            disabled={!declineReason.trim()}
+          >
+            Decline
           </Button>
           <Button
             onClick={() => setOpenDeclineDialog(false)}
             variant="outlined"
+            color="primary"
           >
             Cancel
           </Button>
         </DialogActions>
       </Dialog>
 
+      {/* Snackbar for notifications */}
       <Snackbar
         open={notification.open}
-        autoHideDuration={6000}
-        onClose={() => setNotification({ ...notification, open: false })}
+        autoHideDuration={4000}
+        onClose={() =>
+          setNotification({ open: false, message: "", severity: "info" })
+        }
       >
         <Alert
-          onClose={() => setNotification({ ...notification, open: false })}
+          onClose={() =>
+            setNotification({ open: false, message: "", severity: "info" })
+          }
           severity={notification.severity}
-          sx={{ width: "100%" }}
         >
           {notification.message}
         </Alert>

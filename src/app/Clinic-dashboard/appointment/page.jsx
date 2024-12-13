@@ -4,7 +4,6 @@ import { Calendar, momentLocalizer, Views } from "react-big-calendar";
 import moment from "moment-timezone";
 import { styled } from "@mui/system";
 import { createTheme, ThemeProvider } from "@mui/material/styles";
-
 import "react-big-calendar/lib/css/react-big-calendar.css";
 import {
   Dialog,
@@ -170,10 +169,32 @@ export default function AppointmentCalendar({ databaseId, collectionId }) {
     }
   };
 
-  const parseDateTime = (date, time = "00:00") => {
-    const combined = `${date} ${time}`;
-    const parsedDate = moment.tz(combined, "YYYY-MM-DD HH:mm", "Asia/Manila");
-    return parsedDate.isValid() ? parsedDate.toDate() : new Date();
+  const parseDate = (date) => {
+    if (!date) return "N/A";
+    return new Date(date).toLocaleDateString("en-PH", {
+      year: "numeric",
+      month: "long",
+      day: "numeric",
+    });
+  };
+  const parseTime = (time) => {
+    if (!time) return "N/A";
+
+    try {
+      // Create a moment object from the time string
+      const momentTime = moment(time, ["h:mm A", "HH:mm"]); // Adjust formats as needed
+
+      // Check if the moment object is valid
+      if (!momentTime.isValid()) {
+        return "Invalid time";
+      }
+
+      // Convert to the desired timezone and format
+      return momentTime.tz("Asia/Manila").format("h:mm A");
+    } catch (error) {
+      console.error("Error formatting time:", error);
+      return "Invalid time";
+    }
   };
 
   const fetchAppointments = async () => {
@@ -181,11 +202,13 @@ export default function AppointmentCalendar({ databaseId, collectionId }) {
     setError("");
 
     try {
-      // Query to fetch only Pet Boarding services
       const response = await databases.listDocuments(
         databaseId || dbId,
         collectionId || petCollId,
-        [Query.equal("petServices", ["Pet Veterinary", "Pet Grooming"])] // Filter for Pet Boarding services
+        [
+          Query.equal("petServices", ["Pet Veterinary", "Pet Grooming"]),
+          Query.limit(1000),
+        ] // Filter for Pet Boarding services
       );
 
       if (!response.documents || response.documents.length === 0) {
@@ -208,6 +231,15 @@ export default function AppointmentCalendar({ databaseId, collectionId }) {
             ? constructAvatarUrl(appointment.petPhotoId)
             : "/images/avatar-placeholder.png";
 
+          // Use the first element of petDate which contains both date and time
+          const appointmentDateTime = appointment.petDate[0];
+
+          // Parse the date and time from the single datetime string
+          const parsedDateTime = new Date(appointmentDateTime);
+
+          const startTime = parsedDateTime;
+          const endTime = new Date(startTime.getTime() + 60 * 60 * 1000); // 1 hour later
+
           return {
             id: appointment.$id,
             title: appointment.petServices || "No Title",
@@ -216,8 +248,10 @@ export default function AppointmentCalendar({ databaseId, collectionId }) {
             petSpecies: appointment.petSpecies || "Unknown Species",
             petAvatar: petAvatar,
             userAvatar: ownerAvatar,
-            start: parseDateTime(appointment.petDate, appointment.petTime),
-            end: parseDateTime(appointment.petDate, appointment.petTime),
+            date: parseDate(appointmentDateTime),
+            time: parseTime(moment(appointmentDateTime).format("HH:mm")),
+            start: startTime,
+            end: endTime,
             status: appointment.status || "Pending",
           };
         })
@@ -466,15 +500,15 @@ export default function AppointmentCalendar({ databaseId, collectionId }) {
                 </Typography>
                 <Typography variant="body1">
                   <strong>Date:</strong>{" "}
-                  {moment
-                    .tz(selectedEvent.start, "Asia/Manila")
-                    .format("MMMM D, YYYY")}
+                  {selectedEvent.date
+                    ? moment
+                        .tz(selectedEvent.date, "Asia/Manila")
+                        .format("MMMM D, YYYY")
+                    : "N/A"}
                 </Typography>
                 <Typography variant="body1">
                   <strong>Time:</strong>{" "}
-                  {moment
-                    .tz(selectedEvent.start, "Asia/Manila")
-                    .format("h:mm A")}
+                  {selectedEvent.time ? parseTime(selectedEvent.time) : "N/A"}
                 </Typography>
                 <Typography variant="body1" color="primary" mt={2}>
                   <strong>Status:</strong> {selectedEvent.status}

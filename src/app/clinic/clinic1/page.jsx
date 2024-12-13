@@ -77,20 +77,15 @@ export default function Clinic1() {
   }, []);
 
   const getStatusColor = (status) => {
-    console.log("Status:", status); // Debugging log to check the value of status
+    const statusColors = {
+      Available: "bg-green-500 text-white",
+      Occupied: "bg-red-500 text-white",
+      Reserved: "bg-yellow-500 text-black",
+      Cleaning: "bg-blue-500 text-white",
+      default: "bg-gray-500 text-white",
+    };
 
-    switch (status) {
-      case "Available":
-        return "bg-green-500 text-white"; // Green for available
-      case "Occupied":
-        return "bg-red-500 text-white"; // Red for occupied
-      case "Reserved":
-        return "bg-yellow-500 text-black"; // Yellow for reserved
-      case "Cleaning":
-        return "bg-blue-500 text-white"; // Blue for cleaning
-      default:
-        return "bg-gray-500 text-white"; // Gray for no status
-    }
+    return statusColors[status] || statusColors["default"];
   };
 
   const handleRoomClick = (room) => {
@@ -147,7 +142,7 @@ export default function Clinic1() {
                 className="rounded-lg shadow-md w-full h-[100px] object-cover mb-2"
               />
               <h5 className="text-lg font-semibold">
-                Room {index + 1} {room.name}
+                Cage {index + 1} {room.name}
               </h5>
 
               {/* Styled Status Badge */}

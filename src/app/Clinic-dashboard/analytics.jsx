@@ -60,29 +60,36 @@ export default function Analytics() {
           );
         }
 
-        const petCollection = await databases.listDocuments(
-          databaseId,
-          petCollectionId
-        );
+        const clinics = ["Clinic 1", "Clinic 2"]; // Include all clinics here
+        const allFilteredPets = [];
 
-        const filteredPets = petCollection.documents.filter((doc) => {
-          const petServices = doc.petServices || [];
-          const petClinic = doc.petClinic || [];
-          const status = doc.status || [];
-          const petType = doc.petType || "Unknown";
-
-          return (
-            (petServices.includes("Pet Grooming") ||
-              petServices.includes("Pet Veterinary")) &&
-            petClinic.includes(filters.selectedClinic) &&
-            (filters.selectedPetType === "All" ||
-              petType === filters.selectedPetType) &&
-            status.includes("Accepted")
+        for (const clinic of clinics) {
+          const petCollection = await databases.listDocuments(
+            databaseId,
+            petCollectionId
           );
-        });
+
+          const filteredPets = petCollection.documents.filter((doc) => {
+            const petServices = doc.petServices || [];
+            const petClinic = doc.petClinic || [];
+            const status = doc.status || [];
+            const petType = doc.petType || "Unknown";
+
+            return (
+              (petServices.includes("Pet Grooming") ||
+                petServices.includes("Pet Veterinary")) &&
+              petClinic.includes(clinic) &&
+              (filters.selectedPetType === "All" ||
+                petType === filters.selectedPetType) &&
+              status.includes("Accepted")
+            );
+          });
+
+          allFilteredPets.push(...filteredPets);
+        }
 
         const uniquePets = new Set();
-        filteredPets.forEach((doc) => {
+        allFilteredPets.forEach((doc) => {
           const petName = doc.petName || null;
           if (petName) uniquePets.add(petName);
         });
@@ -95,19 +102,19 @@ export default function Analytics() {
         );
 
         const filteredUsers = userCollection.documents.filter((user) => {
-          const userPets = filteredPets.filter(
+          const userPets = allFilteredPets.filter(
             (pet) => pet.ownerId === user.accountId
           );
           return userPets.length > 0;
         });
 
         const totalOwners = filteredUsers.length;
-        const totalAppointments = filteredPets.length;
+        const totalAppointments = allFilteredPets.length;
 
         const monthlyStats = {};
         const petTypeCount = { dogs: 0, cats: 0, others: 0 };
 
-        filteredPets.forEach((doc) => {
+        allFilteredPets.forEach((doc) => {
           const petServices = doc.petServices || [];
           const payment = doc.petPayment || 0;
           const petDateArray = doc.petDate || [];
@@ -257,10 +264,6 @@ export default function Analytics() {
                   data={[
                     { name: "Dogs", value: analytics.petTypeDistribution.dogs },
                     { name: "Cats", value: analytics.petTypeDistribution.cats },
-                    {
-                      name: "Others",
-                      value: analytics.petTypeDistribution.others,
-                    },
                   ]}
                   cx="50%"
                   cy="50%"

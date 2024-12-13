@@ -23,6 +23,7 @@ import {
 } from "lucide-react";
 import { databases } from "@/lib/appwrite";
 import { appwriteConfig } from "@/lib/appwrite";
+import { Query } from "appwrite";
 
 function AnalyticsCard({ title, value, icon: Icon }) {
   return (
@@ -71,157 +72,147 @@ export default function Analytics() {
           );
         }
 
-        // Fetch documents from the pet collection
-        const petCollection = await databases.listDocuments(
-          databaseId,
-          petCollectionId
+        let allPetDocuments = [];
+        let offset = 0;
+        const limit = 1000; // Fetch 100 documents per page
+
+        while (true) {
+          const petCollection = await databases.listDocuments(
+            databaseId,
+            petCollectionId,
+            [Query.limit(limit), Query.offset(offset)]
+          );
+
+          allPetDocuments = [...allPetDocuments, ...petCollection.documents];
+
+          if (petCollection.documents.length < limit) {
+            // No more documents to fetch
+            break;
+          }
+
+          offset += limit;
+        }
+
+        console.log("Total Pet Documents:", allPetDocuments.length);
+
+        // Count unique owners
+        const uniqueOwners = new Set(
+          allPetDocuments.map((pet) => pet.ownerId).filter(Boolean)
         );
+        const totalOwners = uniqueOwners.size;
 
         // Filter pets with "Pet Boarding" service, "Clinic 1" in petClinic, and status "Accepted"
-        const filteredPets = petCollection.documents.filter((doc) => {
-          const petServices = doc.petServices || [];
-          const petClinic = doc.petClinic || [];
-          const status = doc.status || []; // Assuming status is an array
+        const filteredPets = allPetDocuments.filter((doc) => {
+          const petServices = Array.isArray(doc.petServices)
+            ? doc.petServices
+            : [];
+          const petClinic = Array.isArray(doc.petClinic) ? doc.petClinic : [];
+          const status = Array.isArray(doc.status) ? doc.status : [];
+
           return (
             petServices.includes("Pet Boarding") &&
             petClinic.includes("Clinic 1") &&
-            status.includes("Accepted") // Only include pets with "Accepted" status
+            status.includes("Accepted")
           );
         });
 
-        // Calculate unique pets by name with "Pet Boarding" service, "Clinic 1" in petClinic, and status "Accepted"
+        // Log filtered pets for verification
+        console.log("Filtered Pets:", filteredPets.length);
+
+        // Calculate pet types within filtered pets
+        const petTypeCounts = {
+          dogs: 0,
+          cats: 0,
+          other: 0,
+        };
+
+        // Unique pets tracking
         const uniquePets = new Set();
-        let dogs = 0,
-          cats = 0,
-          others = 0;
 
-        filteredPets.forEach((doc) => {
-          const petServices = doc.petServices || [];
-          const petClinic = doc.petClinic || [];
-          const status = doc.status || [];
-          const petName = doc.petName || null;
-          const petType = doc.petType ? doc.petType.toLowerCase() : "other";
+        filteredPets.forEach((pet) => {
+          // Use petName as unique identifier
+          if (pet.petName) {
+            uniquePets.add(pet.petName);
 
-          if (
-            petName &&
-            petServices.includes("Pet Boarding") &&
-            petClinic.includes("Clinic 1") &&
-            status.includes("Accepted") // Only include pets with "Accepted" status
-          ) {
-            uniquePets.add(petName); // Add pet name to the Set to ensure uniqueness
-            if (petType === "dog") dogs++;
-            else if (petType === "cat") cats++;
-            else others++;
+            // Count pet types
+            const petType = pet.petType ? pet.petType.toLowerCase() : "other";
+
+            if (petType === "dog") petTypeCounts.dogs++;
+            else if (petType === "cat") petTypeCounts.cats++;
+            else petTypeCounts.other++;
           }
         });
 
-        const totalPets = uniquePets.size; // Total unique pets
+        // Calculate total revenue
+        const totalRevenue = filteredPets.reduce((sum, pet) => {
+          return sum + (Number(pet.petPayment) || 0);
+        }, 0);
 
-        // Fetch all user documents (owners)
-        const userCollection = await databases.listDocuments(
-          databaseId,
-          userCollectionId
-        );
+        // Calculate total appointments (filtered pets count)
+        const totalAppointments = filteredPets.length;
 
-        // Filter users based on their accountId, and match it with the pet's ownerId
-        const filteredUsers = userCollection.documents.filter((user) => {
-          // Check if the user has pets with the required services
-          const userPets = filteredPets.filter(
-            (pet) => pet.ownerId === user.accountId
-          );
-          return userPets.length > 0; // Only keep users that have relevant pets
-        });
-
-        const totalOwners = filteredUsers.length; // Total owners with pets having the required services
-
-        // Calculate total appointments directly
-        const totalAppointments = filteredPets.length; // Pets meeting the criteria are counted directly as appointments
-
-        // Room Occupancy Calculation
-        const roomOccupancyMap = {};
-
-        filteredPets.forEach((doc) => {
-          const petRoom = doc.petRoom || null; // Room field in the pet document
-          if (petRoom) {
-            if (!roomOccupancyMap[petRoom]) {
-              roomOccupancyMap[petRoom] = 0;
-            }
-            roomOccupancyMap[petRoom] += 1; // Increment count for the room
-          }
-        });
-
-        const roomOccupancy = Object.entries(roomOccupancyMap).map(
-          ([room, count]) => ({
-            name: room,
-            value: count,
-          })
-        );
-
-        // Monthly stats initialization
-        const monthlyStats = {};
-
-        // Calculate monthly revenue for "Pet Grooming", "Pet Veterinary", "Pet Boarding", and others
-        filteredPets.forEach((doc) => {
-          const petServices = doc.petServices || [];
-          const petClinic = doc.petClinic || [];
-          const payment = doc.petPayment || 0;
-
-          // Extract month from petDate
-          const petDateArray = doc.petDate || [];
-          const petDate = petDateArray[0] ? new Date(petDateArray[0]) : null;
-          const month = petDate
-            ? petDate.toLocaleString("default", { month: "short" })
-            : "Unknown";
-
-          if (!monthlyStats[month]) {
-            monthlyStats[month] = {
-              month,
-              revenue: 0,
-              petGroomingRevenue: 0,
-              veterinaryRevenue: 0,
-              boardingRevenue: 0,
-              clinicRevenue: 0,
-            };
-          }
-
-          // Increment monthly revenue
-          monthlyStats[month].revenue += payment;
-
-          // Increment service-specific revenue
-          if (petServices.includes("Pet Boarding")) {
-            monthlyStats[month].boardingRevenue += payment;
-          }
-          if (petClinic.includes("Clinic 1")) {
-            monthlyStats[month].clinicRevenue += payment;
-          }
-        });
-
-        const monthlyData = Object.values(monthlyStats);
-
-        // Calculate total revenue (from "Pet Grooming", "Pet Veterinary", "Pet Boarding", "Pet Clinic")
-        const totalRevenue = monthlyData.reduce(
-          (sum, month) => sum + month.revenue,
-          0
-        );
-
-        // Simulate total pets boarding (you may want to replace this with actual data)
-        const totalPetsBoarding = Math.floor(totalPets * 0.3);
-
-        // Update analytics state
+        // Update state with calculated values
         setAnalytics((prevState) => ({
           ...prevState,
+          totalPets: uniquePets.size,
           totalAppointments,
-          totalPets,
-          totalOwners,
           totalRevenue,
-          totalPetsBoarding,
-          roomOccupancy,
-          monthlyData,
-          petTypes: { dogs, cats },
+          totalOwners,
+          petTypes: {
+            dogs: petTypeCounts.dogs,
+            cats: petTypeCounts.cats,
+          },
+          // You can add more detailed calculations here
+          monthlyData: calculateMonthlyData(filteredPets),
+          roomOccupancy: calculateRoomOccupancy(filteredPets),
         }));
       } catch (error) {
         console.error("Error fetching analytics data:", error);
       }
+    };
+
+    // Helper function to calculate monthly data
+    const calculateMonthlyData = (pets) => {
+      const monthlyStats = {};
+
+      pets.forEach((pet) => {
+        const petDateArray = pet.petDate || [];
+        const petDate = petDateArray[0] ? new Date(petDateArray[0]) : null;
+        const month = petDate
+          ? petDate.toLocaleString("default", { month: "short" })
+          : "Unknown";
+
+        if (!monthlyStats[month]) {
+          monthlyStats[month] = {
+            month,
+            revenue: 0,
+            boardingRevenue: 0,
+          };
+        }
+
+        const payment = Number(pet.petPayment) || 0;
+        monthlyStats[month].revenue += payment;
+        monthlyStats[month].boardingRevenue += payment;
+      });
+
+      return Object.values(monthlyStats);
+    };
+
+    // Helper function to calculate room occupancy
+    const calculateRoomOccupancy = (pets) => {
+      const roomCounts = {};
+
+      pets.forEach((pet) => {
+        const room = pet.petRoom;
+        if (room) {
+          roomCounts[room] = (roomCounts[room] || 0) + 1;
+        }
+      });
+
+      return Object.entries(roomCounts).map(([name, value]) => ({
+        name,
+        value,
+      }));
     };
 
     fetchAnalyticsData();

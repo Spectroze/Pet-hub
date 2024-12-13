@@ -7,6 +7,8 @@ import { toast } from "react-hot-toast";
 import { databases, appwriteConfig } from "../../../lib/appwrite";
 import { Card, CardContent } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
+import { Button } from "@/components/ui/button";
+import { Trash2 } from "lucide-react";
 
 export default function Pets() {
   const [petRecords, setPetRecords] = useState([]);
@@ -104,6 +106,21 @@ export default function Pets() {
     setPetAppointments([]);
   };
 
+  const deletePet = async (petId) => {
+    try {
+      await databases.deleteDocument(
+        appwriteConfig.databaseId,
+        appwriteConfig.petCollectionId,
+        petId
+      );
+      toast.success("Pet deleted successfully");
+      fetchPetRecords(); // Refresh the pet list
+    } catch (error) {
+      console.error("Error deleting pet:", error);
+      toast.error("Failed to delete pet");
+    }
+  };
+
   useEffect(() => {
     fetchPetRecords();
   }, []);
@@ -138,51 +155,68 @@ export default function Pets() {
           {filteredRecords.map((record) => (
             <Card
               key={record.id}
-              className="bg-gray-800 border-gray-700 overflow-hidden shadow-lg hover:shadow-2xl transition-shadow duration-300 cursor-pointer"
-              onClick={() => openPetModal(record)}
+              className="bg-gray-800 border-gray-700 overflow-hidden shadow-lg hover:shadow-2xl transition-shadow duration-300 relative"
             >
-              <CardContent className="p-0">
-                <div className="relative">
-                  <img
-                    src={record.photo}
-                    alt={record.name}
-                    className="w-full h-48 object-cover"
-                  />
-                  <div className="absolute bottom-0 left-0 right-0 bg-gradient-to-t from-gray-900 to-transparent p-4">
-                    <h3 className="text-2xl font-bold text-white mb-1">
-                      {record.species}
-                    </h3>
-                  </div>
-                </div>
-                <div className="p-6 space-y-4">
-                  <div className="flex justify-between items-center">
-                    <span className="text-gray-400 text-lg">Pet Name:</span>
-                    <span className="text-[#FF6B6B] font-bold text-xl">
-                      {record.name}
-                    </span>
-                  </div>
-                  <div className="flex justify-between items-center">
-                    <span className="text-gray-400 text-lg">Age:</span>
-                    <span className="text-white font-semibold bg-gray-700 px-3 rounded-full">
-                      {record.age}
-                    </span>
-                  </div>
-                  <div className="flex justify-between items-center mt-2">
-                    <span className="text-gray-400 text-lg">Services:</span>
-                    <div className="flex flex-wrap gap-2 justify-end">
-                      {record.appointments.map((appointment, index) => (
-                        <Badge
-                          key={index}
-                          variant="secondary"
-                          className="bg-[#FF6B6B] text-white hover:bg-[#FF8C8C]"
-                        >
-                          {appointment.service}
-                        </Badge>
-                      ))}
+              <div
+                onClick={() => openPetModal(record)}
+                className="cursor-pointer"
+              >
+                <CardContent className="p-0">
+                  <div className="relative">
+                    <img
+                      src={record.photo}
+                      alt={record.name}
+                      className="w-full h-48 object-cover"
+                    />
+                    <div className="absolute bottom-0 left-0 right-0 bg-gradient-to-t from-gray-900 to-transparent p-4">
+                      <h3 className="text-2xl font-bold text-white mb-1">
+                        {record.species}
+                      </h3>
                     </div>
                   </div>
-                </div>
-              </CardContent>
+                  <div className="p-6 space-y-4">
+                    <div className="flex justify-between items-center">
+                      <span className="text-gray-400 text-lg">Pet Name:</span>
+                      <span className="text-[#FF6B6B] font-bold text-xl">
+                        {record.name}
+                      </span>
+                    </div>
+                    <div className="flex justify-between items-center">
+                      <span className="text-gray-400 text-lg">Age:</span>
+                      <span className="text-white font-semibold bg-gray-700 px-3 rounded-full">
+                        {record.age}
+                      </span>
+                    </div>
+                    <div className="flex justify-between items-center mt-2">
+                      <span className="text-gray-400 text-lg">Services:</span>
+                      <div className="flex flex-wrap gap-2 justify-end">
+                        {record.appointments.map((appointment, index) => (
+                          <Badge
+                            key={index}
+                            variant="secondary"
+                            className="bg-[#FF6B6B] text-white hover:bg-[#FF8C8C]"
+                          >
+                            {appointment.service}
+                          </Badge>
+                        ))}
+                      </div>
+                    </div>
+                  </div>
+                </CardContent>
+              </div>
+              <div className="absolute top-2 right-2">
+                <Button
+                  variant="destructive"
+                  size="icon"
+                  onClick={(e) => {
+                    e.stopPropagation();
+                    deletePet(record.id);
+                  }}
+                  className="bg-red-600 hover:bg-red-700"
+                >
+                  <Trash2 className="h-4 w-4" />
+                </Button>
+              </div>
             </Card>
           ))}
         </div>

@@ -13,7 +13,7 @@ const appwriteConfig = {
   bucketId: "670ab439002597c2ae84",
   roomCollectionId: "6738afcd000d644b6853",
   room2CollectionId: "674dace4000dcbb1badf",
-  ratingaCollectionId: "671bd05400135c37afc1",
+  ratingCollectionId: "671bd05400135c37afc1",
 };
 
 // Initialize Appwrite client and database
@@ -22,38 +22,50 @@ const client = new Client()
   .setProject(appwriteConfig.projectId);
 const databases = new Databases(client);
 
+const fetchUserNameFromUserCollection = async (userId) => {
+  try {
+    const response = await databases.getDocument(
+      appwriteConfig.databaseId,
+      appwriteConfig.userCollectionId,
+      userId
+    );
+    return response.name || "Unknown User"; // Return user name or fallback
+  } catch (error) {
+    console.error("Error fetching user name:", error);
+    return "Unknown User"; // Handle errors gracefully
+  }
+};
 // Helper function to determine activity message
-// Helper function to determine activity message
-const getActivityMessage = (log, collectionId) => {
+const getActivityMessage = async (log, collectionId) => {
   if (collectionId === appwriteConfig.userCollectionId) {
     return `${log.name || "A user"} registered an account.`;
   } else if (collectionId === appwriteConfig.petCollectionId) {
-    // Fetch the user's name from userCollectionId when adding a pet
+    // Fetch the user's name for this log
     const userName = log.userId
-      ? fetchUserNameFromUserCollection(log.userId)
+      ? await fetchUserNameFromUserCollection(log.userId)
       : "A user";
+    if (log.action === "set_appointment") {
+      return `${userName} set an appointment.`;
+    }
     return `${userName} added a new pet: ${log.petName || "Unnamed pet"}.`;
   } else if (
     collectionId === appwriteConfig.roomCollectionId ||
     collectionId === appwriteConfig.room2CollectionId
   ) {
-    return `${log.name || "A user"} booked a room: ${log.number || " "} - ${
+    return `${log.userId || "A user"} booked a room: ${log.number || " "} - ${
       log.letter || " "
-    }.`;
+    }`;
   } else if (collectionId === appwriteConfig.ratingCollectionId) {
-    return `${log.name || "A user"} submitted a rating: ${
-      log.rating || "No rating given"
+    return `${log.userId || "A user"} submitted a rating: ${
+      log.overallExperience || "No rating given"
     } stars.`;
   } else {
     return `${log.name || "A user"} performed an action.`;
   }
 };
-
-// Component to fetch and display activity logs
 const PetActivityLog = () => {
   const [activityLogs, setActivityLogs] = useState([]);
 
-  // Fetch data from all specified collections
   const fetchAllLogs = async () => {
     try {
       const collectionIds = [
@@ -61,22 +73,39 @@ const PetActivityLog = () => {
         appwriteConfig.petCollectionId,
         appwriteConfig.roomCollectionId,
         appwriteConfig.room2CollectionId,
-        appwriteConfig.ratingaCollectionId,
+        appwriteConfig.ratingCollectionId,
       ];
 
       const promises = collectionIds.map((collectionId) =>
-        databases.listDocuments(appwriteConfig.databaseId, collectionId).then(
-          (res) => res.documents.map((doc) => ({ ...doc, collectionId })) // Tag each document with its collectionId
-        )
+        databases
+          .listDocuments(appwriteConfig.databaseId, collectionId)
+          .then((res) => res.documents.map((doc) => ({ ...doc, collectionId })))
       );
 
       const results = await Promise.all(promises);
 
       const allLogs = results
-        .flat() // Flatten results
-        .sort((a, b) => new Date(b.$createdAt) - new Date(a.$createdAt)); // Sort by `Created`
+        .flat()
+        .sort((a, b) => new Date(b.$createdAt) - new Date(a.$createdAt));
 
-      setActivityLogs(allLogs);
+      // Fetch activity messages with user names resolved
+      const logsWithMessages = await Promise.all(
+        allLogs.map(async (log) => {
+          // Try to fetch the user's name
+          const userName =
+            log.name || // First, check if there's a 'name' field
+            (log.userId
+              ? await fetchUserNameFromUserCollection(log.userId)
+              : "A user");
+
+          return {
+            ...log,
+            message: await getActivityMessage(log, log.collectionId, userName),
+          };
+        })
+      );
+
+      setActivityLogs(logsWithMessages);
     } catch (error) {
       console.error("Error fetching activity logs:", error);
     }
@@ -102,14 +131,12 @@ const PetActivityLog = () => {
                   <div className="flex-shrink-0">
                     <img
                       className="h-10 w-10 rounded-full"
-                      src={log.image || "/default-avatar.png"} // Replace with your placeholder image
+                      src={log.avatar || "/default-avatar.png"}
                       alt={log.name || "Activity"}
                     />
                   </div>
                   <div>
-                    <p className="text-sm text-gray-600">
-                      {getActivityMessage(log, log.collectionId)}
-                    </p>
+                    <p className="text-sm text-gray-600">{log.message}</p>
                     <p className="text-xs text-gray-500">
                       {new Date(log.$createdAt).toLocaleString()}
                     </p>

@@ -3,7 +3,7 @@
 import React, { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
 import { appwriteConfig, getAccount } from "@/lib/appwrite";
-import { fetchUserAndPetInfo, getCurrentUser } from "@/lib/appwrite";
+import { fetchUserAndPetInfo, getCurrentUser, signOut } from "@/lib/appwrite";
 import { Avatar, AvatarImage, AvatarFallback } from "@/components/ui/avatar";
 import { Badge } from "@/components/ui/badge";
 import { Separator } from "@/components/ui/separator";
@@ -25,27 +25,31 @@ import "react-toastify/dist/ReactToastify.css";
 import {
   Edit,
   PawPrint,
-  Menu as MenuIcon,
+  MenuIcon,
   Home,
   CalendarIcon,
-  Bell as NotificationIcon,
-  Star as FeedbackIcon,
-  Settings as SettingsIcon,
+  BadgeAlertIcon as NotificationIcon,
+  ReplyIcon as FeedbackIcon,
+  SettingsIcon,
   PlusCircle,
+  LogOutIcon,
+  LogOut,
+  Bell,
+  MessageCircle,
 } from "lucide-react";
 import { Client, Databases, Storage, Query } from "appwrite";
-
+import { useAuthUserStore } from "@/store/user";
 import Appointment from "./appointment/page";
 import Notification from "./notification/page";
 import Feedback from "./feedback/page";
-import Setting from "./setting/page";
 
 export default function PetCareDashboard() {
   const router = useRouter();
   const [userId, setUserId] = useState(null);
   const [showAddPetModal, setShowAddPetModal] = useState(false);
   const [selectedPet, setSelectedPet] = useState(null);
-
+  const [isLoggingOut, setIsLoggingOut] = useState(false);
+  const clearAuthUser = useAuthUserStore((state) => state.clearAuthUser);
   const [ownerInfo, setOwnerInfo] = useState({
     name: "",
     email: "",
@@ -71,6 +75,24 @@ export default function PetCareDashboard() {
   const databases = new Databases(client);
   const storage = new Storage(client); // Correctly initialize the storage
 
+  const handleLogout = async () => {
+    setIsLoggingOut(true);
+    try {
+      await signOut();
+      clearAuthUser();
+      router.push("/");
+      toast.success("Logout successful!", {
+        position: "top-right",
+        autoClose: 3000,
+      });
+    } catch (error) {
+      console.error("Failed to log out:", error);
+      toast.error("Failed to log out. Please try again.");
+    } finally {
+      setIsLoggingOut(false);
+    }
+  };
+
   const handleAddPet = async (newPet) => {
     try {
       const currentAccount = await getAccount();
@@ -88,7 +110,7 @@ export default function PetCareDashboard() {
           age: newPet?.petAge || "No Age",
           species: newPet?.petSpecies || "None",
           carePlan: newPet?.petServices || "No Plan",
-          petPhoto: petPhotoUrl,
+          petPhotoId: petPhotoUrl,
           ownerId,
         },
       ]);
@@ -199,6 +221,7 @@ export default function PetCareDashboard() {
           petAge: pet.age,
           petSpecies: pet.species,
           petServices: pet.carePlan,
+          petPhotoId: pet.petPhotoId,
         }
       );
 
@@ -252,7 +275,8 @@ export default function PetCareDashboard() {
           appwriteConfig.petCollectionId,
           [
             // Query to filter pets by ownerId
-            Query.equal("ownerId", ownerId), // Assuming 'ownerId' is the field name in your pet collection
+            Query.equal("ownerId", ownerId),
+            Query.orderDesc("$createdAt"),
           ]
         );
 
@@ -263,6 +287,32 @@ export default function PetCareDashboard() {
             id: doc.$id, // Assign Appwrite's `$id` to `id`
           }))
         );
+
+        // After the setPets line in the loadData function:
+        const uniquePets = response.documents.reduce((acc, current) => {
+          const existingPet = acc.find(
+            (pet) => pet.petName === current.petName
+          );
+          if (!existingPet) {
+            acc.push({
+              ...current,
+              id: current.$id,
+            });
+          } else {
+            // If the pet already exists, we can merge any additional appointments or services
+            if (
+              current.petServices &&
+              !existingPet.petServices.includes(current.petServices)
+            ) {
+              existingPet.petServices = Array.isArray(existingPet.petServices)
+                ? [...existingPet.petServices, current.petServices]
+                : [existingPet.petServices, current.petServices];
+            }
+          }
+          return acc;
+        }, []);
+
+        setPets(uniquePets);
 
         // Fetch owner information
         const { user } = await fetchUserAndPetInfo(userId);
@@ -284,9 +334,8 @@ export default function PetCareDashboard() {
   const navItems = [
     { icon: PawPrint, title: "My Pet's", id: "overview" },
     { icon: CalendarIcon, title: "Appointments", id: "appointment" },
-    { icon: NotificationIcon, title: "Notifications", id: "notification" },
-    { icon: FeedbackIcon, title: "Feedback", id: "feedback" },
-    { icon: SettingsIcon, title: "Settings", id: "setting" },
+    { icon: Bell, title: "Notifications", id: "notification" },
+    { icon: MessageCircle, title: "Feedback", id: "feedback" },
   ];
 
   const PawPrintLoader = () => (
@@ -430,6 +479,18 @@ export default function PetCareDashboard() {
             </Button>
           ))}
         </nav>
+        <div className="mt-auto">
+          <Button
+            variant="ghost"
+            className={`w-full mt-auto justify-start ${
+              !sidebarOpen && "px-2"
+            } text-red-500 hover:bg-gray-700`}
+            onClick={handleLogout}
+          >
+            <LogOut className={`h-5 w-5 ${sidebarOpen && "mr-2"}`} />
+            {sidebarOpen && <span>Logout</span>}
+          </Button>
+        </div>
       </aside>
 
       {/* Main Content */}
@@ -626,7 +687,6 @@ export default function PetCareDashboard() {
           {activeSection === "appointment" && <Appointment />}
           {activeSection === "notification" && <Notification />}
           {activeSection === "feedback" && <Feedback />}
-          {activeSection === "setting" && <Setting />}
         </div>
 
         {showNewAppointmentModal && (

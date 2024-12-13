@@ -8,9 +8,10 @@ import {
   getCurrentUser,
   fetchUserAndPetInfo,
   appwriteConfig,
+  signOut,
 } from "@/lib/appwrite";
-import { Client, Databases, Storage } from "appwrite";
-
+import { Client, Databases, Query, Storage } from "appwrite";
+import { useAuthUserStore } from "@/store/user";
 import {
   Bell,
   Calendar,
@@ -39,12 +40,15 @@ import Owners from "./owner/page";
 export default function Dashboard() {
   const [activeSection, setActiveSection] = useState("overview");
   const [sidebarOpen, setSidebarOpen] = useState(true);
+  const [notificationCount, setNotificationCount] = useState(0);
   const router = useRouter();
   const [isEditingOwner, setIsEditingOwner] = useState(false);
   const toggleEditOwner = () => setIsEditingOwner((prev) => !prev);
   const [userId, setUserId] = useState(null); // Declare userId state
   const [loading, setLoading] = useState(true); // Add loading state
   const [newAvatarFile, setNewAvatarFile] = useState(null); // New avatar file
+  const [isLoggingOut, setIsLoggingOut] = useState(false);
+  const clearAuthUser = useAuthUserStore((state) => state.clearAuthUser);
 
   const client = new Client();
   client
@@ -84,6 +88,127 @@ export default function Dashboard() {
       throw error;
     }
   };
+
+  // notification
+  const fetchNotifications = async () => {
+    try {
+      if (!userId) {
+        console.warn("User ID is not available for fetching notifications.");
+        return;
+      }
+
+      console.log("Attempting to fetch notifications for user ID:", userId);
+
+      // Multiple query strategies to diagnose the issue
+      const queryStrategies = [
+        // Strategy 1: Simple ownerId match
+        [Query.equal("ownerId", userId)],
+
+        // Strategy 2: Partial match strategies
+        [Query.startsWith("ownerId", userId.slice(0, 5))],
+
+        // Strategy 3: Flexible matching
+        [
+          Query.equal("ownerId", userId),
+          Query.or([
+            Query.contains("status", ["Pending", "pending"]),
+            Query.contains("petServices", ["Pet Boarding 2"]),
+            Query.contains("petClinic", ["Clinic2"]),
+          ]),
+        ],
+      ];
+
+      for (const strategy of queryStrategies) {
+        console.log(`Trying query strategy:`, strategy);
+
+        const response = await databases.listDocuments(
+          appwriteConfig.databaseId,
+          appwriteConfig.petCollectionId,
+          strategy
+        );
+
+        console.log(`Query result for strategy:`, {
+          total: response.total,
+          documentIds: response.documents.map((doc) => doc.$id),
+          documents: response.documents.map((doc) => ({
+            id: doc.$id,
+            ownerId: doc.ownerId,
+            petName: doc.petName,
+            status: doc.status,
+            petServices: doc.petServices,
+          })),
+        });
+
+        if (response.total > 0) {
+          setNotificationCount(response.total);
+          return;
+        }
+      }
+
+      console.warn("No documents found with any query strategy.");
+      setNotificationCount(0);
+    } catch (error) {
+      console.error("Comprehensive error in fetchNotifications:", {
+        message: error.message,
+        errorCode: error.code,
+        errorType: error.type,
+        stack: error.stack,
+      });
+      setNotificationCount(0);
+    }
+  };
+
+  const verifyUserAndCollection = async () => {
+    try {
+      console.log("User  ID to verify:", userId);
+
+      // Try to list documents in the collection
+      await databases.listDocuments(
+        appwriteConfig.databaseId,
+        appwriteConfig.petCollectionId
+      );
+
+      console.log("Collection Exists:", true);
+      console.log(
+        "Configured Pet Collection ID:",
+        appwriteConfig.petCollectionId
+      );
+    } catch (error) {
+      console.error("Error verifying user and collection:", error);
+      console.log("Collection Exists:", false);
+    }
+  };
+  // Modify your useEffect to include verification
+  useEffect(() => {
+    if (userId) {
+      fetchNotifications();
+      verifyUserAndCollection();
+    }
+  }, [userId]);
+
+  useEffect(() => {
+    const fetchInitialNotifications = async () => {
+      await fetchNotifications();
+    };
+
+    fetchInitialNotifications(); // Fetch notifications on component mount
+
+    const unsubscribe = client.subscribe(
+      `databases.${appwriteConfig.databaseId}.collections.${appwriteConfig.petCollectionId}.documents`,
+      (response) => {
+        console.log("Real-time response:", response);
+
+        if (
+          response.events.includes("databases.*.documents.*.create") ||
+          response.events.includes("databases.*.documents.*.update")
+        ) {
+          fetchNotifications(); // Re-fetch notifications on document changes
+        }
+      }
+    );
+
+    return () => unsubscribe(); // Cleanup on unmount
+  }, [userId]);
 
   const handleSaveOwner = async () => {
     const toastId = toast.loading("Updating profile...");
@@ -208,16 +333,55 @@ export default function Dashboard() {
     { id: "petRecords", name: "Pet Records", icon: PawPrint },
     { id: "owner", name: "Owner", icon: User },
     { id: "rooms", name: "Rooms", icon: BedDouble },
-    { id: "notifications", name: "Notifications", icon: Bell },
     { id: "feedback", name: "Feedback", icon: MessageCircle },
+    {
+      id: "notifications",
+      name: "Notifications",
+      icon: Bell,
+      hasBadge: true,
+      badgeCount: notificationCount,
+    },
   ];
-
-  const handleLogout = () => {
-    toast.success("Successfully logged out!");
-    setTimeout(() => {
+  const handleLogout = async () => {
+    setIsLoggingOut(true);
+    try {
+      await signOut();
+      clearAuthUser();
       router.push("/");
-    }, 1000);
+      toast.success("Logout successful!", {
+        position: "top-right",
+        autoClose: 3000,
+      });
+    } catch (error) {
+      console.error("Failed to log out:", error);
+      toast.error("Failed to log out. Please try again.");
+    } finally {
+      setIsLoggingOut(false);
+    }
   };
+  useEffect(() => {
+    const fetchInitialNotifications = async () => {
+      await fetchNotifications();
+    };
+
+    fetchInitialNotifications(); // Fetch notifications on component mount
+
+    const unsubscribe = client.subscribe(
+      `databases.${appwriteConfig.databaseId}.collections.${appwriteConfig.petCollectionId}.documents`,
+      (response) => {
+        console.log("Real-time response:", response);
+
+        if (
+          response.events.includes("databases.*.documents.*.create") ||
+          response.events.includes("databases.*.documents.*.update")
+        ) {
+          fetchNotifications(); // Re-fetch notifications on document changes
+        }
+      }
+    );
+
+    return () => unsubscribe(); // Cleanup on unmount
+  }, [userId]);
 
   return (
     <div className="flex h-screen bg-gray-900 text-white">

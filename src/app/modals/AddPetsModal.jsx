@@ -10,6 +10,7 @@ import {
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 import { Label } from "@/components/ui/label";
+import { Checkbox } from "@/components/ui/checkbox";
 import { PawPrint } from "lucide-react";
 import { toast } from "react-toastify";
 import {
@@ -81,6 +82,7 @@ export default function AddPetModal({
   const [loading, setLoading] = useState(false);
   const [dateError, setDateError] = useState("");
   const [timeError, setTimeError] = useState("");
+  const [dropdownOpen, setDropdownOpen] = useState(false);
 
   const currentDate = new Date().toISOString().split("T")[0];
   const getCurrentTime = () =>
@@ -154,39 +156,71 @@ export default function AddPetModal({
     }
   };
 
+  const handleServiceChange = (service, checked) => {
+    if (checked) {
+      setPetServices((prev) => [...prev, service]);
+    } else {
+      setPetServices((prev) => prev.filter((s) => s !== service));
+    }
+  };
+
   const handleSubmit = async (e) => {
     e.preventDefault();
     setLoading(true);
 
     try {
+      if (
+        !petType ||
+        !petSpecies ||
+        petServices.length === 0 ||
+        !petClinic.length ||
+        !petRoom.length
+      ) {
+        toast.error("Please fill in all required fields.");
+        setLoading(false);
+        return;
+      }
       if (dateError || timeError) {
         toast.error("Please fix the date and time errors before proceeding.");
         setLoading(false);
         return;
       }
 
-      const currentAccount = await getAccount(); // Fetch the current account
-      const ownerId = currentAccount.$id; // Use the Account ID as ownerId
+      const currentAccount = await getAccount();
+      const ownerId = currentAccount.$id;
 
       let petPhotoId = "/placeholder.svg";
       if (petPhoto) {
         petPhotoId = await uploadFileAndGetUrl(petPhoto);
       }
 
+      const ageWithUnit = `${petAge} ${petAgeUnit || ""}`.trim();
+
+      const updatedPetDate =
+        petDate.length > 0
+          ? [
+              new Date(
+                new Date(petDate[0]).toISOString().split("T")[0] +
+                  "T" +
+                  (petTime.length > 0 ? petTime[0] : "00:00:00.000+00:00")
+              ).toISOString(),
+            ]
+          : [];
+
       const newPet = {
         ownerId,
         petName,
-        petAge,
-        petAgeUnit,
+        petAge: ageWithUnit,
         petType,
         petSpecies,
         petServices,
-        petDate,
+        petDate: updatedPetDate,
         petTime,
         petClinic,
         petRoom,
         petPayment,
         petPhotoId,
+        status: ["Pending"],
       };
 
       await savePetToDatabase(newPet);
@@ -233,28 +267,37 @@ export default function AddPetModal({
               <div className="flex items-center gap-2">
                 <Input
                   id="age"
-                  className="h-10"
                   name="age"
                   type="number"
-                  value={petAge || ""}
+                  value={petAge}
                   onChange={(e) => setPetAge(e.target.value)}
                   placeholder="Enter age"
+                  className="flex-grow h-10"
+                  required
                 />
                 <Select
                   onValueChange={(value) => setPetAgeUnit(value)}
-                  className="h-10 min-w-[100px]"
+                  className="min-w-[100px] h-10"
+                  required
                 >
                   <SelectTrigger>
                     <SelectValue placeholder="Unit" />
                   </SelectTrigger>
                   <SelectContent>
-                    {["Day(s)", "Week(s)", "Month(s)", "Year(s)"].map(
-                      (unit) => (
-                        <SelectItem key={unit} value={unit}>
-                          {unit}
-                        </SelectItem>
-                      )
-                    )}
+                    {[
+                      "Day",
+                      "Days",
+                      "Week",
+                      "Weeks",
+                      "Month",
+                      "Months",
+                      "Year",
+                      "Years",
+                    ].map((unit) => (
+                      <SelectItem key={unit} value={unit}>
+                        {unit}
+                      </SelectItem>
+                    ))}
                   </SelectContent>
                 </Select>
               </div>
@@ -264,6 +307,7 @@ export default function AddPetModal({
               <Select
                 onValueChange={(value) => setPetType(value)}
                 className="h-10"
+                required
               >
                 <SelectTrigger>
                   <SelectValue placeholder="Select type of pet" />
@@ -280,6 +324,7 @@ export default function AddPetModal({
                 onValueChange={handleClinicChange}
                 className="h-10"
                 placeholder="Select clinic"
+                required
               >
                 <SelectTrigger>
                   <SelectValue placeholder="Select clinic" />
@@ -290,26 +335,38 @@ export default function AddPetModal({
                 </SelectContent>
               </Select>
             </div>
-            <div>
+            <div className="space-y-2">
               <Label htmlFor="petServices">Pet Services</Label>
-              <Select
-                multiple
-                className="h-10"
-                onValueChange={(value) =>
-                  handleArrayChange(setPetServices, value)
-                }
+              <div
+                className="border rounded-md p-2 bg-white cursor-pointer"
+                onClick={() => setDropdownOpen(!dropdownOpen)}
               >
-                <SelectTrigger>
-                  <SelectValue placeholder="Select services for your pet" />
-                </SelectTrigger>
-                <SelectContent>
+                {petServices.length > 0
+                  ? petServices.join(", ")
+                  : "Select pet services"}
+              </div>
+
+              {dropdownOpen && (
+                <div className="absolute z-10 mt-2 bg-white shadow-md rounded-md w-64">
                   {Object.keys(servicePayments).map((service) => (
-                    <SelectItem key={service} value={service}>
-                      {service}
-                    </SelectItem>
+                    <div
+                      key={service}
+                      className="flex items-center gap-2 px-4 py-2 hover:bg-gray-100"
+                    >
+                      <Checkbox
+                        id={service}
+                        checked={petServices.includes(service)}
+                        onCheckedChange={(checked) =>
+                          handleServiceChange(service, checked)
+                        }
+                      />
+                      <label htmlFor={service} className="text-sm">
+                        {service}
+                      </label>
+                    </div>
                   ))}
-                </SelectContent>
-              </Select>
+                </div>
+              )}
             </div>
             {petServices.length > 0 && (
               <div className="mt-2">
@@ -327,31 +384,34 @@ export default function AddPetModal({
           {/* Right Side */}
           <div className="space-y-4">
             <div>
-              <Label htmlFor="petDate">Pet Date</Label>
+              <Label htmlFor="petDate">Appointment Date</Label>
               <Input
                 id="petDate"
                 className="h-10"
                 type="date"
                 onChange={handleDateChange}
                 min={currentDate}
+                required
               />
             </div>
             <div>
-              <Label htmlFor="petTime">Pet Time</Label>
+              <Label htmlFor="petTime">Appointment Time</Label>
               <Input
                 id="petTime"
                 className="h-10"
                 type="time"
                 onChange={handleTimeChange}
                 min={petDate[0] === currentDate ? currentTime : "00:00"}
+                required
               />
             </div>
             <div>
-              <Label htmlFor="petSpecies">Pet Species</Label>
+              <Label htmlFor="petSpecies">Pet Breed</Label>
               <Select
                 onValueChange={(value) => setPetSpecies(value)}
                 disabled={!petType}
                 className="h-10"
+                required
               >
                 <SelectTrigger>
                   <SelectValue
@@ -377,6 +437,7 @@ export default function AddPetModal({
                 type="file"
                 accept="image/*"
                 onChange={(e) => setPetPhoto(e.target.files[0])}
+                required
               />
             </div>
             <div>
@@ -388,6 +449,7 @@ export default function AddPetModal({
                 placeholder={
                   !petClinic.length ? "Select clinic first" : "Select room"
                 }
+                required
               >
                 <SelectTrigger>
                   <SelectValue placeholder="Select room" />

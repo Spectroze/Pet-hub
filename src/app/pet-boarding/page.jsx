@@ -8,6 +8,7 @@ import {
   getCurrentUser,
   fetchUserAndPetInfo,
   appwriteConfig,
+  signOut,
 } from "@/lib/appwrite";
 import { Client, Databases, Storage } from "appwrite";
 import {
@@ -32,6 +33,7 @@ import Feedback from "./feedback/page";
 import { Input } from "@/components/ui/input";
 import Analytics from "./analytics";
 import Owners from "./owner/page";
+import { useAuthUserStore } from "@/store/user";
 
 export default function Dashboard() {
   const [activeSection, setActiveSection] = useState("overview");
@@ -42,6 +44,8 @@ export default function Dashboard() {
   const [userId, setUserId] = useState(null);
   const [loading, setLoading] = useState(true);
   const [newAvatarFile, setNewAvatarFile] = useState(null);
+  const [isLoggingOut, setIsLoggingOut] = useState(false);
+  const clearAuthUser = useAuthUserStore((state) => state.clearAuthUser);
 
   const client = new Client();
   client
@@ -206,11 +210,22 @@ export default function Dashboard() {
     { id: "feedback", name: "Feedback", icon: MessageCircle },
   ];
 
-  const handleLogout = () => {
-    toast.success("Successfully logged out!");
-    setTimeout(() => {
+  const handleLogout = async () => {
+    setIsLoggingOut(true);
+    try {
+      await signOut();
+      clearAuthUser();
       router.push("/");
-    }, 1000);
+      toast.success("Logout successful!", {
+        position: "top-right",
+        autoClose: 3000,
+      });
+    } catch (error) {
+      console.error("Failed to log out:", error);
+      toast.error("Failed to log out. Please try again.");
+    } finally {
+      setIsLoggingOut(false);
+    }
   };
 
   return (

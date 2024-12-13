@@ -231,18 +231,13 @@ export default function AppointmentCalendar({ databaseId, collectionId }) {
             ? constructAvatarUrl(appointment.petPhotoId)
             : "/images/avatar-placeholder.png";
 
-          // Create a Date object for the start time
-          const appointmentDate = new Date(appointment.petDate);
-          const appointmentTime = new Date(appointment.petTime);
-          const startTime = new Date(
-            appointmentDate.getFullYear(),
-            appointmentDate.getMonth(),
-            appointmentDate.getDate(),
-            appointmentTime.getHours(),
-            appointmentTime.getMinutes()
-          );
+          // Use the first element of petDate which contains both date and time
+          const appointmentDateTime = appointment.petDate[0];
 
-          // Assuming appointments last for 1 hour
+          // Parse the date and time from the single datetime string
+          const parsedDateTime = new Date(appointmentDateTime);
+
+          const startTime = parsedDateTime;
           const endTime = new Date(startTime.getTime() + 60 * 60 * 1000); // 1 hour later
 
           return {
@@ -253,10 +248,10 @@ export default function AppointmentCalendar({ databaseId, collectionId }) {
             petSpecies: appointment.petSpecies || "Unknown Species",
             petAvatar: petAvatar,
             userAvatar: ownerAvatar,
-            date: parseDate(appointment.petDate),
-            time: parseTime(appointment.petTime),
-            start: startTime, // Set the start time
-            end: endTime, // Set the end time
+            date: parseDate(appointmentDateTime),
+            time: parseTime(moment(appointmentDateTime).format("HH:mm")),
+            start: startTime,
+            end: endTime,
             status: appointment.status || "Pending",
           };
         })
@@ -420,7 +415,7 @@ export default function AppointmentCalendar({ databaseId, collectionId }) {
               style={{ height: 600 }} // Increased height for better visibility
               selectable
               onSelectEvent={handleSelectEvent}
-              views={["month", "agenda"]}
+              views={["month", "week", "day", "agenda"]}
               view={view}
               onView={setView}
               date={currentDate}

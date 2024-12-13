@@ -44,6 +44,7 @@ import {
   disableAccount,
   enableAccount,
 } from "@/lib/appwrite";
+import { Toaster } from "react-hot-toast";
 
 const isValidEmail = (email) => /\S+@\S+\.\S+/.test(email);
 
@@ -188,8 +189,7 @@ export default function CreateAccountForm() {
 
   return (
     <div className="container mx-auto p-4 dark:bg-gray-900 min-h-screen">
-      <ToastContainer position="top-right" autoClose={3000} />
-
+      <Toaster   />
       <Card className="mb-8">
         <CardHeader>
           <CardTitle className="text-2xl font-bold dark:text-white">
