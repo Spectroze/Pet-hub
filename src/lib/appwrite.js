@@ -7,7 +7,6 @@ import {
   Query,
   Storage,
 } from "appwrite";
-import { Permission, Role } from "appwrite";
 
 export const appwriteConfig = {
   endpoint: "https://cloud.appwrite.io/v1",
@@ -17,6 +16,17 @@ export const appwriteConfig = {
   petCollectionId: "670ab2db00351bc09a92",
   bucketId: "670ab439002597c2ae84",
   roomCollectionId: "6738afcd000d644b6853",
+  room2CollectionId: "674dace4000dcbb1badf",
+  room3CollectionId: "6779652b001ea2f972d5",
+  room4CollectionId: "677965c600174f0aba1f",
+  room5CollectionId: "677966670018c2bdc904",
+  room6CollectionId: "677966bd000ff4ea471a",
+  room7CollectionId: "6779672a003b76053135",
+  room8CollectionId: "6779677c00025bd68bb2",
+  room9CollectionId: "677967c8002b9b09394e",
+  room10CollectionId: "6779681d000914d0efb3",
+  ratingCollectionId: "671bd05400135c37afc1",
+  trainingNotificationCollectionId: "675adf09000e59e2f572",
 };
 
 const client = new Client();
@@ -30,7 +40,21 @@ const storage = new Storage(client);
 const avatars = new Avatars(client);
 const databases = new Databases(client);
 
-export { account, storage, avatars, databases }; // Export the necessary objects
+export { account, storage, avatars, databases };
+
+export async function checkUserInDatabase(email) {
+  try {
+    const response = await databases.listDocuments(
+      appwriteConfig.databaseId,
+      appwriteConfig.userCollectionId,
+      [Query.equal("email", email)]
+    );
+    return response.documents.length > 0;
+  } catch (error) {
+    console.error("Error checking user in database:", error);
+    return false;
+  }
+}
 
 // Ensure a Fresh Session
 export async function ensureFreshSession() {
@@ -75,6 +99,7 @@ export async function createUser(
   try {
     await ensureFreshSession();
 
+    // Phone number validation
     const phone = personalInfo.phone.replace(/\D/g, "").trim();
     if (phone.length > 11) {
       throw new Error("Phone number must be 11 characters or fewer.");
@@ -105,18 +130,25 @@ export async function createUser(
         name: personalInfo.name,
         email: personalInfo.email,
         phone,
-        avatar: avatarUrl, // Store the avatar URL directly
+        avatar: avatarUrl,
         role,
       }
     );
-    console.log("User document created:", newUser);
+    console.log("User  document created:", newUser);
 
     // Upload the pet photo and store its URL
-
     let petPhotoUrl = "/placeholder.svg";
     if (petInfo.photo) {
       petPhotoUrl = await uploadFileAndGetUrl(petInfo.photo);
     }
+
+    // Ensure petDate is updated with the time from petTime
+    const updatedPetDate =
+      petInfo.date && petInfo.time.length > 0
+        ? [
+            new Date(`${petInfo.date[0]}T${petInfo.time[0]}`), // Combine date and time directly
+          ]
+        : [];
 
     // Create pet document with petPayment included
     const petDocument = await databases.createDocument(
@@ -129,13 +161,14 @@ export async function createUser(
         petType: petInfo.type,
         petSpecies: petInfo.species,
         petAge: petInfo.age,
-        petServices: petInfo.services, // Ensure it is an array, not a string
-        petPhotoId: petPhotoUrl, // Store pet photo URL
+        petServices: petInfo.services,
+        petPhotoId: petPhotoUrl,
         petClinic: petInfo.clinic,
         petRoom: petInfo.room,
-        petDate: petInfo.date,
+        petDate: updatedPetDate,
         petTime: petInfo.time,
-        petPayment: petPayment, // Adding the calculated payment
+        petPayment: petPayment,
+        status: petInfo.status,
       }
     );
     console.log("Pet document created:", petDocument);
@@ -416,16 +449,21 @@ export const deleteAccount = async (accountId) => {
 // Function to save an appointment to the database
 export const saveAppointmentToDatabase = async (appointmentData) => {
   try {
+    console.log("Attempting to save combined appointment:", appointmentData);
+
+    // Create a single document with arrays of pet information
     const response = await databases.createDocument(
       appwriteConfig.databaseId,
       appwriteConfig.petCollectionId,
       ID.unique(),
       appointmentData
     );
-    console.log("Appointment saved:", response);
+
+    console.log("Combined appointment saved successfully:", response);
+    return response;
   } catch (error) {
-    console.error("Error saving appointment:", error.response || error);
-    throw new Error("Failed to save appointment.");
+    console.error("Error saving combined appointment:", error);
+    throw error;
   }
 };
 
@@ -533,5 +571,148 @@ export const disableAccount = async (accountId) => {
   } catch (error) {
     console.error("Error disabling account:", error.message);
     throw new Error("Failed to disable account");
+  }
+};
+export async function signUp(
+  name,
+  email,
+  password,
+  phone,
+  avatar,
+  role,
+  status = [] // Default to an empty array
+) {
+  try {
+    const user = await account.create(ID.unique(), email, password, name);
+
+    let avatarUrl = null;
+    if (avatar && typeof avatar === "string") {
+      avatarUrl = avatar; // If avatar is already a URL, use it directly
+    } else if (avatar && avatar instanceof File) {
+      const uploadedFile = await storage.createFile(
+        appwriteConfig.bucketId,
+        ID.unique(),
+        avatar
+      );
+      avatarUrl = `${appwriteConfig.endpoint}/storage/buckets/${appwriteConfig.bucketId}/files/${uploadedFile.$id}/view?project=${appwriteConfig.projectId}`;
+    }
+
+    // Ensure statuses is an array
+    if (!Array.isArray(status)) {
+      status = [status]; // Convert single value to an array
+    }
+
+    await databases.createDocument(
+      appwriteConfig.databaseId,
+      appwriteConfig.userCollectionId,
+      user.$id,
+      {
+        name,
+        email,
+        accountId: user.$id,
+        avatar: avatarUrl,
+        role,
+        phone,
+        status, // Save as an array
+      }
+    );
+
+    return user;
+  } catch (error) {
+    console.error("Error during signup:", error);
+    throw new Error(error.message);
+  }
+}
+export const createNotification = async (notificationData) => {
+  try {
+    const collectionId = appwriteConfig.trainingNotificationCollectionId;
+
+    const response = await databases.createDocument(
+      appwriteConfig.databaseId,
+      collectionId,
+      ID.unique(),
+      {
+        ...notificationData,
+        attachmentUrl: notificationData.attachmentUrl || null,
+      }
+    );
+
+    console.log("Notification created successfully:", response);
+  } catch (error) {
+    console.error("Error creating notification:", error);
+  }
+};
+
+export const signInWithGoogle = async () => {
+  try {
+    // First, check if we already have a session
+    try {
+      const currentSession = await account.get();
+      if (currentSession) {
+        // Check if user exists in database
+        const existingUser = await databases.listDocuments(
+          appwriteConfig.databaseId,
+          appwriteConfig.userCollectionId,
+          [Query.equal("accountId", currentSession.$id)]
+        );
+
+        if (existingUser.total === 0) {
+          // Create new user document
+          const newUser = await databases.createDocument(
+            appwriteConfig.databaseId,
+            appwriteConfig.userCollectionId,
+            ID.unique(),
+            {
+              accountId: currentSession.$id,
+              email: currentSession.email,
+              name: currentSession.name,
+              avatar: currentSession.prefs?.avatar
+                ? `https://lh3.googleusercontent.com/a/${currentSession.prefs.avatar}`
+                : "/placeholder.svg",
+              role: "user",
+              status: ["active"],
+            }
+          );
+          return { ...currentSession, ...newUser };
+        }
+        return { ...currentSession, ...existingUser.documents[0] };
+      }
+    } catch (error) {
+      console.log("No existing session");
+    }
+
+    // If no session, create new OAuth session
+    await account.createOAuth2Session(
+      "google",
+      "http://localhost:3000/auth-callback", // Change this to a new callback route
+      "http://localhost:3000/login"
+    );
+  } catch (error) {
+    console.error("Google OAuth error:", error);
+    throw error;
+  }
+};
+
+export const checkSession = async () => {
+  try {
+    const session = await account.get();
+    if (session) {
+      const userData = await databases.listDocuments(
+        appwriteConfig.databaseId,
+        appwriteConfig.userCollectionId,
+        [Query.equal("accountId", session.$id)]
+      );
+
+      if (userData.documents.length > 0) {
+        return {
+          session,
+          userData: userData.documents[0],
+        };
+      }
+    }
+    return null;
+  } catch (error) {
+    console.error("Session check error:", error);
+    return null;
   }
 };
