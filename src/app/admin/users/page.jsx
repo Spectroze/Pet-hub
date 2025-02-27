@@ -87,9 +87,9 @@ export default function Owners() {
                     </TableRow>
                   </TableHeader>
                   <TableBody>
-                    {owners.map((owner) => (
+                    {owners.map((owner, index) => (
                       <TableRow
-                        key={owner.id}
+                        key={owner.id || index}
                         className="hover:bg-[#FAF5E6]/50 transition-colors duration-200 border-b border-[#FBBD0D]/20"
                       >
                         <TableCell className="font-medium">
@@ -138,8 +138,8 @@ export default function Owners() {
 
               {/* Mobile View - Shows on mobile, hides on larger screens */}
               <div className="block sm:hidden">
-                {owners.map((owner) => (
-                  <div className="p-4 border-b border-[#FBBD0D]/20 last:border-b-0">
+                {owners.map((owner, index) => (
+                  <div key={owner.id || index} className="p-4 border-b border-[#FBBD0D]/20 last:border-b-0">
                     <div className="flex items-start space-x-4">
                       <Avatar className="h-12 w-12 ring-2 ring-[#FBBD0D] ring-offset-2 ring-offset-[#FAF5E6] flex-shrink-0">
                         <AvatarImage src={owner.avatar} alt={owner.name} />

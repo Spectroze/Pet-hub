@@ -1,5 +1,5 @@
 "use client";
-import React, { useState, useEffect } from "react";
+import React, { useState, useEffect, useCallback } from "react";
 import { Calendar, momentLocalizer, Views } from "react-big-calendar";
 import moment from "moment-timezone";
 import "react-big-calendar/lib/css/react-big-calendar.css";
@@ -80,7 +80,7 @@ export default function AppointmentCalendar({ databaseId, collectionId }) {
   };
 
   // Fetch appointments and filter for "Pet Boarding" services
-  const fetchAppointments = async () => {
+  const fetchAppointments = useCallback(async () => {
     setLoading(true);
     setError("");
 
@@ -125,7 +125,7 @@ export default function AppointmentCalendar({ databaseId, collectionId }) {
     } finally {
       setLoading(false);
     }
-  };
+  }, [databases, databaseId, dbId, collectionId, petCollId]);
 
   useEffect(() => {
     fetchAppointments();

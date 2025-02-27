@@ -30,6 +30,7 @@ import { databases, appwriteConfig, storage } from "@/lib/appwrite"; // Add stor
 import { ToastContainer, toast } from "react-toastify";
 import "react-toastify/dist/ReactToastify.css";
 import { ID } from "appwrite";
+import Image from 'next/image';
 
 // Initial room structure (example)
 const initialRooms = [
@@ -256,10 +257,12 @@ export default function RoomManagement() {
                   Room {room.number[0]}
                 </div>
                 <div>{room.status[0]}</div>
-                <img
+                <Image
                   src={room.newImage || "/images/placeholder.jpg"}
                   alt="Room"
-                  className="mt-2 w-full h-16 object-cover rounded"
+                  width={200}
+                  height={200}
+                  className="rounded-lg"
                 />
               </div>
             ))}
@@ -310,10 +313,12 @@ export default function RoomManagement() {
                   />
                 </div>
                 {imageUrl && (
-                  <img
+                  <Image
                     src={imageUrl}
-                    alt="Room Image"
-                    className="w-full h-[200px] object-cover rounded-md mt-2"
+                    alt="Room"
+                    width={200}
+                    height={200}
+                    className="rounded-lg"
                   />
                 )}
               </div>

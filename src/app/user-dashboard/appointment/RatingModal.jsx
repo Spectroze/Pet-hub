@@ -102,7 +102,7 @@ export function RatingModal({ isOpen, onClose, petPhotoId }) {
                       onClick={handleShare}
                       className="w-full bg-[#FD1F4A] hover:bg-[#FD1F4A]/90 text-[#FAF5E6]"
                     >
-                      Yes, I'll Share
+                      Yes, I&apos;ll Share
                     </Button>
                     <Button
                       type="button"

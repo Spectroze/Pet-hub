@@ -34,7 +34,7 @@ export default function Appointment() {
     c.setEndpoint(appwriteConfig.endpoint)
      .setProject(appwriteConfig.projectId);
     return c;
-  }, []);
+  }, [appwriteConfig.endpoint, appwriteConfig.projectId]);
 
   const databases = useMemo(() => {
     return new Databases(client);
@@ -382,7 +382,7 @@ export default function Appointment() {
       }
     };
     getCurrentUser();
-  }, []);
+  }, [account]);
 
   const formatDate = (date) => {
     if (!date) return "N/A";

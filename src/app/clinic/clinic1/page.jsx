@@ -12,6 +12,7 @@ import { Button } from "@/components/ui/button";
 import { MapPinIcon } from "lucide-react";
 import { databases, appwriteConfig, storage } from "@/lib/appwrite"; // Ensure storage is imported
 import { Query } from "appwrite";
+import Image from 'next/image';
 
 export default function Clinic1() {
   const [rooms, setRooms] = useState([]); // Room data state
@@ -125,7 +126,7 @@ export default function Clinic1() {
   return (
     <div className="bg-muted rounded-xl overflow-hidden shadow-lg mb-20">
       <div className="relative">
-        <img
+        <Image
           src="/images/clinic.png"
           alt="Pet Boarding Room"
           width={800}
@@ -165,7 +166,7 @@ export default function Clinic1() {
               className="p-4 border rounded-lg shadow-md bg-white flex flex-col items-center cursor-pointer"
               onClick={() => handleRoomClick(room)}
             >
-              <img
+              <Image
                 src={room.newImage} // Use the fetched or fallback image URL
                 alt={room.name}
                 className="rounded-lg shadow-md w-full h-[100px] object-cover mb-2"
@@ -197,7 +198,7 @@ export default function Clinic1() {
               </DialogHeader>
 
               {/* Display room details */}
-              <img
+              <Image
                 src={selectedRoom.newImage || "/images/placeholder.jpg"} // Fallback image if newImage is invalid
                 alt={selectedRoom.name}
                 className="rounded-lg shadow-md w-full h-auto mb-4"

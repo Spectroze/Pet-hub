@@ -15,6 +15,7 @@ import {
   DialogHeader,
   DialogTitle,
 } from "@/components/ui/dialog";
+import Image from 'next/image';
 
 export default function Pets() {
   const [petRecords, setPetRecords] = useState([]);
@@ -290,10 +291,12 @@ export default function Pets() {
                 className="overflow-hidden border-[#FBBDOD] hover:shadow-lg transition-shadow duration-300"
               >
                 <div className="h-40 relative">
-                  <img
+                  <Image
                     src={record.photo}
                     alt={record.name}
-                    className="w-full h-full object-cover"
+                    width={200}
+                    height={200}
+                    className="w-full h-full object-cover rounded-lg"
                   />
                 </div>
                 <CardContent className="p-3">
@@ -348,9 +351,11 @@ export default function Pets() {
 
                 <div className="grid md:grid-cols-2 gap-4 mt-2">
                   <div>
-                    <img
+                    <Image
                       src={selectedPet.photo}
                       alt={selectedPet.name}
+                      width={200}
+                      height={200}
                       className="w-full aspect-square object-cover rounded-lg"
                     />
                   </div>

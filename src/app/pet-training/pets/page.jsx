@@ -13,6 +13,7 @@ import {
 } from "@/components/ui/table";
 import { Search, Edit, Trash2, PlusCircle } from "lucide-react";
 import { toast } from "react-hot-toast";
+import Image from 'next/image';
 
 export default function Pets() {
   const [petRecords, setPetRecords] = useState([
@@ -129,10 +130,12 @@ export default function Pets() {
                 className="hover:bg-purple-50 transition-colors"
               >
                 <TableCell>
-                  <img
+                  <Image
                     src={record.photo}
                     alt={record.name}
-                    className="w-16 h-16 object-cover rounded-full"
+                    width={200}
+                    height={200}
+                    className="rounded-lg"
                   />
                 </TableCell>
                 <TableCell className="font-medium text-purple-700">
