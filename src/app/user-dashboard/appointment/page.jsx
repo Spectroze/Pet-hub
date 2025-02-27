@@ -9,6 +9,7 @@ import { Badge } from "@/components/ui/badge";
 import { Dialog, DialogContent, DialogTrigger } from "@/components/ui/dialog";
 import { Eye, PawPrint, Printer, Check, Star } from "lucide-react";
 import { RatingModal } from "./RatingModal";
+import Image from 'next/image';
 
 export default function Appointment() {
   const [appointments, setAppointments] = useState([]);
@@ -175,62 +176,54 @@ export default function Appointment() {
               <div class="section">
                 <h3>Owner Information</h3>
                 <div class="avatar">
-                  <img src="${
-                    selectedAppointment?.avatar || "/placeholder.svg"
-                  }" alt="Owner">
+                  <Image
+                    src={selectedAppointment?.avatar || "/placeholder.svg"}
+                    alt="Owner"
+                    width={80}
+                    height={80}
+                    className="rounded-full"
+                  />
                 </div>
-                <p><strong>${selectedAppointment?.name || "N/A"}</strong></p>
-                <p>${selectedAppointment?.email || "N/A"}</p>
-                <p>${selectedAppointment?.phone || "N/A"}</p>
+                <p><strong>{selectedAppointment?.name || "N/A"}</strong></p>
+                <p>{selectedAppointment?.email || "N/A"}</p>
+                <p>{selectedAppointment?.phone || "N/A"}</p>
               </div>
   
               <div class="section">
                 <h3>Pet Information</h3>
                 <div class="avatar">
-                  <img src="${
-                    selectedAppointment?.petPhotoId || "/placeholder.svg"
-                  }" alt="Pet">
+                  <Image
+                    src={selectedAppointment?.petPhotoId || "/placeholder.svg"}
+                    alt="Pet"
+                    width={80}
+                    height={80}
+                    className="rounded-full"
+                  />
                 </div>
-                <p><strong>${selectedAppointment?.petName || "N/A"}</strong></p>
-                <p>Age: ${selectedAppointment?.petAge || "N/A"}</p>
-                <p>Species: ${selectedAppointment?.petSpecies || "N/A"}</p>
+                <p><strong>{selectedAppointment?.petName || "N/A"}</strong></p>
+                <p>Age: {selectedAppointment?.petAge || "N/A"}</p>
+                <p>Species: {selectedAppointment?.petSpecies || "N/A"}</p>
               </div>
             </div>
   
             <div class="details">
-              <p><strong>Date:</strong> ${formatDate(
-                selectedAppointment?.petDate
-              )}</p>
-              <p><strong>Time:</strong> ${formatTime(
-                selectedAppointment?.petTime
-              )}</p>
-              <p><strong>Clinic:</strong> ${
-                selectedAppointment?.petClinic || "N/A"
-              }</p>
-              <p><strong>Room:</strong> ${
-                selectedAppointment?.petRoom || "N/A"
-              }</p>
+              <p><strong>Date:</strong> {formatDate(selectedAppointment?.petDate)}</p>
+              <p><strong>Time:</strong> {formatTime(selectedAppointment?.petTime)}</p>
+              <p><strong>Clinic:</strong> {selectedAppointment?.petClinic || "N/A"}</p>
+              <p><strong>Room:</strong> {selectedAppointment?.petRoom || "N/A"}</p>
             </div>
   
             <div class="details">
-              <p><strong>Services:</strong> ${
-                Array.isArray(selectedAppointment?.petServices)
-                  ? selectedAppointment.petServices.join(", ")
-                  : selectedAppointment?.petServices || "N/A"
-              }</p>
-              <p><strong>Payment:</strong> ${
-                selectedAppointment?.petPayment || "N/A"
-              } ₱</p>
-              <p><strong>Status:</strong> ${
-                selectedAppointment?.status || "N/A"
-              }</p>
+              <p><strong>Services:</strong> {Array.isArray(selectedAppointment?.petServices) ? selectedAppointment.petServices.join(", ") : selectedAppointment?.petServices || "N/A"}</p>
+              <p><strong>Payment:</strong> {selectedAppointment?.petPayment || "N/A"} ₱</p>
+              <p><strong>Status:</strong> {selectedAppointment?.status || "N/A"}</p>
             </div>
   
             <div class="signature-section">
               <div class="signature">
                 <div class="line"></div>
                 <p>Owner's Signature</p>
-                <p>Date: ${new Date().toLocaleDateString()}</p>
+                <p>Date: {new Date().toLocaleDateString()}</p>
               </div>
               <div class="signature">
                 <div class="line"></div>
@@ -309,7 +302,7 @@ export default function Appointment() {
       }
     };
     fetchAppointments();
-  }, [userId]);
+  }, [userId, databases, appwriteConfig.databaseId, appwriteConfig.petCollectionId, appwriteConfig.userCollectionId]);
 
   useEffect(() => {
     if (showHistory) {
@@ -368,7 +361,7 @@ export default function Appointment() {
 
       fetchHistory();
     }
-  }, [showHistory, historyFilter]);
+  }, [showHistory, userId, databases, appwriteConfig.databaseId, appwriteConfig.petCollectionId, appwriteConfig.userCollectionId]);
 
   useEffect(() => {
     const getCurrentUser = async () => {
@@ -648,13 +641,12 @@ export default function Appointment() {
                                     Owner Information
                                   </h3>
                                   <div className="flex flex-col sm:flex-row gap-4 items-center sm:items-start">
-                                    <img
-                                      src={
-                                        selectedAppointment?.avatar ||
-                                        "/placeholder.svg"
-                                      }
+                                    <Image
+                                      src={selectedAppointment?.avatar || "/placeholder.svg"}
                                       alt="Owner"
-                                      className="w-20 h-20 rounded-full object-cover"
+                                      width={40}
+                                      height={40}
+                                      className="rounded-full"
                                     />
                                     <div className="text-sm text-center sm:text-left">
                                       <p className="font-semibold">
@@ -676,13 +668,12 @@ export default function Appointment() {
                                     Pet Information
                                   </h3>
                                   <div className="flex flex-col sm:flex-row gap-4 items-center sm:items-start">
-                                    <img
-                                      src={
-                                        selectedAppointment?.petPhotoId ||
-                                        "/placeholder.svg"
-                                      }
+                                    <Image
+                                      src={selectedAppointment?.petPhotoId || "/placeholder.svg"}
                                       alt="Pet"
-                                      className="w-20 h-20 rounded-full object-cover"
+                                      width={40}
+                                      height={40}
+                                      className="rounded-full"
                                     />
                                     <div className="text-sm text-center sm:text-left">
                                       <p className="font-semibold">
@@ -694,8 +685,7 @@ export default function Appointment() {
                                       </p>
                                       <p>
                                         Species:{" "}
-                                        {selectedAppointment?.petSpecies ||
-                                          "N/A"}
+                                        {selectedAppointment?.petSpecies || "N/A"}
                                       </p>
                                     </div>
                                   </div>
@@ -1019,13 +1009,12 @@ export default function Appointment() {
                                       Owner Information
                                     </h3>
                                     <div className="flex flex-col sm:flex-row gap-4 items-center sm:items-start">
-                                      <img
-                                        src={
-                                          selectedAppointment?.avatar ||
-                                          "/placeholder.svg"
-                                        }
+                                      <Image
+                                        src={selectedAppointment?.avatar || "/placeholder.svg"}
                                         alt="Owner"
-                                        className="w-20 h-20 rounded-full object-cover"
+                                        width={40}
+                                        height={40}
+                                        className="rounded-full"
                                       />
                                       <div className="text-sm text-center sm:text-left">
                                         <p className="font-semibold">
@@ -1047,18 +1036,16 @@ export default function Appointment() {
                                       Pet Information
                                     </h3>
                                     <div className="flex flex-col sm:flex-row gap-4 items-center sm:items-start">
-                                      <img
-                                        src={
-                                          selectedAppointment?.petPhotoId ||
-                                          "/placeholder.svg"
-                                        }
+                                      <Image
+                                        src={selectedAppointment?.petPhotoId || "/placeholder.svg"}
                                         alt="Pet"
-                                        className="w-20 h-20 rounded-full object-cover"
+                                        width={40}
+                                        height={40}
+                                        className="rounded-full"
                                       />
                                       <div className="text-sm text-center sm:text-left">
                                         <p className="font-semibold">
-                                          {selectedAppointment?.petName ||
-                                            "N/A"}
+                                          {selectedAppointment?.petName || "N/A"}
                                         </p>
                                         <p>
                                           Age:{" "}
@@ -1066,8 +1053,7 @@ export default function Appointment() {
                                         </p>
                                         <p>
                                           Species:{" "}
-                                          {selectedAppointment?.petSpecies ||
-                                            "N/A"}
+                                          {selectedAppointment?.petSpecies || "N/A"}
                                         </p>
                                       </div>
                                     </div>

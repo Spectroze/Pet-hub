@@ -12,6 +12,7 @@ import { ScrollArea } from "@/components/ui/scroll-area";
 import { Separator } from "@/components/ui/separator";
 import { Calendar, Clock, X } from "lucide-react";
 import { format, parse } from "date-fns";
+import Image from 'next/image';
 
 export default function Pets() {
   const [petRecords, setPetRecords] = useState([]);
@@ -184,10 +185,12 @@ export default function Pets() {
                 >
                   <CardContent className="p-0">
                     <div className="relative">
-                      <img
+                      <Image
                         src={pet.petPhotoId || "/placeholder.svg"}
                         alt={pet.petName}
-                        className="w-full h-32 sm:h-36 object-cover"
+                        width={200}
+                        height={200}
+                        className="w-full h-32 sm:h-36 object-cover rounded-lg"
                       />
                     </div>
 
@@ -254,9 +257,11 @@ export default function Pets() {
 
                   <div className="p-2 grid grid-cols-2 gap-2">
                     <div className="col-span-2 sm:col-span-1">
-                      <img
+                      <Image
                         src={selectedPet.petPhotoId || "/placeholder.svg"}
                         alt={selectedPet.petName}
+                        width={200}
+                        height={200}
                         className="w-full h-32 object-cover rounded-lg"
                       />
                     </div>

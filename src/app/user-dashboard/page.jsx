@@ -195,7 +195,7 @@ export default function PetCareDashboard() {
     };
 
     checkAuth();
-  }, [router]);
+  }, [router, databases]);
 
   useEffect(() => {
     if (!userId || !authUser) return;
@@ -271,7 +271,7 @@ export default function PetCareDashboard() {
     };
 
     loadData();
-  }, [userId, authUser]);
+  }, [userId, authUser, databases]);
 
   const navItems = [
     { icon: PawPrint, title: "My Pet's", id: "overview" },
