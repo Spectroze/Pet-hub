@@ -6,6 +6,7 @@ import { Heart } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { useRouter } from "next/navigation";
 import FeedbackFormModal from "./feedbackModal";
+import Image from 'next/image';
 
 export function RatingModal({ isOpen, onClose, petPhotoId }) {
   const router = useRouter();
@@ -61,9 +62,11 @@ export function RatingModal({ isOpen, onClose, petPhotoId }) {
                     transition={{ delay: 0.2, duration: 0.5 }}
                   >
                     <div className="relative">
-                      <img
+                      <Image
                         src={petPhotoId || "/placeholder.svg"}
                         alt="Pet"
+                        width={128}
+                        height={128}
                         className="w-32 h-32 sm:w-40 sm:h-40 rounded-full object-cover shadow-lg border-4 border-[#FBBD0D]"
                         onError={(e) => {
                           e.currentTarget.src = "/placeholder.svg";

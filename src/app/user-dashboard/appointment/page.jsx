@@ -1,6 +1,6 @@
 "use client";
 
-import React, { useState, useEffect, useRef } from "react";
+import React, { useState, useEffect, useRef, useMemo } from "react";
 import { Button } from "@/components/ui/button";
 import { Client, Databases, Account, Query } from "appwrite";
 import { toast } from "react-toastify";
@@ -29,12 +29,20 @@ export default function Appointment() {
     userCollectionId: "670a04240019b97fcf05",
   };
 
-  const client = new Client()
-    .setEndpoint(appwriteConfig.endpoint)
-    .setProject(appwriteConfig.projectId);
+  const client = useMemo(() => {
+    const c = new Client();
+    c.setEndpoint(appwriteConfig.endpoint)
+     .setProject(appwriteConfig.projectId);
+    return c;
+  }, []);
 
-  const databases = new Databases(client);
-  const account = new Account(client);
+  const databases = useMemo(() => {
+    return new Databases(client);
+  }, [client]);
+
+  const account = useMemo(() => {
+    return new Account(client);
+  }, [client]);
 
   const printRef = useRef();
   const handlePrint = () => {
@@ -184,9 +192,9 @@ export default function Appointment() {
                     className="rounded-full"
                   />
                 </div>
-                <p><strong>{selectedAppointment?.name || "N/A"}</strong></p>
-                <p>{selectedAppointment?.email || "N/A"}</p>
-                <p>{selectedAppointment?.phone || "N/A"}</p>
+                <p><strong>${selectedAppointment?.name || "N/A"}</strong></p>
+                <p>${selectedAppointment?.email || "N/A"}</p>
+                <p>${selectedAppointment?.phone || "N/A"}</p>
               </div>
   
               <div class="section">
@@ -200,40 +208,40 @@ export default function Appointment() {
                     className="rounded-full"
                   />
                 </div>
-                <p><strong>{selectedAppointment?.petName || "N/A"}</strong></p>
-                <p>Age: {selectedAppointment?.petAge || "N/A"}</p>
-                <p>Species: {selectedAppointment?.petSpecies || "N/A"}</p>
+                <p><strong>${selectedAppointment?.petName || "N/A"}</strong></p>
+                <p>Age: ${selectedAppointment?.petAge || "N/A"}</p>
+                <p>Species: ${selectedAppointment?.petSpecies || "N/A"}</p>
               </div>
             </div>
   
             <div class="details">
-              <p><strong>Date:</strong> {formatDate(selectedAppointment?.petDate)}</p>
-              <p><strong>Time:</strong> {formatTime(selectedAppointment?.petTime)}</p>
-              <p><strong>Clinic:</strong> {selectedAppointment?.petClinic || "N/A"}</p>
-              <p><strong>Room:</strong> {selectedAppointment?.petRoom || "N/A"}</p>
+              <p><strong>Date:</strong> ${formatDate(selectedAppointment?.petDate)}</p>
+              <p><strong>Time:</strong> ${formatTime(selectedAppointment?.petTime)}</p>
+              <p><strong>Clinic:</strong> ${selectedAppointment?.petClinic || "N/A"}</p>
+              <p><strong>Room:</strong> ${selectedAppointment?.petRoom || "N/A"}</p>
             </div>
   
             <div class="details">
-              <p><strong>Services:</strong> {Array.isArray(selectedAppointment?.petServices) ? selectedAppointment.petServices.join(", ") : selectedAppointment?.petServices || "N/A"}</p>
-              <p><strong>Payment:</strong> {selectedAppointment?.petPayment || "N/A"} ₱</p>
-              <p><strong>Status:</strong> {selectedAppointment?.status || "N/A"}</p>
+              <p><strong>Services:</strong> ${Array.isArray(selectedAppointment?.petServices) ? selectedAppointment.petServices.join(", ") : selectedAppointment?.petServices || "N/A"}</p>
+              <p><strong>Payment:</strong> ${selectedAppointment?.petPayment || "N/A"} ₱</p>
+              <p><strong>Status:</strong> ${selectedAppointment?.status || "N/A"}</p>
             </div>
   
             <div class="signature-section">
               <div class="signature">
                 <div class="line"></div>
-                <p>Owner's Signature</p>
-                <p>Date: {new Date().toLocaleDateString()}</p>
+                <p>Owner&apos;s Signature</p>
+                <p>Date: ${new Date().toLocaleDateString()}</p>
               </div>
               <div class="signature">
                 <div class="line"></div>
-                <p>Veterinarian's Signature</p>
+                <p>Veterinarian&apos;s Signature</p>
                 <p>License No.: ________________</p>
               </div>
             </div>
   
             <p class="terms">
-              By signing, I confirm that all the information provided is accurate and I agree to Pet-Care's terms of service.
+              By signing, I confirm that all the information provided is accurate and I agree to Pet-Care&apos;s terms of service.
             </p>
           </div>
         </body>
@@ -361,7 +369,7 @@ export default function Appointment() {
 
       fetchHistory();
     }
-  }, [showHistory, userId, databases, appwriteConfig.databaseId, appwriteConfig.petCollectionId, appwriteConfig.userCollectionId]);
+  }, [showHistory, userId, databases, appwriteConfig.databaseId, appwriteConfig.petCollectionId, appwriteConfig.userCollectionId, historyFilter]);
 
   useEffect(() => {
     const getCurrentUser = async () => {
@@ -629,7 +637,7 @@ export default function Appointment() {
                                   Appointment Form
                                 </h2>
                                 <p className="text-sm text-gray-500">
-                                  Reference #: {selectedAppointment?.$id}
+                                  Reference #: ${selectedAppointment?.$id}
                                 </p>
                               </div>
 
@@ -650,13 +658,13 @@ export default function Appointment() {
                                     />
                                     <div className="text-sm text-center sm:text-left">
                                       <p className="font-semibold">
-                                        {selectedAppointment?.name || "N/A"}
+                                        ${selectedAppointment?.name || "N/A"}
                                       </p>
                                       <p>
-                                        {selectedAppointment?.email || "N/A"}
+                                        ${selectedAppointment?.email || "N/A"}
                                       </p>
                                       <p>
-                                        {selectedAppointment?.phone || "N/A"}
+                                        ${selectedAppointment?.phone || "N/A"}
                                       </p>
                                     </div>
                                   </div>
@@ -677,15 +685,13 @@ export default function Appointment() {
                                     />
                                     <div className="text-sm text-center sm:text-left">
                                       <p className="font-semibold">
-                                        {selectedAppointment?.petName || "N/A"}
+                                        ${selectedAppointment?.petName || "N/A"}
                                       </p>
                                       <p>
-                                        Age:{" "}
-                                        {selectedAppointment?.petAge || "N/A"}
+                                        Age: ${selectedAppointment?.petAge || "N/A"}
                                       </p>
                                       <p>
-                                        Species:{" "}
-                                        {selectedAppointment?.petSpecies || "N/A"}
+                                        Species: ${selectedAppointment?.petSpecies || "N/A"}
                                       </p>
                                     </div>
                                   </div>
@@ -697,13 +703,13 @@ export default function Appointment() {
                                 <div>
                                   <p className="text-sm font-semibold">Date</p>
                                   <p>
-                                    {formatDate(selectedAppointment?.petDate)}
+                                    ${formatDate(selectedAppointment?.petDate)}
                                   </p>
                                 </div>
                                 <div>
                                   <p className="text-sm font-semibold">Time</p>
                                   <p>
-                                    {formatTime(selectedAppointment?.petTime)}
+                                    ${formatTime(selectedAppointment?.petTime)}
                                   </p>
                                 </div>
                                 <div>
@@ -711,12 +717,12 @@ export default function Appointment() {
                                     Clinic
                                   </p>
                                   <p>
-                                    {selectedAppointment?.petClinic || "N/A"}
+                                    ${selectedAppointment?.petClinic || "N/A"}
                                   </p>
                                 </div>
                                 <div>
                                   <p className="text-sm font-semibold">Room</p>
-                                  <p>{selectedAppointment?.petRoom || "N/A"}</p>
+                                  <p>${selectedAppointment?.petRoom || "N/A"}</p>
                                 </div>
                               </div>
 
@@ -727,7 +733,7 @@ export default function Appointment() {
                                     Services
                                   </p>
                                   <p>
-                                    {Array.isArray(
+                                    ${Array.isArray(
                                       selectedAppointment?.petServices
                                     )
                                       ? selectedAppointment.petServices.join(
@@ -742,14 +748,14 @@ export default function Appointment() {
                                     Payment
                                   </p>
                                   <p>
-                                    {selectedAppointment?.petPayment || "N/A"} ₱
+                                    ${selectedAppointment?.petPayment || "N/A"} ₱
                                   </p>
                                 </div>
                                 <div>
                                   <p className="text-sm font-semibold">
                                     Status
                                   </p>
-                                  <p>{selectedAppointment?.status || "N/A"}</p>
+                                  <p>${selectedAppointment?.status || "N/A"}</p>
                                 </div>
                               </div>
 
@@ -758,16 +764,16 @@ export default function Appointment() {
                                 <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                                   <div className="text-center">
                                     <p className="font-semibold text-gray-700 mb-2">
-                                      Owner's Signature:
+                                      Owner&apos;s Signature:
                                     </p>
                                     <div className="h-16 border-b border-gray-300"></div>
                                     <p className="text-sm text-gray-500 mt-2">
-                                      Date: {new Date().toLocaleDateString()}
+                                      Date: ${new Date().toLocaleDateString()}
                                     </p>
                                   </div>
                                   <div className="text-center">
                                     <p className="font-semibold text-gray-700 mb-2">
-                                      Veterinarian's Signature:
+                                      Veterinarian&apos;s Signature:
                                     </p>
                                     <div className="h-16 border-b border-gray-300"></div>
                                     <p className="text-sm text-gray-500 mt-2">
@@ -781,7 +787,7 @@ export default function Appointment() {
                               <div className="text-center mt-4">
                                 <p className="text-xs text-gray-500">
                                   By signing, I confirm that all the information
-                                  provided is accurate and I agree to Pet-Care's
+                                  provided is accurate and I agree to Pet-Care&apos;s
                                   terms of service.
                                 </p>
                               </div>
@@ -830,8 +836,7 @@ export default function Appointment() {
             ))
           ) : (
             <div className="text-center py-4 text-gray-600">
-              No {isHistory ? historyFilter.toLowerCase() : "pending"}{" "}
-              appointments found.
+              No ${isHistory ? historyFilter.toLowerCase() : "pending"} appointments found.
             </div>
           )}
         </div>
@@ -911,29 +916,29 @@ export default function Appointment() {
                   className="hover:bg-blue-50 transition-colors duration-150"
                 >
                   <td className="pl-10 px-4 py-3 whitespace-nowrap text-base text-gray-600 font-medium ">
-                    {appointment.petName || "N/A"}
+                    ${appointment.petName || "N/A"}
                   </td>
                   <td className="px-4 py-3 whitespace-nowrap text-base text-gray-600">
-                    {Array.isArray(appointment.petServices)
+                    ${Array.isArray(appointment.petServices)
                       ? appointment.petServices[0] || "N/A"
                       : appointment.petServices || "N/A"}
                   </td>
                   <td className="px-4 py-3 whitespace-nowrap text-base text-gray-600 hidden sm:table-cell">
-                    {new Date(appointment.petDate).toLocaleDateString()}
+                    ${new Date(appointment.petDate).toLocaleDateString()}
                   </td>
                   <td className="px-4 py-3 whitespace-nowrap text-base text-gray-600 hidden sm:table-cell">
-                    {formatTime(appointment.petTime)}
+                    ${formatTime(appointment.petTime)}
                   </td>
                   <td className="px-4 py-3 whitespace-nowrap text-base text-gray-600">
-                    {appointment.petClinic || "N/A"}
+                    ${appointment.petClinic || "N/A"}
                   </td>
                   {!isHistory && (
                     <>
                       <td className="px-4 py-3 whitespace-nowrap text-base text-gray-600 hidden md:table-cell">
-                        {appointment.petRoom || "N/A"}
+                        ${appointment.petRoom || "N/A"}
                       </td>
                       <td className="px-4 py-3 whitespace-nowrap text-base text-gray-600">
-                        {appointment.petPayment || "N/A"} ₱
+                        ${appointment.petPayment || "N/A"} ₱
                       </td>
                     </>
                   )}
@@ -955,7 +960,7 @@ export default function Appointment() {
                           : "bg-gray-500 text-white hover:bg-gray-600 border-gray-600"
                       } text-xs font-medium px-2 py-0.5 rounded-full flex items-center gap-1 w-fit`}
                     >
-                      {appointment.status}
+                      ${appointment.status}
                       {(appointment.status === "Done" ||
                         appointment.status?.[0] === "Done") && (
                         <Check className="w-3 h-3" />
@@ -997,7 +1002,7 @@ export default function Appointment() {
                                     Appointment Form
                                   </h2>
                                   <p className="text-sm text-gray-500">
-                                    Reference #: {selectedAppointment?.$id}
+                                    Reference #: ${selectedAppointment?.$id}
                                   </p>
                                 </div>
 
@@ -1018,13 +1023,13 @@ export default function Appointment() {
                                       />
                                       <div className="text-sm text-center sm:text-left">
                                         <p className="font-semibold">
-                                          {selectedAppointment?.name || "N/A"}
+                                          ${selectedAppointment?.name || "N/A"}
                                         </p>
                                         <p>
-                                          {selectedAppointment?.email || "N/A"}
+                                          ${selectedAppointment?.email || "N/A"}
                                         </p>
                                         <p>
-                                          {selectedAppointment?.phone || "N/A"}
+                                          ${selectedAppointment?.phone || "N/A"}
                                         </p>
                                       </div>
                                     </div>
@@ -1045,15 +1050,13 @@ export default function Appointment() {
                                       />
                                       <div className="text-sm text-center sm:text-left">
                                         <p className="font-semibold">
-                                          {selectedAppointment?.petName || "N/A"}
+                                          ${selectedAppointment?.petName || "N/A"}
                                         </p>
                                         <p>
-                                          Age:{" "}
-                                          {selectedAppointment?.petAge || "N/A"}
+                                          Age: ${selectedAppointment?.petAge || "N/A"}
                                         </p>
                                         <p>
-                                          Species:{" "}
-                                          {selectedAppointment?.petSpecies || "N/A"}
+                                          Species: ${selectedAppointment?.petSpecies || "N/A"}
                                         </p>
                                       </div>
                                     </div>
@@ -1067,7 +1070,7 @@ export default function Appointment() {
                                       Date
                                     </p>
                                     <p>
-                                      {formatDate(selectedAppointment?.petDate)}
+                                      ${formatDate(selectedAppointment?.petDate)}
                                     </p>
                                   </div>
                                   <div>
@@ -1075,7 +1078,7 @@ export default function Appointment() {
                                       Time
                                     </p>
                                     <p>
-                                      {formatTime(selectedAppointment?.petTime)}
+                                      ${formatTime(selectedAppointment?.petTime)}
                                     </p>
                                   </div>
                                   <div>
@@ -1083,7 +1086,7 @@ export default function Appointment() {
                                       Clinic
                                     </p>
                                     <p>
-                                      {selectedAppointment?.petClinic || "N/A"}
+                                      ${selectedAppointment?.petClinic || "N/A"}
                                     </p>
                                   </div>
                                   <div>
@@ -1091,7 +1094,7 @@ export default function Appointment() {
                                       Room
                                     </p>
                                     <p>
-                                      {selectedAppointment?.petRoom || "N/A"}
+                                      ${selectedAppointment?.petRoom || "N/A"}
                                     </p>
                                   </div>
                                 </div>
@@ -1103,7 +1106,7 @@ export default function Appointment() {
                                       Services
                                     </p>
                                     <p>
-                                      {Array.isArray(
+                                      ${Array.isArray(
                                         selectedAppointment?.petServices
                                       )
                                         ? selectedAppointment.petServices.join(
@@ -1118,8 +1121,7 @@ export default function Appointment() {
                                       Payment
                                     </p>
                                     <p>
-                                      {selectedAppointment?.petPayment || "N/A"}{" "}
-                                      ₱
+                                      ${selectedAppointment?.petPayment || "N/A"} ₱
                                     </p>
                                   </div>
                                   <div>
@@ -1127,7 +1129,7 @@ export default function Appointment() {
                                       Status
                                     </p>
                                     <p>
-                                      {selectedAppointment?.status || "N/A"}
+                                      ${selectedAppointment?.status || "N/A"}
                                     </p>
                                   </div>
                                 </div>
@@ -1137,16 +1139,16 @@ export default function Appointment() {
                                   <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                                     <div className="text-center">
                                       <p className="font-semibold text-gray-700 mb-2">
-                                        Owner's Signature:
+                                        Owner&apos;s Signature:
                                       </p>
                                       <div className="h-16 border-b border-gray-300"></div>
                                       <p className="text-sm text-gray-500 mt-2">
-                                        Date: {new Date().toLocaleDateString()}
+                                        Date: ${new Date().toLocaleDateString()}
                                       </p>
                                     </div>
                                     <div className="text-center">
                                       <p className="font-semibold text-gray-700 mb-2">
-                                        Veterinarian's Signature:
+                                        Veterinarian&apos;s Signature:
                                       </p>
                                       <div className="h-16 border-b border-gray-300"></div>
                                       <p className="text-sm text-gray-500 mt-2">
@@ -1161,7 +1163,7 @@ export default function Appointment() {
                                   <p className="text-xs text-gray-500">
                                     By signing, I confirm that all the
                                     information provided is accurate and I agree
-                                    to Pet-Care's terms of service.
+                                    to Pet-Care&apos;s terms of service.
                                   </p>
                                 </div>
                               </div>
@@ -1219,8 +1221,7 @@ export default function Appointment() {
                   }
                   className="px-4 py-3 whitespace-nowrap text-base text-center text-gray-600"
                 >
-                  No {isHistory ? historyFilter.toLowerCase() : "pending"}{" "}
-                  appointments found.
+                  No ${isHistory ? historyFilter.toLowerCase() : "pending"} appointments found.
                 </td>
               </tr>
             )}
@@ -1235,7 +1236,7 @@ export default function Appointment() {
       <Card className="bg-white border border-gray-200 rounded-lg shadow-md overflow-hidden">
         <CardHeader className="flex flex-row items-center justify-between">
           <CardTitle className="text-2xl font-bold text-gray-800">
-            {showHistory ? "Appointments History" : "Your Pet's Appointments"}
+            {showHistory ? "Appointments History" : "Your Pet&apos;s Appointments"}
           </CardTitle>
           <Button
             className="bg-blue-100 text-blue-700 hover:bg-blue-200"

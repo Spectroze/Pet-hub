@@ -9,6 +9,7 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
+import Image from 'next/image';
 
 // Appwrite configuration
 const appwriteConfig = {
@@ -237,10 +238,12 @@ const PetActivityLog = () => {
               <li key={log.$id} className="px-6 py-4">
                 <div className="flex items-start space-x-4">
                   <div className="flex-shrink-0">
-                    <img
-                      className="h-10 w-10 rounded-full"
+                    <Image
                       src={log.avatar}
                       alt={log.email || "Activity"}
+                      width={40}
+                      height={40}
+                      className="rounded-full"
                     />
                   </div>
                   <div>

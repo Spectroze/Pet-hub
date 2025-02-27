@@ -102,11 +102,9 @@ export default function Dashboard() {
   };
 
   useEffect(() => {
-    if (userId) {
-      fetchNotifications();
-      verifyUserAndCollection();
-    }
-  }, [userId]);
+    verifyUserAndCollection();
+    fetchNotifications();
+  }, [verifyUserAndCollection, fetchNotifications]);
 
   useEffect(() => {
     const fetchInitialNotifications = async () => {
@@ -129,7 +127,7 @@ export default function Dashboard() {
     );
 
     return () => unsubscribe();
-  }, [userId]);
+  }, [client, fetchNotifications]);
 
   const handleOwnerChange = (e) => {
     const { name, value } = e.target;
@@ -247,7 +245,7 @@ export default function Dashboard() {
     };
 
     fetchUserData();
-  }, []);
+  }, [router, setAuthUser]);
 
   const toggleSidebar = () => setSidebarOpen(!sidebarOpen);
 

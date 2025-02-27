@@ -13,6 +13,7 @@ import { Button } from "@/components/ui/button";
 import { CheckCircle, XCircle } from "lucide-react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Client, Databases } from "appwrite";
+import Image from 'next/image';
 
 // Initialize Appwrite Client
 const client = new Client();
@@ -170,9 +171,11 @@ export default function Acceptaccount() {
                       </TableCell>
                       <TableCell>
                         {login.avatar ? (
-                          <img
+                          <Image
                             src={login.avatar}
                             alt="User Avatar"
+                            width={40}
+                            height={40}
                             className="w-10 h-10 rounded-full"
                           />
                         ) : (

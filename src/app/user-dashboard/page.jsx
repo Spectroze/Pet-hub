@@ -1,6 +1,6 @@
 "use client";
 
-import React, { useEffect, useState } from "react";
+import React, { useEffect, useState, useMemo } from "react";
 import { useRouter } from "next/navigation";
 import { appwriteConfig, getAccount } from "@/lib/appwrite";
 import { fetchUserAndPetInfo, getCurrentUser, signOut } from "@/lib/appwrite";
@@ -50,12 +50,20 @@ export default function PetCareDashboard() {
   const [showNotifications, setShowNotifications] = useState(false);
   const { authUser } = useAuthUserStore();
 
-  const client = new Client();
-  client
-    .setEndpoint(appwriteConfig.endpoint)
-    .setProject(appwriteConfig.projectId);
-  const databases = new Databases(client);
-  const storage = new Storage(client);
+  const client = useMemo(() => {
+    const c = new Client();
+    c.setEndpoint(appwriteConfig.endpoint)
+     .setProject(appwriteConfig.projectId);
+    return c;
+  }, []);
+
+  const databases = useMemo(() => {
+    return new Databases(client);
+  }, [client]);
+
+  const storage = useMemo(() => {
+    return new Storage(client);
+  }, [client]);
 
   const [isMobileView, setIsMobileView] = useState(false);
 

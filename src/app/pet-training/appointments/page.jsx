@@ -129,7 +129,7 @@ export default function AppointmentCalendar({ databaseId, collectionId }) {
 
   useEffect(() => {
     fetchAppointments();
-  }, [databaseId, collectionId]);
+  }, [fetchAppointments]);
 
   const handleSelectEvent = (event) => {
     setSelectedEvent(event);

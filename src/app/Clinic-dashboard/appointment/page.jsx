@@ -1,5 +1,5 @@
 "use client";
-import React, { useState, useEffect } from "react";
+import React, { useState, useEffect, useCallback } from "react";
 import { Calendar, momentLocalizer, Views } from "react-big-calendar";
 import moment from "moment-timezone";
 import "react-big-calendar/lib/css/react-big-calendar.css";
@@ -94,7 +94,7 @@ export default function AppointmentCalendar({ databaseId, collectionId }) {
     return parsedDate.isValid() ? parsedDate.toDate() : new Date();
   };
 
-  const fetchAppointments = async () => {
+  const fetchAppointments = useCallback(async () => {
     setLoading(true);
     setError("");
 
@@ -148,11 +148,11 @@ export default function AppointmentCalendar({ databaseId, collectionId }) {
     } finally {
       setLoading(false);
     }
-  };
+  }, [databases, dbId, petCollId, usersCollId]);
 
   useEffect(() => {
     fetchAppointments();
-  }, [databaseId, collectionId]);
+  }, [fetchAppointments]);
 
   const handleSelectEvent = (event) => {
     setSelectedEvent(event);

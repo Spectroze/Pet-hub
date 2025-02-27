@@ -245,7 +245,7 @@ export default function Pets() {
                 >
                   <div className="relative p-2 border-b border-[#2D2C2E]/10">
                     <h2 className="text-lg font-bold text-[#2D2C2E] pl-1">
-                      {selectedPet.petName}'s Profile
+                      {selectedPet.petName}&apos;s Profile
                     </h2>
                     <button
                       onClick={() => setShowModal(false)}
