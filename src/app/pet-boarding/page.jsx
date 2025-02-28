@@ -60,7 +60,10 @@ export default function Dashboard() {
     return c;
   }, []);
 
-  const databases = new Databases(client);
+  const databases = useMemo(() => {
+    return new Databases(client);
+  }, [client]);
+
   const storage = new Storage(client);
 
   const [ownerInfo, setOwnerInfo] = useState({
@@ -70,6 +73,20 @@ export default function Dashboard() {
     avatarUrl: "/placeholder.svg",
     role: "",
   });
+
+  const verifyUserAndCollection = useCallback(async () => {
+    try {
+      console.log("User ID to verify:", userId);
+      await databases.listDocuments(
+        appwriteConfig.databaseId,
+        appwriteConfig.petCollectionId
+      );
+      console.log("Collection Exists:", true);
+    } catch (error) {
+      console.error("Error verifying user and collection:", error);
+      console.log("Collection Exists:", false);
+    }
+  }, [databases, userId]);
 
   const fetchNotifications = useCallback(async () => {
     try {
@@ -88,20 +105,6 @@ export default function Dashboard() {
       setNotificationCount(0);
     }
   }, [databases, userId]);
-
-  const verifyUserAndCollection = async () => {
-    try {
-      console.log("User ID to verify:", userId);
-      await databases.listDocuments(
-        appwriteConfig.databaseId,
-        appwriteConfig.petCollectionId
-      );
-      console.log("Collection Exists:", true);
-    } catch (error) {
-      console.error("Error verifying user and collection:", error);
-      console.log("Collection Exists:", false);
-    }
-  };
 
   useEffect(() => {
     verifyUserAndCollection();

@@ -21,6 +21,7 @@ import {
 import { saveAppointmentToDatabase, getCurrentUserId } from "@/lib/appwrite";
 import { Client, Databases, Query } from "appwrite";
 import { toast } from "react-toastify";
+import Image from 'next/image';
 
 // Appwrite configuration
 const appwriteConfig = {
@@ -463,14 +464,12 @@ export default function NewAppointmentModal({ isOpen, onClose, pets }) {
                 <p>Pet Age: {pet.petAge}</p>
                 {pet.photoUrl && (
                   <div className="relative w-20 h-20 mt-2">
-                    <img
-                      src={pet.petPhotoId}
+                    <Image
+                      src={pet.photoUrl}
                       alt={`${pet.petName}'s photo`}
+                      width={80}
+                      height={80}
                       className="w-full h-full object-cover rounded"
-                      onError={(e) => {
-                        console.error("Error loading image:", e);
-                        e.target.src = "/fallback-pet-image.png"; // Optional: provide a fallback image
-                      }}
                     />
                   </div>
                 )}

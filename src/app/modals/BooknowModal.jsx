@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useEffect } from "react";
+import { useState, useEffect, useMemo } from "react";
 import { motion } from "framer-motion";
 import { useRouter } from "next/navigation";
 import {
@@ -69,12 +69,12 @@ export function BooknowModal({ showBooknowModal, setShowBooknowModal }) {
     staus: ["Pending"],
   });
 
-  const servicePrices = {
-    "Pet Boarding": 1000,
-    "Pet Grooming": 500,
-    "Pet Veterinary": 700,
-    "Pet Training": 1200,
-  };
+  const servicePrices = useMemo(() => ({
+    "Pet Boarding": 500,
+    "Pet Grooming": 300,
+    "Pet Training": 400,
+    "Veterinary Services": 600,
+  }), []); // Empty dependency array since these are constant values
 
   const currentDate = new Date().toISOString().split("T")[0];
 

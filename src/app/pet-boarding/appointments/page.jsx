@@ -1,5 +1,5 @@
 "use client";
-import React, { useState, useEffect } from "react";
+import React, { useState, useEffect, useCallback } from "react";
 import { Calendar, momentLocalizer, Views } from "react-big-calendar";
 import moment from "moment-timezone";
 import { styled } from "@mui/system";
@@ -258,7 +258,7 @@ export default function AppointmentCalendar({ databaseId, collectionId }) {
     }
   };
 
-  const fetchAppointments = async () => {
+  const fetchAppointments = useCallback(async () => {
     setLoading(true);
     setError("");
 
@@ -372,11 +372,11 @@ export default function AppointmentCalendar({ databaseId, collectionId }) {
     } finally {
       setLoading(false);
     }
-  };
+  }, [databaseId, collectionId, userRole]);
 
   useEffect(() => {
     fetchAppointments();
-  }, [databaseId, collectionId, userRole]); // Updated useEffect dependency array
+  }, [fetchAppointments]);
 
   const filteredEvents = events.filter((event) => {
     if (view === "agenda") {

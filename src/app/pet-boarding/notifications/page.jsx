@@ -237,6 +237,11 @@ export default function Notifications() {
     }
   };
 
+  useEffect(() => {
+    fetchAppointments();
+    fetchUnreadCount();
+  }, [fetchAppointments, fetchUnreadCount]);
+
   return (
     <div className="w-full max-w-8xl mx-auto bg-[#FAF5E6] shadow-lg rounded-lg p-6 text-[#2D2C2E]">
       <h2 className="text-3xl font-semibold mb-6 text-[#2D2C2E] flex items-center gap-2">

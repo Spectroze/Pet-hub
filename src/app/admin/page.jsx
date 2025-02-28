@@ -1,6 +1,6 @@
 "use client";
 
-import React, { useState, useEffect } from "react";
+import React, { useState, useEffect, useMemo } from "react";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { ToastContainer, toast } from "react-toastify";
@@ -274,12 +274,16 @@ export default function PetcareAdminDashboard() {
 
   const router = useRouter();
 
-  const client = new Client();
-  client
-    .setEndpoint(appwriteConfig.endpoint)
-    .setProject(appwriteConfig.projectId);
+  const client = useMemo(() => {
+    const c = new Client();
+    c.setEndpoint(appwriteConfig.endpoint)
+     .setProject(appwriteConfig.projectId);
+    return c;
+  }, []);
 
-  const databases = new Databases(client);
+  const databases = useMemo(() => {
+    return new Databases(client);
+  }, [client]);
 
   const sidebarItems = [
     { id: "overview", icon: BarChartIcon, label: "Overview" },
