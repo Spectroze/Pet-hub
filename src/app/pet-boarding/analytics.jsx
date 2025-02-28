@@ -1,6 +1,6 @@
 "use client";
 
-import React, { useEffect, useState } from "react";
+import React, { useEffect, useState, useCallback } from "react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import {
   BarChart,
@@ -57,57 +57,11 @@ export default function Analytics() {
     petTypes: { dogs: 0, cats: 0, other: 0 },
   });
   const [userRole, setUserRole] = useState("");
+  const [isLoading, setIsLoading] = useState(false);
+  const [error, setError] = useState(null);
 
-  useEffect(() => {
-    const fetchUserRoleAndAnalytics = async () => {
-      try {
-        // Fetch user role with improved error handling
-        const user = await account.get();
-        let role = "";
-
-        // First try to get role from user preferences
-        if (user.prefs && user.prefs.role) {
-          role = user.prefs.role;
-        } else {
-          // If no role in prefs, try to fetch from users collection
-          try {
-            const response = await databases.listDocuments(
-              appwriteConfig.databaseId,
-              appwriteConfig.userCollectionId,
-              [Query.equal("accountId", user.$id)]
-            );
-
-            if (response.documents.length > 0) {
-              role = response.documents[0].role || "";
-            }
-          } catch (docError) {
-            console.warn(
-              "Could not fetch user role from collection:",
-              docError
-            );
-          }
-        }
-
-        // Normalize the role
-        role = role.toLowerCase().trim();
-        setUserRole(role || "guest"); // Default to 'guest' if no role found
-
-        // Only fetch analytics if we have a valid role
-        if (role) {
-          await fetchAnalyticsData(role);
-        } else {
-          console.warn("No valid role found for user");
-        }
-      } catch (error) {
-        console.error("Error in fetchUserRoleAndAnalytics:", error);
-        setUserRole("guest"); // Default to guest on error
-      }
-    };
-
-    fetchUserRoleAndAnalytics();
-  }, []);
-
-  const fetchAnalyticsData = async (role) => {
+  const fetchAnalyticsData = useCallback(async () => {
+    setIsLoading(true);
     try {
       const { databaseId, petCollectionId, userCollectionId } = appwriteConfig;
 
@@ -116,11 +70,11 @@ export default function Analytics() {
       }
 
       // Extract clinic number from role (assuming role format like "clinic 1")
-      const clinicMatch = role.match(/clinic\s*(\d+)/i);
+      const clinicMatch = userRole.match(/clinic\s*(\d+)/i);
       const clinicNumber = clinicMatch ? clinicMatch[1] : null;
 
       if (!clinicNumber) {
-        console.error("Invalid clinic role format:", role);
+        console.error("Invalid clinic role format:", userRole);
         return;
       }
 
@@ -185,8 +139,60 @@ export default function Analytics() {
       });
     } catch (error) {
       console.error("Error fetching analytics data:", error);
+      setError("Failed to fetch analytics data");
+    } finally {
+      setIsLoading(false);
     }
-  };
+  }, [userRole]);
+
+  useEffect(() => {
+    const fetchUserRoleAndAnalytics = async () => {
+      try {
+        // Fetch user role with improved error handling
+        const user = await account.get();
+        let role = "";
+
+        // First try to get role from user preferences
+        if (user.prefs && user.prefs.role) {
+          role = user.prefs.role;
+        } else {
+          // If no role in prefs, try to fetch from users collection
+          try {
+            const response = await databases.listDocuments(
+              appwriteConfig.databaseId,
+              appwriteConfig.userCollectionId,
+              [Query.equal("accountId", user.$id)]
+            );
+
+            if (response.documents.length > 0) {
+              role = response.documents[0].role || "";
+            }
+          } catch (docError) {
+            console.warn(
+              "Could not fetch user role from collection:",
+              docError
+            );
+          }
+        }
+
+        // Normalize the role
+        role = role.toLowerCase().trim();
+        setUserRole(role || "guest"); // Default to 'guest' if no role found
+
+        // Only fetch analytics if we have a valid role
+        if (role) {
+          await fetchAnalyticsData();
+        } else {
+          console.warn("No valid role found for user");
+        }
+      } catch (error) {
+        console.error("Error in fetchUserRoleAndAnalytics:", error);
+        setUserRole("guest"); // Default to guest on error
+      }
+    };
+
+    fetchUserRoleAndAnalytics();
+  }, [fetchAnalyticsData]);
 
   // Helper function to calculate monthly data
   const calculateMonthlyData = (pets) => {

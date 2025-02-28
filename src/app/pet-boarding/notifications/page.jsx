@@ -1,6 +1,6 @@
 "use client";
 
-import React, { useState, useEffect } from "react";
+import React, { useState, useEffect, useCallback } from "react";
 import { BellIcon } from "lucide-react";
 import {
   Table,
@@ -92,7 +92,7 @@ export default function Notifications() {
     }
   };
 
-  const fetchUnreadCount = async (role, clinic) => {
+  const fetchUnreadCount = useCallback(async (role, clinic) => {
     setLoading(true);
     setError(null);
     try {
@@ -117,7 +117,7 @@ export default function Notifications() {
     } finally {
       setLoading(false);
     }
-  };
+  }, []);
 
   const getServiceByRole = (role) => {
     // Handle null/undefined roles
@@ -153,7 +153,7 @@ export default function Notifications() {
     }
   };
 
-  const fetchAppointments = async (role, clinic) => {
+  const fetchAppointments = useCallback(async (role, clinic) => {
     setLoading(true);
     setError(null);
     setNotifications([]); // Clear existing data
@@ -200,7 +200,7 @@ export default function Notifications() {
     } finally {
       setLoading(false);
     }
-  };
+  }, []);
 
   useEffect(() => {
     const initializeData = async () => {
@@ -212,7 +212,7 @@ export default function Notifications() {
     };
 
     initializeData();
-  }, []);
+  }, [fetchUnreadCount, fetchAppointments]);
 
   const openNotificationModal = async (notification) => {
     setSelectedNotification(notification);
@@ -236,11 +236,6 @@ export default function Notifications() {
       console.error("Failed to update notification status:", error);
     }
   };
-
-  useEffect(() => {
-    fetchAppointments();
-    fetchUnreadCount();
-  }, [fetchAppointments, fetchUnreadCount]);
 
   return (
     <div className="w-full max-w-8xl mx-auto bg-[#FAF5E6] shadow-lg rounded-lg p-6 text-[#2D2C2E]">

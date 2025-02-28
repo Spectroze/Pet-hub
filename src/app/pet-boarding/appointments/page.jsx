@@ -401,17 +401,19 @@ export default function AppointmentCalendar({ databaseId, collectionId }) {
     );
   });
 
-  const handleSelectEvent = (event) => {
-    setSelectedEvent(event);
-    setAppointmentDetails({
-      petOwner: event.petOwner,
-      service: event.title,
-      petAvatar: event.petAvatar,
-      userAvatar: event.userAvatar,
-      email: event.email, // Include email here
-    });
-    setOpenViewDialog(true);
-  };
+  const handleSelectEvent = useCallback(async (event) => {
+    try {
+      const ownerDetails = await getOwnerDetails(event.ownerId);
+      setSelectedEvent({
+        ...event,
+        ownerDetails,
+      });
+      setOpenViewDialog(true);
+    } catch (error) {
+      console.error("Error fetching owner details:", error);
+      toast.error("Failed to fetch owner details");
+    }
+  }, [dbId, getOwnerDetails, petCollId]);
 
   const handleCloseViewDialog = () => {
     setOpenViewDialog(false);

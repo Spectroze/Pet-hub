@@ -99,13 +99,7 @@ export function BooknowModal({ showBooknowModal, setShowBooknowModal }) {
       const price = servicePrices[selectedService] || 0;
       setPayment(price);
     }
-  }, [petInfo.services]);
-
-  useEffect(() => {
-    if (servicePrices) {
-      // ... existing code ...
-    }
-  }, [servicePrices]);
+  }, [petInfo.services, servicePrices]);
 
   // Validation for Phone Number Format
   const validatePhoneNumber = (phone) => {

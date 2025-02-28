@@ -16,6 +16,8 @@ import {
   DialogTitle,
 } from "@/components/ui/dialog";
 import Image from 'next/image';
+import { InputField } from "@/components/ui/input-field";
+import { PawPrint } from "lucide-react";
 
 export default function Pets() {
   const [petRecords, setPetRecords] = useState([]);
@@ -27,6 +29,7 @@ export default function Pets() {
   const [userRole, setUserRole] = useState("");
   const [visibleRecords, setVisibleRecords] = useState(3);
   const [visibleAppointments, setVisibleAppointments] = useState(3);
+  const [petInfo, setPetInfo] = useState({});
 
   useEffect(() => {
     const fetchUserRoleAndPets = async () => {
@@ -243,6 +246,10 @@ export default function Pets() {
 
   const loadMoreAppointments = () => {
     setVisibleAppointments((prev) => prev + 3);
+  };
+
+  const handleInputChange = (setter) => (e) => {
+    setter(e.target.value);
   };
 
   return (
