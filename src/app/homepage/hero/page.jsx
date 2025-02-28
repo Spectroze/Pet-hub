@@ -4,6 +4,7 @@ import { motion } from "framer-motion";
 import { PawPrintIcon, HeartIcon } from "lucide-react";
 import { BooknowModal } from "@/app/modals/BooknowModal";
 import LoginModal from "@/app/modals/LoginModals";
+import Image from 'next/image';
 
 export default function Landing() {
   const [isLoginModalOpen, setIsLoginModalOpen] = useState(false);
@@ -41,8 +42,7 @@ export default function Landing() {
             Tail-Wagging Care for Your Furry Family
           </h1>
           <p className="max-w-2xl text-lg lg:text-xl text-[#6B6B6B]">
-            At Pet-Care, we treat your pets like family. From cuddles to care,
-            we're here to make tails wag and whiskers twitch with joy!
+            We&apos;re here for your pets. From cuddles to care, we&apos;re here to make tails wag and whiskers twitch with joy!
           </p>
           <div className="flex flex-col gap-3 sm:flex-row">
             <motion.button
@@ -56,9 +56,11 @@ export default function Landing() {
           </div>
         </motion.div>
         <motion.div variants={itemVariants} className="flex-1">
-          <img
+          <Image
             src="/images/home.jpg"
             alt="Happy pets"
+            width={600}
+            height={400}
             className="rounded-full shadow-lg object-cover w-full max-w-lg border-4 border-[#FF6B6B]"
           />
         </motion.div>

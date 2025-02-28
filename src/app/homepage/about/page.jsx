@@ -3,6 +3,7 @@
 import React, { useState, useEffect } from "react";
 import { motion, useAnimation } from "framer-motion";
 import { useInView } from "react-intersection-observer";
+import Image from 'next/image';
 
 export default function About() {
   const controls = useAnimation();
@@ -59,12 +60,12 @@ export default function About() {
         <div className="flex flex-col md:flex-row items-center gap-8">
           <motion.div variants={itemVariants} className="flex-1">
             <p className="text-lg text-[#6B6B6B] mb-4">
-              At Paw Pals, we're not just pet care providers – we're pet lovers
+              At Paw Pals, we&apos;re not just pet care providers – we&apos;re pet lovers
               on a mission! Our journey began with a simple idea: to create a
               place where pets feel as loved and cared for as they do at home.
             </p>
             <p className="text-lg text-[#6B6B6B]">
-              Every wag, purr, and happy bark fuels our passion. We've built a
+              Every wag, purr, and happy bark fuels our passion. We&apos;ve built a
               team of dedicated animal enthusiasts who treat each pet as if it
               were their own. Because at Paw Pals, every pet is family!
             </p>
@@ -73,9 +74,11 @@ export default function About() {
             variants={itemVariants}
             className="flex-1 flex justify-center"
           >
-            <img
+            <Image
               src="/images/home.png"
               alt="Happy pets with Paw Pals staff"
+              width={500}
+              height={300}
               className="rounded-lg shadow-lg max-w-md bg-[#FFF9E6]"
             />
           </motion.div>

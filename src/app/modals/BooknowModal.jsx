@@ -101,6 +101,12 @@ export function BooknowModal({ showBooknowModal, setShowBooknowModal }) {
     }
   }, [petInfo.services]);
 
+  useEffect(() => {
+    if (servicePrices) {
+      // ... existing code ...
+    }
+  }, [servicePrices]);
+
   // Validation for Phone Number Format
   const validatePhoneNumber = (phone) => {
     const isValid =
@@ -564,8 +570,7 @@ function LoadingModal({ isOpen }) {
           </motion.div>
           <h2 className="text-2xl font-bold mt-4 mb-2">Booking in Progress</h2>
           <p className="text-center text-gray-600 mb-4">
-            We're setting up your pet-care appointment. This may take a
-            moment...
+            We&apos;ll confirm your booking. This may take a moment...
           </p>
           <div className="flex items-center">
             <Loader2 className="animate-spin h-5 w-5 mr-2 text-primary" />

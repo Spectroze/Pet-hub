@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useEffect } from "react";
+import { useState, useEffect, useMemo, useCallback } from "react";
 import { useRouter } from "next/navigation";
 import { ToastContainer, toast } from "react-toastify";
 import "react-toastify/dist/ReactToastify.css";
@@ -53,10 +53,12 @@ export default function Dashboard() {
   const setAuthUser = useAuthUserStore((state) => state.setAuthUser);
   const [isMobile, setIsMobile] = useState(false);
 
-  const client = new Client();
-  client
-    .setEndpoint(appwriteConfig.endpoint)
-    .setProject(appwriteConfig.projectId);
+  const client = useMemo(() => {
+    const c = new Client();
+    c.setEndpoint(appwriteConfig.endpoint)
+     .setProject(appwriteConfig.projectId);
+    return c;
+  }, []);
 
   const databases = new Databases(client);
   const storage = new Storage(client);
@@ -69,7 +71,7 @@ export default function Dashboard() {
     role: "",
   });
 
-  const fetchNotifications = async () => {
+  const fetchNotifications = useCallback(async () => {
     try {
       if (!userId) {
         console.warn("User ID is not available for fetching notifications.");
@@ -85,7 +87,7 @@ export default function Dashboard() {
       console.error("Error fetching notifications:", error);
       setNotificationCount(0);
     }
-  };
+  }, [databases, userId]);
 
   const verifyUserAndCollection = async () => {
     try {

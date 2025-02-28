@@ -72,7 +72,7 @@ const TestimonialCard = ({ name, avatar, content, rating }) => {
             </Avatar>
           </div>
           <blockquote className="text-base sm:text-lg font-medium text-center text-gray-700 italic">
-            "{content}"
+            &quot;{content}&quot;
           </blockquote>
         </div>
         <div>

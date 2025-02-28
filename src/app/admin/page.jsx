@@ -505,7 +505,7 @@ export default function PetcareAdminDashboard() {
     };
 
     fetchData();
-  }, []);
+  }, [databases]);
 
   return (
     <div className="flex h-screen bg-[#FFFBF5] text-gray-800 relative">

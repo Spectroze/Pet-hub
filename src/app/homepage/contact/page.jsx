@@ -15,7 +15,7 @@ export default function Contact() {
     if (inView) {
       controls.start("visible");
     }
-  }, [inView]); // Removed controls from dependency as it's not needed
+  }, [controls, inView]);
 
   const containerVariants = {
     hidden: { opacity: 0 },
@@ -60,9 +60,7 @@ export default function Contact() {
           variants={itemVariants}
           className="max-w-3xl mx-auto text-lg text-[#6B6B6B] mb-8"
         >
-          Have a question? Want to book a service? Or maybe you just want to
-          share a cute pet story? We're all ears (and paws)! Drop us a line, and
-          we'll get back to you faster than a dog chasing a squirrel.
+          We&apos;re here to help. Have a question? Want to book a service? Or maybe you just want to share a cute pet story? We&apos;re all ears (and paws)! Drop us a line, and we&apos;ll get back to you faster than a dog chasing a squirrel.
         </motion.p>
 
         <motion.div variants={itemVariants} className="max-w-xl mx-auto">
@@ -75,7 +73,7 @@ export default function Contact() {
                 type="text"
                 id="name"
                 name="name"
-                placeholder="Your Name (and your pet's too!)"
+                placeholder="Your Name (and your pet&apos;s too!)"
                 required
                 className="w-full p-4 border border-[#FF6B6B] rounded-full focus:border-[#FF6B6B] focus:ring-[#FF6B6B] transition-all duration-300"
               />

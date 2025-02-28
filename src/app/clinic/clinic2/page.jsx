@@ -10,6 +10,7 @@ import {
 import { Button } from "@/components/ui/button";
 import { MapPinIcon } from "lucide-react";
 import { databases, appwriteConfig, storage } from "@/lib/appwrite";
+import Image from 'next/image';
 
 export default function Clinic2() {
   const [rooms, setRooms] = useState([]);
@@ -79,10 +80,12 @@ export default function Clinic2() {
     <div className="bg-muted rounded-xl overflow-hidden shadow-lg mb-20">
       {/* Header Section */}
       <div className="relative">
-        <img
+        <Image
           src="/images/clinic2.png"
           alt="Pet Boarding Room"
-          className="w-full h-[300px] sm:h-[400px] object-cover"
+          width={400}
+          height={300}
+          className="w-full h-auto"
         />
         <div className="absolute inset-0 bg-gradient-to-t from-black/50 to-transparent" />
         <div className="absolute bottom-4 left-4 sm:bottom-6 sm:left-6 text-white">
@@ -99,7 +102,7 @@ export default function Clinic2() {
           <p className="text-sm sm:text-base">
             Brgy, suklayin, gloria, Baler Aurora
           </p>
-          <p className="text-sm sm:text-base">"Inside the Chopel Arch"</p>
+          <p className="text-sm sm:text-base">&quot;Inside the Chopel Arch&quot;</p>
         </div>
       </div>
 
@@ -116,9 +119,11 @@ export default function Clinic2() {
               }}
               className="p-4 border rounded-lg shadow-md bg-white flex flex-col items-center cursor-pointer"
             >
-              <img
+              <Image
                 src={room.newImage}
                 alt={room.name}
+                width={400}
+                height={300}
                 className="rounded-lg shadow-md w-full h-[100px] object-cover mb-2"
               />
               <h5 className="text-lg font-semibold">
@@ -138,9 +143,11 @@ export default function Clinic2() {
               <DialogHeader>
                 <DialogTitle>{selectedRoom.name}</DialogTitle>
               </DialogHeader>
-              <img
+              <Image
                 src={selectedRoom.newImage}
                 alt={selectedRoom.name}
+                width={400}
+                height={300}
                 className="rounded-lg shadow-md w-full mb-4"
               />
               <div className="flex justify-between items-center">
