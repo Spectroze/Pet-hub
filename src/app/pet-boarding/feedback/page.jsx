@@ -231,6 +231,9 @@ export default function Feedback() {
               })}
             </div>
           </ScrollArea>
+          <p className="text-sm text-gray-600">
+            We&apos;d love to hear your feedback!
+          </p>
         </div>
       </CardContent>
     </Card>

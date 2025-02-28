@@ -413,12 +413,12 @@ export default function AppointmentCalendar({ databaseId, collectionId }) {
       console.error("Error fetching owner details:", error);
       toast.error("Failed to fetch owner details");
     }
-  }, [dbId, getOwnerDetails, petCollId]);
+  }, [getOwnerDetails]);
 
-  const handleCloseViewDialog = () => {
+  const handleCloseDialog = useCallback(() => {
     setOpenViewDialog(false);
     setSelectedEvent(null);
-  };
+  }, []);
 
   const showNotification = (message, severity = "info") => {
     switch (severity) {
@@ -495,7 +495,7 @@ export default function AppointmentCalendar({ databaseId, collectionId }) {
         "success"
       );
       fetchAppointments();
-      handleCloseViewDialog();
+      handleCloseDialog();
     } catch (error) {
       console.error("Error in handleAccept:", error);
       showNotification(
@@ -562,7 +562,7 @@ export default function AppointmentCalendar({ databaseId, collectionId }) {
       showNotification("Appointment declined and notification sent", "warning");
       fetchAppointments();
       setOpenDeclineDialog(false);
-      handleCloseViewDialog();
+      handleCloseDialog();
     } catch (error) {
       console.error("Error declining appointment:", error);
       showNotification(
@@ -643,7 +643,7 @@ export default function AppointmentCalendar({ databaseId, collectionId }) {
       );
       fetchAppointments();
       setOpenDoneDialog(false);
-      handleCloseViewDialog();
+      handleCloseDialog();
       setDoneNotes(""); // Reset the notes
     } catch (error) {
       console.error("Error marking appointment as done:", error);
@@ -885,7 +885,7 @@ export default function AppointmentCalendar({ databaseId, collectionId }) {
                 </Button>
               </>
             )}
-            <Button onClick={handleCloseViewDialog} variant="outlined">
+            <Button onClick={handleCloseDialog} variant="outlined">
               Close
             </Button>
           </DialogActions>

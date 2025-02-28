@@ -350,7 +350,7 @@ export default function Pets() {
                 <DialogHeader className="pb-3">
                   <div className="flex justify-between items-center">
                     <DialogTitle className="text-lg font-bold">
-                      {selectedPet.name}'s Profile
+                      {selectedPet.name}&apos;s Profile
                     </DialogTitle>
                   </div>
                 </DialogHeader>
