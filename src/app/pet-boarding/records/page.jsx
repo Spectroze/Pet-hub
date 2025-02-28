@@ -16,7 +16,6 @@ import {
   DialogTitle,
 } from "@/components/ui/dialog";
 import Image from 'next/image';
-import { InputField } from "@/components/ui/input-field";
 import { PawPrint } from "lucide-react";
 
 export default function Pets() {
