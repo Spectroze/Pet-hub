@@ -54,7 +54,7 @@ export default function Contact() {
           variants={itemVariants}
           className="text-3xl sm:text-4xl font-extrabold text-[#4A4A4A] mb-8"
         >
-          Let's Chat!
+          Let&apos;s Chat!
         </motion.h2>
         <motion.p
           variants={itemVariants}

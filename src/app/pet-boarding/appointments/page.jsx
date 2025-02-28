@@ -178,7 +178,7 @@ export default function AppointmentCalendar({ databaseId, collectionId }) {
       : `https://cloud.appwrite.io/v1/storage/buckets/${appwriteConfig.bucketId}/files/${avatarId}/view?project=${appwriteConfig.projectId}`;
   };
 
-  const getOwnerDetails = async (ownerId) => {
+  const getOwnerDetails = useCallback(async (ownerId) => {
     if (!ownerId) {
       return {
         ownerName: "Unknown Owner",
@@ -228,7 +228,7 @@ export default function AppointmentCalendar({ databaseId, collectionId }) {
         email: "N/A",
       };
     }
-  };
+  }, [dbId, petCollId]);
 
   const parseDate = (date) => {
     if (!date) return "N/A";
@@ -401,7 +401,7 @@ export default function AppointmentCalendar({ databaseId, collectionId }) {
     );
   });
 
-  const handleSelectEvent = useCallback(async (event) => {
+  const handleEventClick = useCallback(async (event) => {
     try {
       const ownerDetails = await getOwnerDetails(event.ownerId);
       setSelectedEvent({
@@ -721,7 +721,7 @@ export default function AppointmentCalendar({ databaseId, collectionId }) {
                 },
               }}
               selectable
-              onSelectEvent={handleSelectEvent}
+              onSelectEvent={handleEventClick}
               views={["month", "week", "day", "agenda"]}
               view={view}
               onView={setView}

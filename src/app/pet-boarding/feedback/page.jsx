@@ -121,7 +121,7 @@ export default function Feedback() {
     <Card className="w-full max-w-3xl mx-auto bg-[#FAF5E6] text-[#2D2C2E] pb-8 shadow-xl">
       <CardHeader className="text-center border-b border-[#FBBD0D]/20 pb-4">
         <CardDescription className="text-base text-[#2D2C2E]/90 mt-1">
-          See what our furry friends' humans are saying! (
+          See what our furry friends&apos; humans are saying! (
           {sortedAndFilteredFeedback.length} reviews)
         </CardDescription>
       </CardHeader>
