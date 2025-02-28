@@ -17,70 +17,92 @@ import {
   DialogDescription,
   DialogFooter,
 } from "@/components/ui/dialog";
-import { Query, Account, Client } from "appwrite";
-import { appwriteConfig, databases } from "@/lib/appwrite";
 import moment from "moment-timezone";
 
-// Initialize Appwrite Client
-const client = new Client();
-client
-  .setEndpoint("https://cloud.appwrite.io/v1")
-  .setProject("67094c000023e950be96");
-
-// Set the client to the appwriteConfig object
-appwriteConfig.client = client;
-
-// Initialize the Appwrite Account object using the configured client
-const account = new Account(client);
-
-export default function Notifications({ onClose }) {
+// Separate the Appwrite initialization into its own component
+function NotificationsContent({ onClose }) {
   const [data, setData] = useState([]);
   const [selectedNotification, setSelectedNotification] = useState(null);
   const [isModalOpen, setIsModalOpen] = useState(false);
+  const [lastViewed, setLastViewed] = useState(new Date().toISOString());
+  const [appwrite, setAppwrite] = useState(null);
 
-  // Fetch last viewed timestamp from localStorage
-  const [lastViewed, setLastViewed] = useState(
-    localStorage.getItem("lastViewedNotifications") || new Date().toISOString()
-  );
-
-  // Fetch appointment details for the logged-in user
-  const fetchAppointments = async () => {
-    try {
-      // Get the logged-in user's details
-      const user = await account.get();
-      const userId = user.$id;
-
-      // Fetch only the logged-in user's appointments
-      const response = await databases.listDocuments(
-        appwriteConfig.databaseId,
-        "670ab2db00351bc09a92", // Use the petCollectionId
-        [Query.equal("ownerId", userId), Query.orderDesc("$updatedAt")]
-      );
-
-      setData(response.documents || []);
-    } catch (error) {
-      console.error("Error fetching appointment details:", error);
-    }
-  };
-
+  // Initialize Appwrite and localStorage
   useEffect(() => {
-    fetchAppointments();
-  }, [lastViewed]);
+    const initializeAppwrite = async () => {
+      if (typeof window === 'undefined') return;
+
+      try {
+        const { Client, Account, Query } = await import('appwrite');
+        const { appwriteConfig, databases } = await import('@/lib/appwrite');
+
+        const client = new Client();
+        client
+          .setEndpoint("https://cloud.appwrite.io/v1")
+          .setProject("67094c000023e950be96");
+
+        const account = new Account(client);
+        
+        setAppwrite({
+          client,
+          account,
+          databases,
+          Query
+        });
+
+        // Load last viewed timestamp
+        const stored = window.localStorage.getItem("lastViewedNotifications");
+        if (stored) {
+          setLastViewed(stored);
+        }
+      } catch (error) {
+        console.error("Error initializing Appwrite:", error);
+      }
+    };
+
+    initializeAppwrite();
+  }, []);
+
+  // Fetch appointment details
+  useEffect(() => {
+    const fetchAppointments = async () => {
+      if (!appwrite) return;
+
+      try {
+        const user = await appwrite.account.get();
+        const response = await appwrite.databases.listDocuments(
+          appwriteConfig.databaseId,
+          "670ab2db00351bc09a92",
+          [appwrite.Query.equal("ownerId", user.$id), appwrite.Query.orderDesc("$updatedAt")]
+        );
+
+        setData(response.documents || []);
+      } catch (error) {
+        console.error("Error fetching appointment details:", error);
+      }
+    };
+
+    if (appwrite) {
+      fetchAppointments();
+    }
+  }, [appwrite, lastViewed]);
 
   const openNotificationModal = (notification) => {
     setSelectedNotification(notification);
     setIsModalOpen(true);
 
     const now = new Date().toISOString();
-    setLastViewed(now); // Update the state
-    localStorage.setItem("lastViewedNotifications", now); // Persist to localStorage
+    setLastViewed(now);
+    if (typeof window !== 'undefined') {
+      window.localStorage.setItem("lastViewedNotifications", now);
+    }
   };
 
   const isNewNotification = (notification) => {
-    // Check if the notification timestamp is after the last viewed timestamp
     return moment(notification.$updatedAt).isAfter(moment(lastViewed));
   };
 
+  // Rest of your component remains the same
   return (
     <div className="w-full max-w-8xl mx-auto bg-white shadow-lg rounded-lg p-6 text-gray-900">
       <div className="flex justify-between items-center mb-6">
@@ -158,8 +180,7 @@ export default function Notifications({ onClose }) {
                   selectedNotification.status[0]?.toLowerCase() === "accepted"
                     ? "Your appointment is accepted"
                     : Array.isArray(selectedNotification.status) &&
-                      selectedNotification.status[0]?.toLowerCase() ===
-                        "declined"
+                      selectedNotification.status[0]?.toLowerCase() === "declined"
                     ? "Your appointment is declined"
                     : selectedNotification.message || "Appointment Update"}
                 </DialogDescription>
@@ -175,12 +196,10 @@ export default function Notifications({ onClose }) {
                   Status: <span>{selectedNotification.status}</span>
                 </p>
                 {Array.isArray(selectedNotification.status) &&
-                  selectedNotification.status[0]?.toLowerCase() ===
-                    "declined" && (
+                  selectedNotification.status[0]?.toLowerCase() === "declined" && (
                     <p className="text-sm text-[#FF7171] mt-2">
                       <strong>Reason for Decline:</strong>{" "}
-                      {selectedNotification.declineReason ||
-                        "No reason provided."}
+                      {selectedNotification.declineReason || "No reason provided."}
                     </p>
                   )}
               </div>
@@ -199,4 +218,19 @@ export default function Notifications({ onClose }) {
       </Dialog>
     </div>
   );
+}
+
+// Export a wrapper component that ensures client-side only rendering
+export default function Notifications(props) {
+  const [isMounted, setIsMounted] = useState(false);
+
+  useEffect(() => {
+    setIsMounted(true);
+  }, []);
+
+  if (!isMounted) {
+    return null; // or a loading state
+  }
+
+  return <NotificationsContent {...props} />;
 }
