@@ -20,10 +20,17 @@ export default function AuthCallback() {
           .setProject(appwriteConfig.projectId);
 
         try {
-          // Try to complete the OAuth session if we have URL parameters
-          const urlParams = new URLSearchParams(window.location.search);
-          const userId = urlParams.get('userId');
-          const secret = urlParams.get('secret');
+          // Get the current URL and parse it
+          const currentUrl = window.location.href;
+          const url = new URL(currentUrl);
+          
+          // Handle both hash and query parameters
+          const hashParams = new URLSearchParams(url.hash.substring(1));
+          const queryParams = new URLSearchParams(url.search);
+          
+          // Try to get userId and secret from both hash and query params
+          const userId = hashParams.get('userId') || queryParams.get('userId');
+          const secret = hashParams.get('secret') || queryParams.get('secret');
 
           if (userId && secret) {
             await account.createSession(userId, secret);
@@ -138,9 +145,12 @@ export default function AuthCallback() {
           
           // If we get a scope error, try to recreate the OAuth session
           if (sessionError.message?.includes('missing scope')) {
+            const callbackUrl = process.env.NODE_ENV === 'development' 
+              ? 'http://localhost:3000/auth-callback'
+              : 'https://https://petcare-hub-aurora.vercel.app/auth-callback';
             await account.createOAuth2Session(
               "google",
-              window.location.origin + "/auth-callback",
+              callbackUrl,
               window.location.origin + "/login",
               ["account"]
             );
