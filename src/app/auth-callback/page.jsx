@@ -147,7 +147,7 @@ export default function AuthCallback() {
           if (sessionError.message?.includes('missing scope')) {
             const callbackUrl = process.env.NODE_ENV === 'development' 
               ? 'http://localhost:3000/auth-callback'
-              : 'https://https://petcare-hub-aurora.vercel.app/auth-callback';
+              : 'https://petcare-hub-aurora.vercel.app/auth-callback';
             await account.createOAuth2Session(
               "google",
               callbackUrl,
