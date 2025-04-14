@@ -159,7 +159,7 @@ export default function AuthCallback() {
               callbackUrl,
               failureUrl,
               currentHostname: hostname,
-              isVercelDomain: hostname.includes('vercel.app')
+              isVercelDomain: hostname.includes('petcare-hub-aurora.vercel.app')
             });
 
             await account.createOAuth2Session(
