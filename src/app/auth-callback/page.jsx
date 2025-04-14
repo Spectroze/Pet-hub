@@ -145,13 +145,27 @@ export default function AuthCallback() {
           
           // If we get a scope error, try to recreate the OAuth session
           if (sessionError.message?.includes('missing scope')) {
-            const callbackUrl = process.env.NODE_ENV === 'development' 
-              ? 'http://localhost:3000/auth-callback'
-              : 'https://petcare-hub-aurora.vercel.app/auth-callback';
+            // Get the current hostname and ensure it matches Appwrite's expected format
+            const hostname = window.location.origin;
+            // Convert vercel.app URL format if needed
+            const callbackUrl = hostname.includes('vercel.app') 
+              ? `https://petcare-hub-aurora.vercel.app/auth-callback`
+              : `${hostname}/auth-callback`;
+            const failureUrl = hostname.includes('vercel.app')
+              ? `https://petcare-hub-aurora.vercel.app/login`
+              : `${hostname}/login`;
+
+            console.log('Creating OAuth session with:', {
+              callbackUrl,
+              failureUrl,
+              currentHostname: hostname,
+              isVercelDomain: hostname.includes('vercel.app')
+            });
+
             await account.createOAuth2Session(
               "google",
               callbackUrl,
-              window.location.origin + "/login",
+              failureUrl,
               ["account"]
             );
             return;
