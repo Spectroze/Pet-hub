@@ -689,11 +689,14 @@ export const signInWithGoogle = async () => {
       console.log("No existing session");
     }
 
+    // Get the current hostname
+    const hostname = typeof window !== 'undefined' ? window.location.origin : 'http://localhost:3000';
+    
     // If no session, create new OAuth session
     await account.createOAuth2Session(
       "google",
-      "http://localhost:3000/auth-callback", // Change this to a new callback route
-      "http://localhost:3000/login"
+      `${hostname}/auth-callback`, // Use dynamic hostname
+      `${hostname}/login`
     );
   } catch (error) {
     console.error("Google OAuth error:", error);
