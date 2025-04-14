@@ -18,6 +18,10 @@ import {
   DialogFooter,
 } from "@/components/ui/dialog";
 import moment from "moment-timezone";
+import { useRouter } from "next/navigation";
+import { toast } from "react-hot-toast";
+import { signOut } from "@/lib/appwrite";
+import { useAuthUserStore } from "@/store/user";
 
 // Separate the Appwrite initialization into its own component
 function NotificationsContent({ onClose }) {
@@ -26,6 +30,9 @@ function NotificationsContent({ onClose }) {
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [lastViewed, setLastViewed] = useState(new Date().toISOString());
   const [appwrite, setAppwrite] = useState(null);
+  const [isLoggingOut, setIsLoggingOut] = useState(false);
+  const router = useRouter();
+  const { clearAuthUser } = useAuthUserStore();
 
   // Initialize Appwrite and localStorage
   useEffect(() => {
@@ -100,6 +107,31 @@ function NotificationsContent({ onClose }) {
 
   const isNewNotification = (notification) => {
     return moment(notification.$updatedAt).isAfter(moment(lastViewed));
+  };
+
+  const handleLogout = async () => {
+    if (isLoggingOut) return; // Prevent multiple logout attempts
+    
+    setIsLoggingOut(true);
+    try {
+      await signOut();
+      clearAuthUser();
+      router.push("/");
+      toast.success("Logout successful!", {
+        position: "top-right",
+        autoClose: 3000,
+      });
+    } catch (error) {
+      console.error("Failed to log out:", error);
+      toast.error(`Failed to log out: ${error.message || 'Unknown error'}`);
+      
+      // If the error is related to missing scope, show a more specific message
+      if (error.message?.includes('missing scope')) {
+        toast.error("Session expired. Please refresh the page and try again.");
+      }
+    } finally {
+      setIsLoggingOut(false);
+    }
   };
 
   // Rest of your component remains the same

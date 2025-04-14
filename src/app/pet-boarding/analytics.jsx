@@ -74,7 +74,8 @@ export default function Analytics() {
       const clinicNumber = clinicMatch ? clinicMatch[1] : null;
 
       if (!clinicNumber) {
-        console.error("Invalid clinic role format:", userRole);
+        console.warn("User role does not contain a valid clinic number:", userRole);
+        setError("You don't have access to any clinic's analytics");
         return;
       }
 

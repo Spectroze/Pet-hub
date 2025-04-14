@@ -204,51 +204,59 @@ export async function uploadFile(file) {
 
 // Sign In
 export async function signIn(email, password) {
-  // Step 1: Ensure any existing session is cleared
   try {
-    const existingSession = await account.get();
-    if (existingSession) {
-      console.warn("Existing session found. Deleting current session.");
-      await account.deleteSession("current");
+    // First, delete any existing sessions
+    try {
+      await account.deleteSession('current');
+    } catch (error) {
+      // Ignore error if no session exists
+      console.log("No existing session to delete");
     }
-  } catch (error) {
-    console.log("No active session found. Proceeding with login.");
-  }
 
-  // Step 2: Attempt to create a new session
-  try {
+    // Create new session
     const session = await account.createEmailPasswordSession(email, password);
+    
+    // Verify session was created
+    if (!session) {
+      throw new Error("Failed to create session");
+    }
 
-    // Step 3: Retrieve the current account
+    // Get account details
     const currentAccount = await account.get();
-    if (!currentAccount) throw new Error("Unable to retrieve account.");
-
-    // Step 4: Fetch the user's status from the database
+    
+    // Get user document from database
     const userResponse = await databases.listDocuments(
       appwriteConfig.databaseId,
       appwriteConfig.userCollectionId,
       [Query.equal("accountId", currentAccount.$id)]
     );
 
-    if (userResponse.total === 0) {
-      throw new Error("User document not found.");
+    if (!userResponse || userResponse.total === 0) {
+      throw new Error("User not found in database");
     }
 
     const userDocument = userResponse.documents[0];
-    const userStatus = userDocument.status; // This should be an array, e.g., ["active"] or ["disabled"]
 
-    // Step 5: Check if the user's status is "disabled"
-    if (userStatus.includes("disabled")) {
-      // Delete the session to prevent access
+    // Check if account is disabled
+    if (userDocument.status?.includes("disabled")) {
       await account.deleteSession("current");
-      throw new Error("This account is disabled and cannot log in.");
+      throw new Error("Account is disabled");
     }
 
-    // Step 6: If the status is "active", allow sign-in
-    return currentAccount;
+    return {
+      account: currentAccount,
+      user: userDocument
+    };
+
   } catch (error) {
-    console.error("Error signing in:", error.message);
-    throw new Error(error.message || "Error signing in");
+    console.error("Sign in error:", error);
+    // Clean up any partial session
+    try {
+      await account.deleteSession('current');
+    } catch (_) {
+      // Ignore cleanup errors
+    }
+    throw new Error(error.message || "Failed to sign in");
   }
 }
 
