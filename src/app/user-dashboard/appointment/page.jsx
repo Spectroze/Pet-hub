@@ -277,18 +277,18 @@ export default function Appointment() {
             <div className="signature-section">
               <div className="signature">
                 <div className="line"></div>
-                <p>Owner's Signature</p>
+                <p>Owner&apos;s Signature</p>
                 <p>Date: {new Date().toLocaleDateString()}</p>
               </div>
               <div className="signature">
                 <div className="line"></div>
-                <p>Veterinarian's Signature</p>
+                <p>Veterinarian&apos;s Signature</p>
                 <p>License No.: ________________</p>
               </div>
             </div>
   
             <p className="terms">
-              By signing, I confirm that all the information provided is accurate and I agree to Pet-Care's terms of service.
+              By signing, I confirm that all the information provided is accurate and I agree to Pet-Care&apos;s terms of service.
             </p>
           </div>
         </body>
@@ -799,7 +799,7 @@ export default function Appointment() {
                                 <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                                   <div className="text-center">
                                     <p className="font-semibold text-gray-700 mb-2">
-                                      Owner's Signature:
+                                      Owner&apos;s Signature:
                                     </p>
                                     <div className="h-16 border-b border-gray-300"></div>
                                     <p className="text-sm text-gray-500 mt-2">
@@ -808,7 +808,7 @@ export default function Appointment() {
                                   </div>
                                   <div className="text-center">
                                     <p className="font-semibold text-gray-700 mb-2">
-                                      Veterinarian's Signature:
+                                      Veterinarian&apos;s Signature:
                                     </p>
                                     <div className="h-16 border-b border-gray-300"></div>
                                     <p className="text-sm text-gray-500 mt-2">
@@ -821,9 +821,7 @@ export default function Appointment() {
                               {/* Terms */}
                               <div className="text-center mt-4">
                                 <p className="text-xs text-gray-500">
-                                  By signing, I confirm that all the information
-                                  provided is accurate and I agree to Pet-Care's
-                                  terms of service.
+                                  By signing, I confirm that all the information provided is accurate and I agree to Pet-Care&apos;s terms of service.
                                 </p>
                               </div>
                             </div>
@@ -1171,7 +1169,7 @@ export default function Appointment() {
                                   <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                                     <div className="text-center">
                                       <p className="font-semibold text-gray-700 mb-2">
-                                        Owner's Signature:
+                                        Owner&apos;s Signature:
                                       </p>
                                       <div className="h-16 border-b border-gray-300"></div>
                                       <p className="text-sm text-gray-500 mt-2">
@@ -1180,7 +1178,7 @@ export default function Appointment() {
                                     </div>
                                     <div className="text-center">
                                       <p className="font-semibold text-gray-700 mb-2">
-                                        Veterinarian's Signature:
+                                        Veterinarian&apos;s Signature:
                                       </p>
                                       <div className="h-16 border-b border-gray-300"></div>
                                       <p className="text-sm text-gray-500 mt-2">
@@ -1193,9 +1191,7 @@ export default function Appointment() {
                                 {/* Terms */}
                                 <div className="text-center mt-4">
                                   <p className="text-xs text-gray-500">
-                                    By signing, I confirm that all the
-                                    information provided is accurate and I agree
-                                    to Pet-Care's terms of service.
+                                    By signing, I confirm that all the information provided is accurate and I agree to Pet-Care&apos;s terms of service.
                                   </p>
                                 </div>
                               </div>
