@@ -10,7 +10,7 @@ import {
 
 export const appwriteConfig = {
   endpoint: "https://cloud.appwrite.io/v1",
-  projectId: "67094c000023e950be96",
+  projectId: "67f8c50c00195fd36cc1",
   databaseId: "670a040f000893eb8e06",
   userCollectionId: "670a04240019b97fcf05",
   petCollectionId: "670ab2db00351bc09a92",
