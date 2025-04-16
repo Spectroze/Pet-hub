@@ -25,34 +25,47 @@ export default function Header() {
           transition={{ duration: 2, repeat: Infinity, ease: "linear" }}
         >
           <PawPrintIcon
-            className="h-10 w-10 text-[#FF6B6B]"
+            className="h-6 w-6 sm:h-10 sm:w-10 text-[#FF6B6B]"
             aria-hidden="true"
           />
         </motion.div>
-        <span className="text-2xl font-bold text-[#4A4A4A] tracking-wide">
+        <span className="hidden sm:inline text-2xl font-bold text-[#4A4A4A] tracking-wide">
           Paw Pals
         </span>
       </Link>
-      <nav className="ml-auto flex gap-6 sm:gap-8">
+
+      <nav className="ml-auto flex gap-4 sm:gap-6">
         {[
           {
             href: "#services",
-            icon: <ClipboardListIcon />,
+            icon: <ClipboardListIcon className="h-5 w-5 sm:h-6 sm:w-6" />,
             label: "Services",
           },
-          { href: "#about", icon: <InfoIcon />, label: "About" },
-          { href: "#contact", icon: <PhoneIcon />, label: "Contact" },
-          { href: "/clinic", icon: <HomeIcon />, label: "Clinic" },
+          { 
+            href: "#about", 
+            icon: <InfoIcon className="h-5 w-5 sm:h-6 sm:w-6" />, 
+            label: "About" 
+          },
+          { 
+            href: "#contact", 
+            icon: <PhoneIcon className="h-5 w-5 sm:h-6 sm:w-6" />, 
+            label: "Contact" 
+          },
+          { 
+            href: "/clinic", 
+            icon: <HomeIcon className="h-5 w-5 sm:h-6 sm:w-6" />, 
+            label: "Clinic" 
+          },
           {
             href: "#testimonials",
-            icon: <MessageSquareQuote />,
+            icon: <MessageSquareQuote className="h-5 w-5 sm:h-6 sm:w-6" />,
             label: "Testimonials",
           },
         ].map((item) => (
           <Link
             key={item.href}
             href={item.href}
-            className="text-sm font-medium text-[#4A4A4A] hover:text-[#FF6B6B] hover:bg-[#FFF0F0] px-3 py-2 rounded-full transition-all duration-300 flex items-center gap-2 transform hover:scale-105"
+            className="text-sm font-medium text-[#4A4A4A] hover:text-[#FF6B6B] hover:bg-[#FFF0F0] px-2 sm:px-3 py-2 rounded-full transition-all duration-300 flex items-center gap-2 transform hover:scale-105"
             prefetch={false}
           >
             <motion.div whileHover={{ rotate: 10 }} className="text-[#FF6B6B]">

@@ -192,8 +192,7 @@ export default function AuthCallback() {
           // If we get here, something went wrong
           console.error("Authentication failed. No valid session found.");
           toast.error("Authentication failed. Please try logging in again.");
-          router.push('/login');
-
+          router.push('/');
         } catch (error) {
           console.error("Auth callback error:", error);
           toast.error("Authentication failed. Please try again.");

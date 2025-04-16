@@ -1,5 +1,7 @@
 import Clinic1 from "./clinic1/page";
 import Clinic2 from "./clinic2/page";
+import Link from "next/link";
+import { ArrowLeft } from "lucide-react";
 
 export default function Clinic() {
   return (
@@ -9,6 +11,17 @@ export default function Clinic() {
     >
       {/* Background pattern */}
       <div className="absolute inset-0 opacity-10 bg-grid-slate-200/[0.2] bg-[size:20px_20px]" />
+
+      {/* Back to Home Button */}
+      <div className="fixed top-4 left-4 z-50">
+        <Link
+          href="/"
+          className="flex items-center gap-2 px-4 py-2 bg-white/90 backdrop-blur-sm rounded-full shadow-md hover:bg-white/95 transition-all duration-300 text-gray-700 hover:text-gray-900"
+        >
+          <ArrowLeft className="w-4 h-4" />
+          <span>Back to Home</span>
+        </Link>
+      </div>
 
       {/* Main content */}
       <div className="relative max-w-5xl mx-auto px-4 py-8 sm:py-12 mt-24 sm:mt-28">

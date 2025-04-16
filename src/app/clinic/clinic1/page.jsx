@@ -14,10 +14,21 @@ import { databases, appwriteConfig, storage } from "@/lib/appwrite"; // Ensure s
 import { Query } from "appwrite";
 import Image from 'next/image';
 
+// Add a loader function for Appwrite images
+const appwriteLoader = ({ src, width, quality }) => {
+  if (src.includes('cloud.appwrite.io')) {
+    // For Appwrite URLs, return as is since they're already optimized
+    return src;
+  }
+  // For other images, return the original source
+  return src;
+};
+
 export default function Clinic1() {
   const [rooms, setRooms] = useState([]); // Room data state
   const [selectedRoom, setSelectedRoom] = useState(null);
   const [isDialogOpen, setIsDialogOpen] = useState(false); // Modal open state
+  const [imageError, setImageError] = useState({});
 
   // Fetch room data from the database
   useEffect(() => {
@@ -133,6 +144,7 @@ export default function Clinic1() {
           height={500}
           className="w-full h-[300px] sm:h-[400px] object-cover"
           style={{ aspectRatio: "800/500", objectFit: "cover" }}
+          priority={true}
         />
         <div className="absolute inset-0 bg-gradient-to-t from-black/50 to-transparent" />
         <div className="absolute bottom-4 left-4 sm:bottom-6 sm:left-6">
@@ -166,11 +178,19 @@ export default function Clinic1() {
               className="p-4 border rounded-lg shadow-md bg-white flex flex-col items-center cursor-pointer"
               onClick={() => handleRoomClick(room)}
             >
-              <Image
-                src={room.newImage} // Use the fetched or fallback image URL
-                alt={room.name}
-                className="rounded-lg shadow-md w-full h-[100px] object-cover mb-2"
-              />
+              <div className="relative w-full h-[100px] mb-2">
+                <Image
+                  src={room.newImage || '/images/placeholder.jpg'}
+                  alt={`Room ${index + 1}`}
+                  fill={true}
+                  className="rounded-lg shadow-md object-cover"
+                  loader={appwriteLoader}
+                  onError={() => {
+                    setImageError(prev => ({...prev, [room.id]: true}));
+                  }}
+                  unoptimized={room.newImage?.includes('cloud.appwrite.io')}
+                />
+              </div>
               <h5 className="text-lg font-semibold">
                 Cage {index + 1} {room.name}
               </h5>
