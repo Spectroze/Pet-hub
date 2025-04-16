@@ -14,6 +14,8 @@ export default function AuthCallback() {
   useEffect(() => {
     const handleCallback = async () => {
       try {
+        console.log("Auth callback started");
+        
         // Initialize a new client for this session
         const client = new Client()
           .setEndpoint(appwriteConfig.endpoint)
@@ -24,170 +26,184 @@ export default function AuthCallback() {
           const currentUrl = window.location.href;
           const url = new URL(currentUrl);
           
+          // Log the full URL and its parts for debugging
+          console.log("Current URL:", currentUrl);
+          console.log("URL hash:", url.hash);
+          console.log("URL search:", url.search);
+          
           // Handle both hash and query parameters
           const hashParams = new URLSearchParams(url.hash.substring(1));
           const queryParams = new URLSearchParams(url.search);
           
-          // Try to get userId and secret from both hash and query params
-          const userId = hashParams.get('userId') || queryParams.get('userId');
-          const secret = hashParams.get('secret') || queryParams.get('secret');
+          // Log all parameters for debugging
+          console.log("Hash params:", Object.fromEntries(hashParams));
+          console.log("Query params:", Object.fromEntries(queryParams));
 
-          if (userId && secret) {
-            await account.createSession(userId, secret);
-          }
+          // Function to handle retries with exponential backoff
+          const retryWithBackoff = async (fn, maxRetries = 3, initialDelay = 1000) => {
+            let retries = 0;
+            let delay = initialDelay;
 
-          // Get the current session
-          const session = await account.get();
-
-          if (!session) {
-            throw new Error("No session found");
-          }
-
-          // Check if user exists in database
-          const existingUser = await databases.listDocuments(
-            appwriteConfig.databaseId,
-            appwriteConfig.userCollectionId,
-            [Query.equal("accountId", session.$id)]
-          );
-
-          let userData;
-
-          // Construct avatar URL properly
-          const avatarUrl = session.prefs?.avatar
-            ? `https://lh3.googleusercontent.com/a/${session.prefs.avatar}`
-            : "https://ui-avatars.com/api/?name=" + encodeURIComponent(session.name);
-
-          if (existingUser.total === 0) {
-            // Create new user document
-            userData = await databases.createDocument(
-              appwriteConfig.databaseId,
-              appwriteConfig.userCollectionId,
-              ID.unique(),
-              {
-                accountId: session.$id,
-                email: session.email,
-                name: session.name,
-                avatar: avatarUrl,
-                role: "user",
-                status: ["active"],
-              }
-            );
-          } else {
-            userData = existingUser.documents[0];
-
-            // Update avatar if it has changed
-            if (userData.avatar !== avatarUrl) {
-              userData = await databases.updateDocument(
-                appwriteConfig.databaseId,
-                appwriteConfig.userCollectionId,
-                userData.$id,
-                {
-                  avatar: avatarUrl,
+            while (retries < maxRetries) {
+              try {
+                return await fn();
+              } catch (error) {
+                if (error.code === 429) { // Rate limit error
+                  console.log(`Rate limit hit. Retrying in ${delay}ms... (Attempt ${retries + 1}/${maxRetries})`);
+                  await new Promise(resolve => setTimeout(resolve, delay));
+                  delay *= 2; // Exponential backoff
+                  retries++;
+                } else {
+                  throw error;
                 }
-              );
+              }
             }
-          }
+            throw new Error("Max retries reached");
+          };
 
-          // Set auth user in store
-          setAuthUser({
-            accountId: session.$id,
-            email: session.email,
-            name: session.name,
-            role: userData.role,
-            avatar: avatarUrl,
-            status: userData.status,
-          });
-
-          // Add detailed debug logs
-          console.log("Current user role:", userData.role);
-          console.log("Role type:", typeof userData.role);
-          console.log("Role length:", userData.role.length);
-          console.log("Role with spaces visible:", JSON.stringify(userData.role));
-
-          // Redirect based on role
-          let redirectPath;
-          const roleToCheck = userData.role.trim();
-
-          switch (roleToCheck) {
-            case "admin":
-              redirectPath = "/admin";
-              break;
-            case "Clinic 1":
-            case "Clinic 2":
-            case "Clinic 3":
-            case "Clinic 4":
-            case "Clinic 5":
-            case "Clinic 6":
-            case "Clinic 7":
-            case "Clinic 8":
-            case "Clinic 9":
-            case "Clinic 10":
-            case "Pet Training":
-            case "PET TRAINING":
-            case "pet training":
-            case "Pet-boarding":
-            case "pet-boarding":
-            case "PetBoarding":
-              redirectPath = "/pet-boarding";
-              console.log("Redirecting to pet-boarding, role:", roleToCheck);
-              break;
-            default:
-              redirectPath = "/user-dashboard";
-              console.log("Defaulting to user-dashboard, role:", roleToCheck);
-              console.log("Role did not match any cases");
-          }
-
-          router.push(redirectPath);
-          toast.success(`Welcome, ${session.name}!`);
-
-        } catch (sessionError) {
-          console.error("Session error:", sessionError);
-          
-          // If we get a scope error, try to recreate the OAuth session
-          if (sessionError.message?.includes('missing scope')) {
-            // Get the current hostname and ensure it matches Appwrite's expected format
-            const hostname = window.location.origin;
-            // Convert vercel.app URL format if needed
-            const callbackUrl = hostname.includes('vercel.app') 
-              ? `https://petcare-hub-aurora.vercel.app/auth-callback`
-              : `${hostname}/auth-callback`;
-            const failureUrl = hostname.includes('vercel.app')
-              ? `https://petcare-hub-aurora.vercel.app/login`
-              : `${hostname}/login`;
-
-            console.log('Creating OAuth session with:', {
-              callbackUrl,
-              failureUrl,
-              currentHostname: hostname,
-              isVercelDomain: hostname.includes('petcare-hub-aurora.vercel.app')
+          // Try to get the session directly from Appwrite with retry logic
+          try {
+            const session = await retryWithBackoff(async () => {
+              const session = await account.get();
+              if (!session) {
+                throw new Error("No session found");
+              }
+              return session;
             });
 
-            await account.createOAuth2Session(
-              "google",
-              callbackUrl,
-              failureUrl,
-              ["account"]
-            );
+            console.log("Session found:", session);
+            
+            // Check if user exists in database with retry logic
+            const existingUser = await retryWithBackoff(async () => {
+              return await databases.listDocuments(
+                appwriteConfig.databaseId,
+                appwriteConfig.userCollectionId,
+                [Query.equal("accountId", session.$id)]
+              );
+            });
+
+            let userData;
+            const isNewUser = existingUser.total === 0;
+
+            // Construct avatar URL properly
+            const avatarUrl = session.prefs?.avatar
+              ? `https://lh3.googleusercontent.com/a/${session.prefs.avatar}`
+              : "https://ui-avatars.com/api/?name=" + encodeURIComponent(session.name);
+
+            if (isNewUser) {
+              console.log("Creating new user document");
+              // Create new user document with retry logic
+              userData = await retryWithBackoff(async () => {
+                return await databases.createDocument(
+                  appwriteConfig.databaseId,
+                  appwriteConfig.userCollectionId,
+                  ID.unique(),
+                  {
+                    accountId: session.$id,
+                    email: session.email,
+                    name: session.name,
+                    avatar: avatarUrl,
+                    role: "user",
+                    status: ["active"],
+                  }
+                );
+              });
+            } else {
+              userData = existingUser.documents[0];
+              
+              // Update avatar if it has changed with retry logic
+              if (userData.avatar !== avatarUrl) {
+                userData = await retryWithBackoff(async () => {
+                  return await databases.updateDocument(
+                    appwriteConfig.databaseId,
+                    appwriteConfig.userCollectionId,
+                    userData.$id,
+                    {
+                      avatar: avatarUrl,
+                    }
+                  );
+                });
+              }
+            }
+
+            // Set auth user in store
+            setAuthUser({
+              accountId: session.$id,
+              email: session.email,
+              name: session.name,
+              role: userData.role || "user",
+              avatar: avatarUrl,
+              status: userData.status || ["active"],
+            });
+
+            // For new users, always redirect to user dashboard
+            if (isNewUser) {
+              console.log("New user - redirecting to user dashboard");
+              router.push("/user-dashboard");
+              toast.success(`Welcome to PetCare, ${session.name}!`);
+              return;
+            }
+
+            // For existing users, redirect based on role
+            const roleToCheck = (userData.role || "user").trim().toLowerCase();
+            let redirectPath;
+
+            if (roleToCheck === "admin") {
+              redirectPath = "/admin";
+            } else if (
+              roleToCheck.includes("clinic") ||
+              roleToCheck.includes("pet training") ||
+              roleToCheck.includes("pet-boarding") ||
+              roleToCheck === "petboarding"
+            ) {
+              redirectPath = "/pet-boarding";
+            } else {
+              redirectPath = "/user-dashboard";
+            }
+
+            console.log(`Redirecting to ${redirectPath}`);
+            router.push(redirectPath);
+            toast.success(`Welcome back, ${session.name}!`);
             return;
+          } catch (sessionError) {
+            console.error("Session error:", sessionError);
+            
+            if (sessionError.code === 429) {
+              toast.error("Server is busy. Please try again in a few moments.");
+              router.push('/login');
+              return;
+            }
+            
+            if (sessionError.message?.includes('missing scope')) {
+              console.log("Retrying with correct scopes...");
+              const hostname = window.location.origin;
+              await account.createOAuth2Session(
+                "google",
+                `${hostname}/auth-callback`,
+                `${hostname}/login`,
+                ['https://www.googleapis.com/auth/userinfo.email', 
+                 'https://www.googleapis.com/auth/userinfo.profile',
+                 'openid']
+              );
+              return;
+            }
           }
           
-          // For other errors, redirect to login
-          toast.error("Session creation failed");
+          // If we get here, something went wrong
+          console.error("Authentication failed. No valid session found.");
+          toast.error("Authentication failed. Please try logging in again.");
           router.push('/login');
+
+        } catch (error) {
+          console.error("Auth callback error:", error);
+          toast.error("Authentication failed. Please try again.");
+          router.push('/');
         }
 
       } catch (error) {
         console.error("Auth callback error:", error);
-        toast.error("Authentication failed");
-        
-        // Clean up any partial session
-        try {
-          await account.deleteSession('current');
-        } catch (_) {
-          // Ignore cleanup errors
-        }
-        
-        router.push("/");
+        toast.error("Authentication failed. Please try again.");
+        router.push('/');
       }
     };
 
@@ -199,6 +215,7 @@ export default function AuthCallback() {
       <div className="text-center">
         <h2 className="text-2xl font-semibold mb-4">Completing sign in...</h2>
         <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-gray-900 mx-auto"></div>
+        <p className="mt-4 text-gray-600">Please wait while we set up your account...</p>
       </div>
     </div>
   );

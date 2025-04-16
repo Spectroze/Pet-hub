@@ -653,54 +653,32 @@ export const createNotification = async (notificationData) => {
 
 export const signInWithGoogle = async () => {
   try {
-    // First, check if we already have a session
+    // Delete any existing sessions before starting OAuth
     try {
-      const currentSession = await account.get();
-      if (currentSession) {
-        // Check if user exists in database
-        const existingUser = await databases.listDocuments(
-          appwriteConfig.databaseId,
-          appwriteConfig.userCollectionId,
-          [Query.equal("accountId", currentSession.$id)]
-        );
-
-        if (existingUser.total === 0) {
-          // Create new user document
-          const newUser = await databases.createDocument(
-            appwriteConfig.databaseId,
-            appwriteConfig.userCollectionId,
-            ID.unique(),
-            {
-              accountId: currentSession.$id,
-              email: currentSession.email,
-              name: currentSession.name,
-              avatar: currentSession.prefs?.avatar
-                ? `https://lh3.googleusercontent.com/a/${currentSession.prefs.avatar}`
-                : "/placeholder.svg",
-              role: "user",
-              status: ["active"],
-            }
-          );
-          return { ...currentSession, ...newUser };
-        }
-        return { ...currentSession, ...existingUser.documents[0] };
-      }
+      await account.deleteSession('current');
     } catch (error) {
-      console.log("No existing session");
+      console.log("No existing session to delete");
     }
 
     // Get the current hostname
     const hostname = typeof window !== 'undefined' ? window.location.origin : 'http://localhost:3000';
     
-    // If no session, create new OAuth session
+    console.log("Starting Google OAuth flow...");
+    console.log("Callback URL:", `${hostname}/auth-callback`);
+    console.log("Failure URL:", `${hostname}/login`);
+    
+    // Create new OAuth session with required scopes
     await account.createOAuth2Session(
       "google",
-      `${hostname}/auth-callback`, // Use dynamic hostname
-      `${hostname}/login`
+      `${hostname}/auth-callback`,
+      `${hostname}/login`,
+      ['https://www.googleapis.com/auth/userinfo.email', 
+       'https://www.googleapis.com/auth/userinfo.profile',
+       'openid']
     );
   } catch (error) {
     console.error("Google OAuth error:", error);
-    throw error;
+    throw new Error(`Failed to start Google login: ${error.message}`);
   }
 };
 

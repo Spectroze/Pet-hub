@@ -34,11 +34,12 @@ export default function LoginModal({ showLoginModal, setShowLoginModal }) {
   const handleGoogleSignIn = async () => {
     setLoading(true);
     try {
+      console.log("Starting Google sign-in...");
       await signInWithGoogle();
-      // The redirect will happen automatically
+      // Don't set loading to false here as we're being redirected
     } catch (error) {
       console.error("Google login error:", error);
-      toast.error("Failed to sign in with Google");
+      toast.error("Failed to sign in with Google. Please try again.");
       setLoading(false);
     }
   };
